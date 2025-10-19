@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% set title = 'Dashboard' %}
+{% block content %}
+<style>
+  .stat-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .gradient-sena {
+    background: linear-gradient(135deg, #00b894 0%, #009b7d 100%);
+  }
+  .gradient-success {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  }
+  .gradient-info {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  }
+  .gradient-warning {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  }
+  .gradient-danger {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, #00b894 0%, #009b7d 100%);
+  }
+  .card-header-custom {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    border-bottom: 2px solid #00b894;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  .activity-item {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: rgba(0, 184, 148, 0.1);
+    border-left: 3px solid #00b894;
+    transition: all 0.3s ease;
+  }
+  .activity-item:hover {
+    background: rgba(0, 184, 148, 0.2);
+    transform: translateX(5px);
+  }
+  .quick-action-card {
+    border: 2px dashed #00b894;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.5);
+  }
+  .quick-action-card:hover {
+    border-color: #009b7d;
+    background: rgba(0, 184, 148, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.2);
+  }
+  .quick-action-card h6 {
+    color: #1e5128 !important;
+    font-weight: 700;
+  }
+  .quick-action-card .text-muted {
+    color: #2d6a4f !important;
+  }
+  .card-body.text-white h3,
+  .card-body.text-white p,
+  .card-body.text-white i {
+    color: #ffffff !important;
+  }
+</style>
+
+<!-- Bienvenida -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 50%, #2d6a4f 100%);">
+      <div class="card-body text-white p-4">
+        <h3 class="mb-2 fw-bold"><i class="bi bi-speedometer2 me-2"></i>Dashboard - Centro Minero SENA</h3>
+        <p class="mb-0 opacity-90">Bienvenido, {{ user.get('nombre', 'Usuario') }} | Nivel de acceso: {{ user.get('user_level', 1) }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tarjetas de Estadísticas -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Equipos Activos</div>
+            <div class="stat-value text-success">{{ stats.get('equipos_activos', 0) }}</div>
+          </div>
+          <div class="stat-icon gradient-sena text-white">
+            <i class="bi bi-cpu"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Inventario OK</div>
+            <div class="stat-value text-success">{{ stats.get('inventario_bien', 0) }}</div>
+          </div>
+          <div class="stat-icon gradient-success text-white">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  {% if user and user.get('user_level',0) >= 5 and user.get('a_cargo_inventario', False) %}
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Reservas Próximas</div>
+            <div class="stat-value text-info">{{ stats.get('reservas_proximas', 0) }}</div>
+          </div>
+          <div class="stat-icon gradient-info text-white">
+            <i class="bi bi-calendar-event-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label mb-2">Espacios</div>
+            <div class="stat-value text-primary">{{ stats.get('total_laboratorios', 0) }}</div>
+            <small class="text-muted d-block mt-1" style="font-size: 0.7rem; text-transform: none;">Labs, Aulas, Talleres</small>
+          </div>
+          <div class="stat-icon gradient-primary text-white">
+            <i class="bi bi-building"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Acciones Rápidas (Solo Administradores e Instructores) -->
+{% if user and user.get('user_level',0) >= 4 %}
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header card-header-custom">
+        <i class="bi bi-lightning-charge-fill me-2"></i>Acciones Rápidas
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="card quick-action-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="stat-icon gradient-sena text-white mx-auto mb-3">
+                  <i class="bi bi-plus-circle-fill"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Registrar Equipo/Item</h6>
+                <p class="small text-muted mb-3">Registro con fotos e IA</p>
+                <a class="btn btn-sena btn-sm" href="{{ url_for('registro_completo') }}">
+                  <i class="bi bi-plus-circle me-1"></i>Ir
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          {% if user.user_level >= 6 %}
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="card quick-action-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="stat-icon gradient-primary text-white mx-auto mb-3">
+                  <i class="bi bi-people-fill"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Gestionar Usuarios</h6>
+                <p class="small text-muted mb-3">Administrar usuarios</p>
+                <a class="btn btn-primary btn-sm" href="{{ url_for('usuarios') }}">
+                  <i class="bi bi-person-plus me-1"></i>Ir
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="card quick-action-card h-100">
+              <div class="card-body text-center p-4">
+                <div class="stat-icon gradient-warning text-white mx-auto mb-3">
+                  <i class="bi bi-database"></i>
+                </div>
+                <h6 class="fw-bold mb-2">Backup BD</h6>
+                <p class="small text-muted mb-3">Respaldar base de datos</p>
+                <a class="btn btn-warning btn-sm" href="{{ url_for('backup') }}">
+                  <i class="bi bi-download me-1"></i>Ir
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Alertas y Avisos del Sistema -->
+<div class="row g-4">
+  <!-- Items con Stock Crítico -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header card-header-custom">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>Stock Crítico
+      </div>
+      <div class="card-body p-3" style="max-height: 350px; overflow-y: auto;">
+        <div id="stockCritico">
+          <div class="activity-item">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-clock-history text-muted me-2"></i>
+              <small class="text-muted">Cargando...</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Reservas Pendientes -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header card-header-custom">
+        <i class="bi bi-calendar-check-fill me-2"></i>Reservas Pendientes
+      </div>
+      <div class="card-body p-3" style="max-height: 350px; overflow-y: auto;">
+        <div id="reservasPendientes">
+          <div class="activity-item">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-clock-history text-muted me-2"></i>
+              <small class="text-muted">Cargando...</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Cargar items con stock crítico
+  fetch('/api/dashboard/alertas')
+    .then(r => r.json())
+    .then(data => {
+      // Stock Crítico
+      const stockContainer = document.getElementById('stockCritico');
+      if(data.stock_critico && data.stock_critico.length > 0) {
+        stockContainer.innerHTML = data.stock_critico.map(item => `
+          <div class="activity-item">
+            <div class="d-flex align-items-start justify-content-between">
+              <div class="flex-grow-1">
+                <div class="small fw-semibold">
+                  <i class="bi bi-box-seam text-danger me-1"></i>${item.nombre}
+                </div>
+                <div class="small text-muted">
+                  <i class="bi bi-building me-1"></i>${item.laboratorio_nombre}
+                </div>
+                <div class="small mt-1">
+                  <span class="badge bg-danger">Stock: ${item.cantidad_actual}/${item.cantidad_minima} ${item.unidad || ''}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        stockContainer.innerHTML = `
+          <div class="activity-item text-center">
+            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+            <p class="small text-muted mb-0 mt-2">✓ Todo el inventario está en niveles óptimos</p>
+          </div>
+        `;
+      }
+      
+      // Reservas Pendientes
+      const reservasContainer = document.getElementById('reservasPendientes');
+      if(data.reservas_pendientes && data.reservas_pendientes.length > 0) {
+        reservasContainer.innerHTML = data.reservas_pendientes.map(reserva => `
+          <div class="activity-item">
+            <div class="d-flex align-items-start justify-content-between">
+              <div class="flex-grow-1">
+                <div class="small fw-semibold">
+                  <i class="bi bi-person text-primary me-1"></i>${reserva.usuario_nombre}
+                </div>
+                <div class="small text-muted">
+                  <i class="bi bi-laptop me-1"></i>${reserva.equipo_nombre}
+                </div>
+                <div class="small text-muted">
+                  <i class="bi bi-calendar me-1"></i>${reserva.fecha_inicio}
+                </div>
+              </div>
+              <span class="badge bg-warning text-dark">Pendiente</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        reservasContainer.innerHTML = `
+          <div class="activity-item text-center">
+            <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+            <p class="small text-muted mb-0 mt-2">No hay reservas pendientes de aprobación</p>
+          </div>
+        `;
+      }
+    })
+    .catch(() => {
+      document.getElementById('stockCritico').innerHTML = `
+        <div class="activity-item">
+          <small class="text-muted"><i class="bi bi-exclamation-circle me-2"></i>Error cargando alertas</small>
+        </div>
+      `;
+      document.getElementById('reservasPendientes').innerHTML = `
+        <div class="activity-item">
+          <small class="text-muted"><i class="bi bi-exclamation-circle me-2"></i>Error cargando reservas</small>
+        </div>
+      `;
+    })
+</script>
+{% endblock %}
