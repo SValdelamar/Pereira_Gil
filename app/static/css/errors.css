@@ -1,0 +1,124 @@
+/* =====================================================================
+   ERROR PAGES STYLES - Centro Minero SENA
+   Estilos para 404, 500 y otras páginas de error
+   ===================================================================== */
+
+body {
+    background: linear-gradient(135deg, var(--color-sena-dark) 0%, var(--color-sena-medium) 50%, var(--color-sena-light) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family);
+}
+
+.error-container {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    max-width: 600px;
+}
+
+.error-icon {
+    font-size: 120px;
+    color: white;
+    margin-bottom: var(--spacing-lg);
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.error-code {
+    font-size: 96px;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.error-title {
+    font-size: var(--font-size-3xl);
+    font-weight: 600;
+    color: white;
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+}
+
+.error-message {
+    font-size: var(--font-size-lg);
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.error-btn {
+    padding: 14px 28px;
+    border-radius: var(--border-radius-md);
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.error-btn-primary {
+    background: white;
+    color: var(--color-sena-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.error-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    color: var(--color-sena-dark);
+}
+
+.error-btn-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.error-btn-outline:hover {
+    background: white;
+    color: var(--color-sena-dark);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 576px) {
+    .error-code {
+        font-size: 72px;
+    }
+    
+    .error-title {
+        font-size: var(--font-size-2xl);
+    }
+    
+    .error-message {
+        font-size: var(--font-size-base);
+    }
+    
+    .error-icon {
+        font-size: 80px;
+    }
+    
+    .error-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .error-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

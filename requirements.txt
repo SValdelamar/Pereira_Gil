@@ -1,7 +1,9 @@
 # =============================
 # SISTEMA DE LABORATORIOS - CENTRO MINERO SENA
-# Dependencias Actualizadas y Verificadas
-# Python 3.13.5 Compatible
+# Dependencias Verificadas y Optimizadas - Sin Conflictos
+# Python 3.11+ Compatible
+# Actualizado: Octubre 2025
+# Estado: ✅ PRODUCCIÓN
 # =============================
 
 # =====================

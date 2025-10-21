@@ -1,0 +1,114 @@
+/**
+ * Modal Fix Styles
+ * 
+ * Solución definitiva para el problema de backdrops bloqueantes en modales Bootstrap.
+ * Este archivo debe cargarse DESPUÉS de Bootstrap pero ANTES de otros CSS personalizados.
+ * 
+ * @version 1.0.0
+ * @author Sistema Laboratorio SENA
+ */
+
+/* =====================================================================
+   ELIMINACIÓN DE BACKDROPS BLOQUEANTES
+   ===================================================================== */
+
+/**
+ * Forzar que los backdrops de Bootstrap nunca se muestren ni bloqueen la UI.
+ * Usamos múltiples selectores para cubrir todas las variantes de clases.
+ */
+.modal-backdrop,
+div.modal-backdrop,
+.modal-backdrop.show,
+.modal-backdrop.fade,
+.modal-backdrop.fade.show,
+div[class*="modal-backdrop"],
+div[class*="backdrop"] {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -9999 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+}
+
+/* =====================================================================
+   PREVENCIÓN DE BLOQUEO DEL BODY
+   ===================================================================== */
+
+/**
+ * Asegurar que el body siempre sea scrolleable cuando hay modales abiertos.
+ * Bootstrap por defecto agrega overflow: hidden al body.modal-open
+ */
+body.modal-open {
+    overflow: auto !important;
+    padding-right: 0 !important;
+}
+
+/* =====================================================================
+   Z-INDEX CORRECTO PARA MODALES
+   ===================================================================== */
+
+/**
+ * Asegurar que los modales tengan el z-index correcto para aparecer
+ * sobre otros elementos pero sin backdrop bloqueante.
+ */
+.modal {
+    z-index: 9999 !important;
+}
+
+.modal.show {
+    display: block !important;
+}
+
+/**
+ * Asegurar que los diálogos de modales sean siempre interactuables
+ */
+.modal-dialog {
+    pointer-events: all !important;
+    z-index: 10000 !important;
+}
+
+/**
+ * Asegurar que el contenido del modal sea interactuable
+ */
+.modal-content {
+    pointer-events: all !important;
+    z-index: 10001 !important;
+    position: relative !important;
+}
+
+.modal-content * {
+    pointer-events: all !important;
+}
+
+/**
+ * Asegurar que los inputs y elementos del formulario sean interactuables
+ */
+.modal input,
+.modal textarea,
+.modal select,
+.modal button {
+    pointer-events: all !important;
+    position: relative !important;
+    z-index: 10002 !important;
+}
+
+/* =====================================================================
+   TRANSICIONES SUAVES
+   ===================================================================== */
+
+/**
+ * Mantener las transiciones suaves de Bootstrap pero sin backdrop
+ */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}

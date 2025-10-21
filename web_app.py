@@ -17,9 +17,9 @@ import re
 import json
 import secrets
 from functools import wraps
-from utils.report_generator import report_generator
-from utils.notificaciones import NotificacionesManager
-from utils.permissions import (
+from app.utils.report_generator import report_generator
+from app.utils.notificaciones import NotificacionesManager
+from app.utils.permissions import (
     permissions_manager,
     require_permission,
     require_level,
@@ -46,7 +46,10 @@ from utils.permissions import (
 if os.path.exists('.env_produccion'):
     load_dotenv('.env_produccion')
 
-app = Flask(__name__)
+# Configurar Flask para usar la nueva estructura app/
+app = Flask(__name__, 
+            template_folder='app/templates',
+            static_folder='app/static')
 
 # =====================================================================
 # CONTEXT PROCESSOR - Permisos disponibles en todas las plantillas
@@ -154,7 +157,7 @@ def verify_jwt_or_admin():
 def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -166,7 +169,7 @@ def login():
         # Validar que se ingresaron ambos campos
         if not user_id or not password:
             flash('Por favor ingresa usuario y contraseña', 'error')
-            return render_template('login.html')
+            return render_template('auth/login.html')
         
         # Buscar usuario con contraseña
         query = "SELECT id, nombre, tipo, nivel_acceso, activo, password_hash, a_cargo_inventario FROM usuarios WHERE id = %s AND activo = TRUE"
@@ -219,7 +222,7 @@ def login():
             # Usuario no encontrado
             flash('Usuario o contraseña incorrectos', 'error')
     
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 
 @app.route('/registro', methods=['GET', 'POST'])
@@ -247,22 +250,22 @@ def registro():
         # Validaciones básicas
         if not all([user_id, nombre, email, password, nivel_acceso]):
             flash('Todos los campos básicos son requeridos', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         if password != confirm_password:
             flash('Las contraseñas no coinciden', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         if len(password) < 6:
             flash('La contraseña debe tener al menos 6 caracteres', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         # Verificar si el usuario ya existe
         check_query = "SELECT id FROM usuarios WHERE id = %s OR email = %s"
         existing = db_manager.execute_query(check_query, (user_id, email))
         if existing:
             flash('El ID de usuario o correo ya están registrados', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         # Recopilar campos específicos según el rol
         campos_extra = {
@@ -281,7 +284,7 @@ def registro():
         # Los demás campos se guardan pero no son obligatorios en el registro inicial
         if not campos_extra['programa'] or not campos_extra['ficha']:
             flash('Programa y Ficha son campos obligatorios para el registro', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         # Determinar tipo según nivel
         tipo_map = {
@@ -368,9 +371,9 @@ def registro():
             
         except Exception as e:
             flash(f'Error al crear la cuenta: {str(e)}', 'error')
-            return render_template('registro_dinamico.html', laboratorios=laboratorios)
+            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
     
-    return render_template('registro_dinamico.html', laboratorios=laboratorios)
+    return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
 
 
 @app.route('/login_facial', methods=['POST'])
@@ -603,7 +606,7 @@ def recuperar_contrasena():
         
         if not email:
             flash('Por favor ingresa tu correo electrónico', 'error')
-            return render_template('recuperar_contrasena.html')
+            return render_template('auth/recuperar_contrasena.html')
         
         # Verificar que el usuario existe
         query = "SELECT id, nombre, email FROM usuarios WHERE email = %s AND activo = TRUE"
@@ -646,7 +649,7 @@ def recuperar_contrasena():
             # Por seguridad, no revelar si el email existe o no
             flash('Si el correo está registrado, recibirás un código de verificación en tu bandeja de entrada.', 'info')
     
-    return render_template('recuperar_contrasena.html')
+    return render_template('auth/recuperar_contrasena.html')
 
 
 def enviar_codigo_recuperacion(email, nombre, codigo):
@@ -904,7 +907,7 @@ def verificar_codigo(user_id):
         
         if not codigo_ingresado:
             flash('Por favor ingresa el código', 'error')
-            return render_template('verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
+            return render_template('auth/verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
         
         # Debug: Imprimir códigos para comparación
         codigo_esperado = str(code_data['code']).strip()
@@ -919,9 +922,9 @@ def verificar_codigo(user_id):
             return redirect(url_for('restablecer_contrasena', user_id=user_id))
         else:
             flash(f'Código incorrecto. Verifica e intenta nuevamente.', 'error')
-            return render_template('verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
+            return render_template('auth/verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
     
-    return render_template('verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
+    return render_template('auth/verificar_codigo.html', user_id=user_id, email=code_data.get('email', ''))
 
 
 @app.route('/restablecer-contrasena/<user_id>', methods=['GET', 'POST'])
@@ -938,15 +941,15 @@ def restablecer_contrasena(user_id):
         
         if not nueva_contrasena or not confirmar_contrasena:
             flash('Todos los campos son requeridos', 'error')
-            return render_template('restablecer_contrasena.html', user_id=user_id)
+            return render_template('auth/restablecer_contrasena.html', user_id=user_id)
         
         if nueva_contrasena != confirmar_contrasena:
             flash('Las contraseñas no coinciden', 'error')
-            return render_template('restablecer_contrasena.html', user_id=user_id)
+            return render_template('auth/restablecer_contrasena.html', user_id=user_id)
         
         if len(nueva_contrasena) < 6:
             flash('La contraseña debe tener al menos 6 caracteres', 'error')
-            return render_template('restablecer_contrasena.html', user_id=user_id)
+            return render_template('auth/restablecer_contrasena.html', user_id=user_id)
         
         # Actualizar contraseña en la base de datos
         # Nota: En producción, usar bcrypt para hashear la contraseña
@@ -963,19 +966,19 @@ def restablecer_contrasena(user_id):
         except Exception as e:
             flash(f'Error al actualizar contraseña: {str(e)}', 'error')
     
-    return render_template('restablecer_contrasena.html', user_id=user_id)
+    return render_template('auth/restablecer_contrasena.html', user_id=user_id)
 
 
 @app.route('/ayuda')
 def ayuda():
     """Manual de usuario interactivo"""
-    return render_template('ayuda.html', user=session if 'user_id' in session else None)
+    return render_template('modules/ayuda.html', user=session if 'user_id' in session else None)
 
 
 @app.route('/modulos')
 def modulos():
     """Vista de todos los módulos del proyecto"""
-    return render_template('modulos_proyecto.html', user=session if 'user_id' in session else None)
+    return render_template('modules/modulos_proyecto.html', user=session if 'user_id' in session else None)
 
 
 @app.route('/perfil', methods=['GET', 'POST'])
@@ -1005,7 +1008,7 @@ def perfil():
     query = "SELECT id, nombre, email, telefono, tipo, programa, nivel_acceso FROM usuarios WHERE id = %s"
     user_data = db_manager.execute_query(query, (session['user_id'],))
     if user_data:
-        return render_template('perfil.html', usuario=user_data[0], user=session)
+        return render_template('modules/perfil.html', usuario=user_data[0], user=session)
     return redirect(url_for('dashboard'))
 
 
@@ -1105,7 +1108,7 @@ def backup():
             for f in sorted(backup_dir.glob('*.sql'), key=lambda x: x.stat().st_mtime, reverse=True)
         ]
     
-    return render_template('backup.html', backups=backups, user=session)
+    return render_template('modules/backup.html', backups=backups, user=session)
 
 
 @app.route('/backup/download/<filename>')
@@ -1155,7 +1158,7 @@ def download_backup(filename):
 @require_login
 def dashboard():
     stats = get_dashboard_stats()
-    return render_template('dashboard.html', stats=stats, user=session)
+    return render_template('dashboard/dashboard.html', stats=stats, user=session)
 
 
 @app.route('/api/dashboard/alertas')
@@ -1238,7 +1241,7 @@ def laboratorios():
     """
     instructores_list = db_manager.execute_query(query_instructores) or []
     
-    return render_template('laboratorios.html', 
+    return render_template('modules/laboratorios.html', 
                          laboratorios=laboratorios_list, 
                          instructores=instructores_list,
                          user=session)
@@ -1292,11 +1295,282 @@ def laboratorio_detalle(laboratorio_id):
     """
     inventario = db_manager.execute_query(query_inventario, (laboratorio_id,))
     
-    return render_template('laboratorio_detalle.html', 
+    return render_template('modules/laboratorio_detalle.html', 
                          laboratorio=laboratorio[0], 
                          equipos=equipos, 
                          inventario=inventario, 
                          user=session)
+
+
+# =====================================================================
+# CRUD LABORATORIOS - Solo Administradores (Nivel 6+)
+# =====================================================================
+
+@app.route('/api/laboratorios', methods=['POST'])
+@require_login
+@require_level(NIVEL_ADMINISTRADOR)
+def crear_laboratorio():
+    """Crear un nuevo laboratorio - Solo administradores"""
+    try:
+        data = request.get_json()
+        
+        # Validar campos requeridos
+        campos_requeridos = ['codigo', 'nombre', 'tipo']
+        for campo in campos_requeridos:
+            if not data.get(campo):
+                return jsonify({
+                    'success': False,
+                    'message': f'El campo {campo} es requerido'
+                }), 400
+        
+        # Verificar que el código no exista
+        query_check = "SELECT id FROM laboratorios WHERE codigo = %s"
+        existe = db_manager.execute_query(query_check, (data['codigo'],))
+        if existe:
+            return jsonify({
+                'success': False,
+                'message': f'Ya existe un laboratorio con el código {data["codigo"]}'
+            }), 400
+        
+        # Preparar datos
+        codigo = data['codigo'].strip()
+        nombre = data['nombre'].strip()
+        tipo = data['tipo']
+        ubicacion = data.get('ubicacion', '').strip()
+        capacidad = data.get('capacidad_estudiantes', 0) or 0
+        area = data.get('area_m2', 0) or 0
+        responsable_id = data.get('responsable_id') or None
+        equipamiento = data.get('equipamiento_especializado', '').strip()
+        normas = data.get('normas_seguridad', '').strip()
+        
+        # Obtener nombre del responsable si se proporciona ID
+        responsable_nombre = None
+        if responsable_id:
+            query_resp = "SELECT nombre FROM usuarios WHERE id = %s"
+            result_resp = db_manager.execute_query(query_resp, (responsable_id,))
+            if result_resp:
+                responsable_nombre = result_resp[0]['nombre']
+        
+        # Insertar laboratorio
+        query = """
+            INSERT INTO laboratorios 
+            (codigo, nombre, tipo, ubicacion, capacidad_estudiantes, area_m2, 
+             responsable, equipamiento_especializado, normas_seguridad, estado, fecha_creacion)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'activo', NOW())
+        """
+        params = (codigo, nombre, tipo, ubicacion, capacidad, area, 
+                 responsable_nombre, equipamiento, normas)
+        db_manager.execute_query(query, params)
+        
+        # Registrar en logs
+        query_log = """
+            INSERT INTO logs_sistema (usuario_id, accion, detalles, fecha)
+            VALUES (%s, 'crear_laboratorio', %s, NOW())
+        """
+        detalles = f'Creado laboratorio: {codigo} - {nombre}'
+        db_manager.execute_query(query_log, (session.get('user_id'), detalles))
+        
+        return jsonify({
+            'success': True,
+            'message': f'Laboratorio {codigo} creado exitosamente'
+        }), 201
+        
+    except Exception as e:
+        print(f"[ERROR] crear_laboratorio: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al crear laboratorio: {str(e)}'
+        }), 500
+
+
+@app.route('/api/laboratorios/<int:lab_id>', methods=['PUT'])
+@require_login
+@require_level(NIVEL_ADMINISTRADOR)
+def actualizar_laboratorio(lab_id):
+    """Actualizar un laboratorio existente - Solo administradores"""
+    try:
+        data = request.get_json()
+        
+        # Verificar que el laboratorio existe
+        query_check = "SELECT id, codigo FROM laboratorios WHERE id = %s"
+        lab_actual = db_manager.execute_query(query_check, (lab_id,))
+        if not lab_actual:
+            return jsonify({
+                'success': False,
+                'message': 'Laboratorio no encontrado'
+            }), 404
+        
+        # Validar campos requeridos
+        campos_requeridos = ['codigo', 'nombre', 'tipo']
+        for campo in campos_requeridos:
+            if not data.get(campo):
+                return jsonify({
+                    'success': False,
+                    'message': f'El campo {campo} es requerido'
+                }), 400
+        
+        # Si cambia el código, verificar que no exista otro con ese código
+        if data['codigo'] != lab_actual[0]['codigo']:
+            query_check_codigo = "SELECT id FROM laboratorios WHERE codigo = %s AND id != %s"
+            existe = db_manager.execute_query(query_check_codigo, (data['codigo'], lab_id))
+            if existe:
+                return jsonify({
+                    'success': False,
+                    'message': f'Ya existe otro laboratorio con el código {data["codigo"]}'
+                }), 400
+        
+        # Preparar datos
+        codigo = data['codigo'].strip()
+        nombre = data['nombre'].strip()
+        tipo = data['tipo']
+        ubicacion = data.get('ubicacion', '').strip()
+        capacidad = data.get('capacidad_estudiantes', 0) or 0
+        area = data.get('area_m2', 0) or 0
+        responsable_id = data.get('responsable_id') or None
+        equipamiento = data.get('equipamiento_especializado', '').strip()
+        normas = data.get('normas_seguridad', '').strip()
+        estado = data.get('estado', 'activo')
+        
+        # Obtener nombre del responsable si se proporciona ID
+        responsable_nombre = None
+        if responsable_id:
+            query_resp = "SELECT nombre FROM usuarios WHERE id = %s"
+            result_resp = db_manager.execute_query(query_resp, (responsable_id,))
+            if result_resp:
+                responsable_nombre = result_resp[0]['nombre']
+        
+        # Actualizar laboratorio
+        query = """
+            UPDATE laboratorios SET
+                codigo = %s,
+                nombre = %s,
+                tipo = %s,
+                ubicacion = %s,
+                capacidad_estudiantes = %s,
+                area_m2 = %s,
+                responsable = %s,
+                equipamiento_especializado = %s,
+                normas_seguridad = %s,
+                estado = %s,
+                fecha_modificacion = NOW()
+            WHERE id = %s
+        """
+        params = (codigo, nombre, tipo, ubicacion, capacidad, area, 
+                 responsable_nombre, equipamiento, normas, estado, lab_id)
+        db_manager.execute_query(query, params)
+        
+        # Registrar en logs
+        query_log = """
+            INSERT INTO logs_sistema (usuario_id, accion, detalles, fecha)
+            VALUES (%s, 'actualizar_laboratorio', %s, NOW())
+        """
+        detalles = f'Actualizado laboratorio ID {lab_id}: {codigo} - {nombre}'
+        db_manager.execute_query(query_log, (session.get('user_id'), detalles))
+        
+        return jsonify({
+            'success': True,
+            'message': f'Laboratorio {codigo} actualizado exitosamente'
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] actualizar_laboratorio: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al actualizar laboratorio: {str(e)}'
+        }), 500
+
+
+@app.route('/api/laboratorios/<int:lab_id>', methods=['DELETE'])
+@require_login
+@require_level(NIVEL_ADMINISTRADOR)
+def eliminar_laboratorio(lab_id):
+    """Eliminar un laboratorio - Solo administradores"""
+    try:
+        # Verificar que el laboratorio existe
+        query_check = "SELECT codigo, nombre FROM laboratorios WHERE id = %s"
+        laboratorio = db_manager.execute_query(query_check, (lab_id,))
+        if not laboratorio:
+            return jsonify({
+                'success': False,
+                'message': 'Laboratorio no encontrado'
+            }), 404
+        
+        lab_data = laboratorio[0]
+        
+        # Verificar si tiene equipos o inventario asociado
+        query_count_equipos = "SELECT COUNT(*) as total FROM equipos WHERE laboratorio_id = %s"
+        count_equipos = db_manager.execute_query(query_count_equipos, (lab_id,))
+        
+        query_count_inventario = "SELECT COUNT(*) as total FROM inventario WHERE laboratorio_id = %s"
+        count_inventario = db_manager.execute_query(query_count_inventario, (lab_id,))
+        
+        total_equipos = count_equipos[0]['total'] if count_equipos else 0
+        total_inventario = count_inventario[0]['total'] if count_inventario else 0
+        
+        if total_equipos > 0 or total_inventario > 0:
+            return jsonify({
+                'success': False,
+                'message': f'No se puede eliminar el laboratorio. Tiene {total_equipos} equipos y {total_inventario} items de inventario asociados. Primero elimínelos o reasígnelos.',
+                'equipos': total_equipos,
+                'inventario': total_inventario
+            }), 400
+        
+        # Eliminar laboratorio
+        query_delete = "DELETE FROM laboratorios WHERE id = %s"
+        db_manager.execute_query(query_delete, (lab_id,))
+        
+        # Registrar en logs
+        query_log = """
+            INSERT INTO logs_sistema (usuario_id, accion, detalles, fecha)
+            VALUES (%s, 'eliminar_laboratorio', %s, NOW())
+        """
+        detalles = f'Eliminado laboratorio ID {lab_id}: {lab_data["codigo"]} - {lab_data["nombre"]}'
+        db_manager.execute_query(query_log, (session.get('user_id'), detalles))
+        
+        return jsonify({
+            'success': True,
+            'message': f'Laboratorio {lab_data["codigo"]} eliminado exitosamente'
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] eliminar_laboratorio: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al eliminar laboratorio: {str(e)}'
+        }), 500
+
+
+@app.route('/api/laboratorios/<int:lab_id>', methods=['GET'])
+@require_login
+def obtener_laboratorio(lab_id):
+    """Obtener detalles de un laboratorio para edición"""
+    try:
+        query = """
+            SELECT id, codigo, nombre, tipo, ubicacion, capacidad_estudiantes,
+                   area_m2, responsable, equipamiento_especializado, 
+                   normas_seguridad, estado
+            FROM laboratorios
+            WHERE id = %s
+        """
+        laboratorio = db_manager.execute_query(query, (lab_id,))
+        
+        if not laboratorio:
+            return jsonify({
+                'success': False,
+                'message': 'Laboratorio no encontrado'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': laboratorio[0]
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] obtener_laboratorio: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al obtener laboratorio: {str(e)}'
+        }), 500
 
 
 @app.route('/equipos')
@@ -1326,7 +1600,7 @@ def equipos():
                     equipo['especificaciones'] = specs_obj
             except Exception:
                 equipo['especificaciones'] = {}
-    return render_template('equipos.html', equipos=equipos_list, user=session)
+    return render_template('modules/equipos.html', equipos=equipos_list, user=session)
 
 @app.route('/equipos/crear', methods=['POST'])
 @require_login
@@ -1401,7 +1675,7 @@ def inventario():
     query_labs = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
     laboratorios_list = db_manager.execute_query(query_labs)
     
-    return render_template('inventario.html', 
+    return render_template('modules/inventario.html', 
                          equipos=equipos_list,
                          inventario=inventario_list, 
                          laboratorios=laboratorios_list,
@@ -1505,7 +1779,7 @@ def reservas():
         )
         reservas_list = db_manager.execute_query(query, (session['user_id'],)) or []
     
-    return render_template('reservas.html', reservas=reservas_list, equipos=equipos_list, user=session)
+    return render_template('modules/reservas.html', reservas=reservas_list, equipos=equipos_list, user=session)
 
 
 @app.route('/reservas/crear', methods=['POST'])
@@ -1600,7 +1874,7 @@ def usuarios():
         """
     )
     usuarios_list = db_manager.execute_query(query)
-    return render_template('usuarios.html', usuarios=usuarios_list, user=session)
+    return render_template('modules/usuarios.html', usuarios=usuarios_list, user=session)
 
 
 @app.route('/admin/solicitudes-nivel')
@@ -1637,7 +1911,7 @@ def gestionar_solicitudes_nivel():
     # Contar solicitudes pendientes
     pendientes = sum(1 for s in solicitudes if s['estado'] == 'pendiente')
     
-    return render_template('admin_solicitudes_nivel.html', 
+    return render_template('modules/admin_solicitudes_nivel.html', 
                          solicitudes=solicitudes, 
                          pendientes=pendientes,
                          roles_nombres=ROLES_NOMBRES,
@@ -1770,7 +2044,7 @@ def rechazar_solicitud_nivel(solicitud_id):
 @require_level(2)
 def reportes():
     reportes_data = get_reportes_data()
-    return render_template('reportes.html', reportes=reportes_data, user=session)
+    return render_template('modules/reportes.html', reportes=reportes_data, user=session)
 
 
 @app.route('/reportes/descargar/pdf')
@@ -1841,20 +2115,20 @@ def descargar_reporte_excel():
 def configuracion():
     query = "SELECT clave, valor, descripcion FROM configuracion_sistema ORDER BY clave"
     config_list = db_manager.execute_query(query) or []
-    return render_template('configuracion.html', configuraciones=config_list, user=session)
+    return render_template('modules/configuracion.html', configuraciones=config_list, user=session)
 
 @app.route('/entrenamiento-visual')
 @require_login
 def entrenamiento_visual():
     """Página para entrenar la IA de reconocimiento visual"""
-    return render_template('entrenamiento_visual.html', user=session)
+    return render_template('modules/entrenamiento_visual.html', user=session)
 
 
 @app.route('/registro-facial')
 @require_login
 def registro_facial():
     """Página para registro facial de usuarios"""
-    return render_template('registro_facial.html', user=session)
+    return render_template('modules/registro_facial.html', user=session)
 
 
 # =====================================================================
@@ -4467,7 +4741,7 @@ api.add_resource(ObjetosAPI, '/api/objetos')
 @require_login
 @require_level(4)  # Solo Administrador puede entrenar IA
 def objetos_registrar():
-    return render_template('objetos_registrar.html', user=session)
+    return render_template('modules/objetos_registrar.html', user=session)
 
 @app.route('/registro-completo')
 @require_login
@@ -4477,7 +4751,7 @@ def registro_completo():
     # Obtener lista de laboratorios
     query = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
     laboratorios = db_manager.execute_query(query)
-    return render_template('registro_completo.html', user=session, laboratorios=laboratorios)
+    return render_template('auth/registro_completo.html', user=session, laboratorios=laboratorios)
 
 @app.route('/registros-gestion')
 @require_login
@@ -4486,7 +4760,7 @@ def registros_gestion():
     """Página de gestión de registros"""
     query = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
     laboratorios = db_manager.execute_query(query)
-    return render_template('registros_gestion.html', user=session, laboratorios=laboratorios)
+    return render_template('modules/registros_gestion.html', user=session, laboratorios=laboratorios)
 
 @app.route('/api/registro-completo', methods=['POST'])
 @require_login
@@ -5599,7 +5873,7 @@ def ai_stats():
 def not_found(error):
     if request.path.startswith('/api/'):
         return jsonify({'message': 'Endpoint no encontrado'}), 404
-    return render_template('404.html'), 404
+    return render_template('errors/404.html'), 404
 
 
 @app.errorhandler(500)
@@ -5617,7 +5891,7 @@ def internal_error(error):
             'error': str(error),
             'type': type(error).__name__
         }), 500
-    return render_template('500.html'), 500
+    return render_template('errors/500.html'), 500
 
 
 @jwt.expired_token_loader
@@ -5640,11 +5914,13 @@ def missing_token_callback(error):
 # =====================================================================
 
 if __name__ == '__main__':
-    os.makedirs('templates', exist_ok=True)
-    os.makedirs('static/css', exist_ok=True)
-    os.makedirs('static/js', exist_ok=True)
-    os.makedirs('models', exist_ok=True)  # Para modelos de IA
-
+    # Crear carpetas necesarias en la nueva estructura
+    os.makedirs('app/templates', exist_ok=True)
+    os.makedirs('app/static/css', exist_ok=True)
+    os.makedirs('app/static/js', exist_ok=True)
+    os.makedirs('backups', exist_ok=True)
+    os.makedirs('logs', exist_ok=True)
+    
     print("[SISTEMA] WEB + API REST - CENTRO MINERO SENA")
     print("=" * 60)
     print("[WEB] Interfaz Web: http://localhost:5000")
@@ -5657,5 +5933,5 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"[WARN] Error inicializando IA: {e}")
     
-    # Activar debug temporalmente para ver errores
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+    # Ejecutar servidor
+    app.run(debug=True, host='0.0.0.0', port=5000)

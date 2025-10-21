@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% set title = 'Mi Perfil' %}
+{% block content %}
+<div class="profile-header">
+    <div class="profile-avatar">
+        <i class="bi bi-person-circle"></i>
+    </div>
+    <h2 class="mb-2" style="position: relative; z-index: 1;">{{ usuario.nombre }}</h2>
+    <p class="mb-0" style="position: relative; z-index: 1;">
+        <span class="info-badge">
+            <i class="bi bi-person-badge me-1"></i>{{ usuario.id }}
+        </span>
+        <span class="info-badge">
+            <i class="bi bi-shield-check me-1"></i>Nivel {{ usuario.nivel_acceso }}
+        </span>
+        <span class="info-badge">
+            <i class="bi bi-briefcase me-1"></i>{{ usuario.tipo|capitalize }}
+        </span>
+    </p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="profile-card">
+            <h4 class="mb-4"><i class="bi bi-pencil-square me-2"></i>Editar Información Personal</h4>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category=='error' else category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('perfil') }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nombre" class="form-label">
+                            <i class="bi bi-person me-2"></i>Nombre Completo
+                        </label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" 
+                               value="{{ usuario.nombre }}" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">
+                            <i class="bi bi-envelope me-2"></i>Correo Electrónico
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ usuario.email or '' }}" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="telefono" class="form-label">
+                            <i class="bi bi-phone me-2"></i>Teléfono
+                        </label>
+                        <input type="tel" class="form-control" id="telefono" name="telefono" 
+                               value="{{ usuario.telefono or '' }}" placeholder="3001234567">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="programa" class="form-label">
+                            <i class="bi bi-book me-2"></i>Programa
+                        </label>
+                        <input type="text" class="form-control" id="programa" name="programa" 
+                               value="{{ usuario.programa or '' }}" placeholder="Ej: Tecnología Minera">
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <div class="alert border-0" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 155, 125, 0.1) 100%); border-left: 4px solid #00b894 !important;">
+                            <i class="bi bi-info-circle me-2" style="color: #00b894;"></i>
+                            <strong style="color: #2d6a4f;">Nota:</strong> Tu ID de usuario y nivel de acceso no pueden ser modificados. 
+                            Contacta al administrador si necesitas cambios en estos campos.
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
+                            <i class="bi bi-x-circle me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="profile-card">
+            <h5 class="mb-3"><i class="bi bi-graph-up me-2"></i>Mi Actividad</h5>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Reservas</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Comandos</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-card mt-3">
+            <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Seguridad</h5>
+            <div class="list-group">
+                <a href="{{ url_for('recuperar_contrasena') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-key me-2"></i>Cambiar Contraseña
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="bi bi-camera me-2"></i>Actualizar Foto Facial
+                </a>
+            </div>
+        </div>
+
+        <div class="profile-card mt-3">
+            <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Preferencias</h5>
+            <div class="list-group">
+                <a href="#" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#modalAccesibilidad">
+                    <i class="bi bi-universal-access me-2"></i>Accesibilidad
+                </a>
+                <a href="{{ url_for('ayuda') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-question-circle me-2"></i>Ayuda
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

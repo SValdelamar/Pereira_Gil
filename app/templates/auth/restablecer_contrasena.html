@@ -1,0 +1,57 @@
+{% extends 'auth/base_auth.html' %}
+
+{% block title %}Restablecer Contraseña{% endblock %}
+
+{% block main_class %}reset-main{% endblock %}
+
+{% block auth_content %}
+<div class="container">
+    <div class="reset-container">
+    <div class="reset-card">
+        <div class="card-header">
+            <i class="bi bi-shield-lock"></i>
+            <h2 class="mb-0">Crear Nueva Contraseña</h2>
+            <p class="mb-0 mt-2">Ingresa tu nueva contraseña</p>
+        </div>
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category=='error' else category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                
+                <div class="mb-3">
+                    <label for="nueva_contrasena" class="form-label">
+                        <i class="bi bi-key me-2"></i>Nueva Contraseña
+                    </label>
+                    <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" 
+                           placeholder="Mínimo 6 caracteres" required minlength="6" autofocus>
+                    <div class="form-text">Debe tener al menos 6 caracteres</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="confirmar_contrasena" class="form-label">
+                        <i class="bi bi-shield-check me-2"></i>Confirmar Contraseña
+                    </label>
+                    <input type="password" class="form-control" id="confirmar_contrasena" name="confirmar_contrasena" 
+                           placeholder="Repite la contraseña" required minlength="6">
+                    <div class="form-text">Debe coincidir con la contraseña anterior</div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Actualizar Contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
