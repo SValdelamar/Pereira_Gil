@@ -5,8 +5,8 @@
     <div class="profile-avatar">
         <i class="bi bi-person-circle"></i>
     </div>
-    <h2 class="mb-2" style="position: relative; z-index: 1;">{{ usuario.nombre }}</h2>
-    <p class="mb-0" style="position: relative; z-index: 1;">
+    <h2 class="mb-2 position-relative" style="z-index: 1;">{{ usuario.nombre }}</h2>
+    <p class="mb-0 position-relative" style="z-index: 1;">
         <span class="info-badge">
             <i class="bi bi-person-badge me-1"></i>{{ usuario.id }}
         </span>
@@ -70,9 +70,9 @@
                     </div>
 
                     <div class="col-12 mb-3">
-                        <div class="alert border-0" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 155, 125, 0.1) 100%); border-left: 4px solid #00b894 !important;">
-                            <i class="bi bi-info-circle me-2" style="color: #00b894;"></i>
-                            <strong style="color: #2d6a4f;">Nota:</strong> Tu ID de usuario y nivel de acceso no pueden ser modificados. 
+                        <div class="alert border-0 alert-sena">
+                            <i class="bi bi-info-circle me-2 text-sena-light"></i>
+                            <strong class="text-sena-primary">Nota:</strong> Tu ID de usuario y nivel de acceso no pueden ser modificados. 
                             Contacta al administrador si necesitas cambios en estos campos.
                         </div>
                     </div>

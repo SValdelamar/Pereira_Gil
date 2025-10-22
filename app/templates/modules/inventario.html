@@ -14,20 +14,20 @@
 <div class="row mb-4">
   <div class="col-12">
     <div class="card border-0 shadow-sm">
-      <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-        <h6 class="mb-0 fw-bold" style="color: #2d6a4f;"><i class="bi bi-funnel me-2"></i>Filtros de Búsqueda</h6>
+      <div class="card-header border-0 card-filter-header">
+        <h6 class="mb-0 fw-bold section-title-dark"><i class="bi bi-funnel me-2"></i>Filtros de Búsqueda</h6>
       </div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-5">
-            <label class="form-label fw-semibold" style="color: #2d6a4f;">Búsqueda</label>
+            <label class="form-label fw-semibold label-sena">Búsqueda</label>
             <div class="input-group">
-              <span class="input-group-text" style="background: #f8f9fa; border-color: #dee2e6;"><i class="bi bi-search"></i></span>
+              <span class="input-group-text input-group-icon"><i class="bi bi-search"></i></span>
               <input id="filtroBusqueda" type="text" class="form-control" placeholder="Buscar por nombre, tipo, categoría..." autofocus>
             </div>
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-semibold" style="color: #2d6a4f;">Tipo</label>
+            <label class="form-label fw-semibold label-sena">Tipo</label>
             <select id="filtroTipo" class="form-select">
               <option value="">Todos (Equipos e Items)</option>
               <option value="equipo">Solo Equipos</option>
@@ -35,7 +35,7 @@
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold" style="color: #2d6a4f;">Laboratorio</label>
+            <label class="form-label fw-semibold label-sena">Laboratorio</label>
             <select id="filtroLaboratorio" class="form-select">
               <option value="">Todos</option>
               {% for lab in laboratorios %}
@@ -44,7 +44,7 @@
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold" style="color: #2d6a4f;">Exportar</label>
+            <label class="form-label fw-semibold label-sena">Exportar</label>
             <select class="form-select" id="selectExport">
               <option value="">Seleccionar...</option>
               <option value="excel">Excel (.xls)</option>
@@ -61,11 +61,11 @@
 <!-- Estadísticas -->
 <div class="row g-3 mb-4">
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #00b894 0%, #009b7d 100%);">
+    <div class="card border-0 shadow-sm h-100 stat-box-success">
       <div class="card-body p-3">
         <div class="d-flex align-items-center">
           <div class="me-3">
-            <div class="rounded-3 p-2" style="background: rgba(255,255,255,0.2);">
+            <div class="icon-circle">
               <i class="bi bi-search fs-3 text-white"></i>
             </div>
           </div>
@@ -78,11 +78,11 @@
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);">
+    <div class="card border-0 shadow-sm h-100 stat-box-primary">
       <div class="card-body p-3">
         <div class="d-flex align-items-center">
           <div class="me-3">
-            <div class="rounded-3 p-2" style="background: rgba(255,255,255,0.2);">
+            <div class="icon-circle">
               <i class="bi bi-cpu fs-3 text-white"></i>
             </div>
           </div>
@@ -95,11 +95,11 @@
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+    <div class="card border-0 shadow-sm h-100 stat-box-success">
       <div class="card-body p-3">
         <div class="d-flex align-items-center">
           <div class="me-3">
-            <div class="rounded-3 p-2" style="background: rgba(255,255,255,0.2);">
+            <div class="icon-circle">
               <i class="bi bi-box-seam fs-3 text-white"></i>
             </div>
           </div>
@@ -115,14 +115,14 @@
 
 <!-- Tabla de Resultados -->
 <div class="card border-0 shadow-sm">
-  <div class="card-header border-0" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+  <div class="card-header border-0 bg-sena-primary">
     <h6 class="mb-0 text-white fw-bold"><i class="bi bi-table me-2"></i>Resultados de Búsqueda</h6>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0" id="tablaResultados">
-        <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-          <tr style="color: #2d6a4f; font-weight: 600;">
+        <thead class="bg-light-gradient">
+          <tr class="text-sena-primary" style="font-weight: 600;">
             <th>Tipo</th>
             <th>Nombre</th>
             <th>Categoría/Tipo</th>
@@ -154,7 +154,7 @@
           <span class="badge bg-light text-dark">{{ e.tipo }}</span>
         </td>
         <td>
-          <span class="badge" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: white;">
+          <span class="badge badge-disponible">
             <i class="bi bi-building"></i> {{ e.laboratorio_nombre }}
           </span>
         </td>

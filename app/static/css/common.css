@@ -12,6 +12,7 @@
     --color-sena-lighter: #52b788;
     --color-sena-subtle: #d8f3dc;
     --color-sena-accent: #00d4aa;
+    --color-sena-success: #10b981;
     --color-sena-success-dark: #059669;
     --color-sena-success-darker: #047857;
     
@@ -221,27 +222,31 @@ body {
 
 /* Formularios */
 .form-control {
-    padding: 14px 18px;
-    border-radius: var(--border-radius-md);
-    border: 2px solid var(--color-gray-200);
-    font-size: var(--font-size-sm);
-    transition: all var(--transition-base);
-    background: var(--color-gray-50);
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.5px solid #e5e5e5;
+    font-size: 15px;
+    transition: all 0.2s ease;
+    background: #fafafa;
     width: 100%;
 }
 
 .form-control:focus {
     outline: none;
-    border-color: var(--color-sena-light);
-    box-shadow: 0 0 0 4px rgba(61, 109, 92, 0.1);
+    border-color: #2d6a4f;
+    box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.08);
     background: white;
+}
+
+.form-control::placeholder {
+    color: #a0a0a0;
 }
 
 .form-label {
     font-weight: 600;
-    color: var(--color-gray-700);
-    margin-bottom: var(--spacing-sm);
-    font-size: var(--font-size-sm);
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    font-size: 14px;
     display: block;
 }
 

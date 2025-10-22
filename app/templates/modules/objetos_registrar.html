@@ -11,7 +11,7 @@
 <div class="row g-4">
   <div class="col-12 col-lg-7">
     <div class="card card-registro">
-      <div class="card-header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6;">
+      <div class="card-header card-filter-header border-bottom border-2">
         <h5 class="mb-0"><i class="bi bi-plus-circle-fill me-2 text-success"></i>Nuevo Registro</h5>
       </div>
       <div class="card-body p-4">
@@ -25,7 +25,7 @@
               <input type="radio" class="btn-check" name="tipoRegistro" id="radioEquipo" value="equipo" checked>
               <label class="btn btn-outline-primary tipo-registro-btn w-100 h-100" for="radioEquipo">
                 <div class="text-center py-2">
-                  <i class="bi bi-cpu d-block mb-2" style="font-size: 2rem;"></i>
+                  <i class="bi bi-cpu d-block mb-2 fs-1"></i>
                   <strong>Equipo de Laboratorio</strong>
                   <p class="small text-muted mb-0 mt-1">Instrumentos y máquinas</p>
                 </div>
@@ -35,7 +35,7 @@
               <input type="radio" class="btn-check" name="tipoRegistro" id="radioObjeto" value="objeto">
               <label class="btn btn-outline-success tipo-registro-btn w-100 h-100" for="radioObjeto">
                 <div class="text-center py-2">
-                  <i class="bi bi-box-seam d-block mb-2" style="font-size: 2rem;"></i>
+                  <i class="bi bi-box-seam d-block mb-2 fs-1"></i>
                   <strong>Objeto General</strong>
                   <p class="small text-muted mb-0 mt-1">EPP y herramientas</p>
                 </div>
@@ -69,7 +69,7 @@
         <span class="fw-semibold"><i class="bi bi-camera me-2"></i>Capturar o subir imagen</span>
         <div>
           <button class="btn btn-outline-sena btn-sm" id="btnAbrirCam" title="Activar cámara"><i class="bi bi-camera-video"></i> Activar Cámara</button>
-          <input type="file" id="fileImagen" accept="image/*" class="form-control form-control-sm d-inline-block" style="width:auto;">
+          <input type="file" id="fileImagen" accept="image/*" class="form-control form-control-sm d-inline-block w-auto">
         </div>
       </div>
       <div class="alert alert-info mx-3 mt-3 mb-0">
@@ -129,7 +129,7 @@
     <div class="card">
       <div class="card-header fw-semibold"><i class="bi bi-collection me-2"></i>Registros existentes</div>
       <div class="card-body">
-        <div class="input-group mb-2" style="max-width:360px;">
+        <div class="input-group mb-2" style="max-width: 360px;">
           <span class="input-group-text"><i class="bi bi-search"></i></span>
           <input id="buscarObj" class="form-control" placeholder="Buscar por nombre/categoría">
         </div>
@@ -216,9 +216,17 @@
 
       video.srcObject = stream;
       video.play();
+      
+      // Resetear preview y mostrar video
       imgPrev.classList.add('d-none');
+      imgPrev.src = '';
       video.classList.remove('d-none');
-      alert('Cámara activada correctamente');
+      currentDataUrl = null;
+      
+      // Resetear botón capturar
+      document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Capturar';
+      
+      console.log('✓ Cámara activada correctamente');
     } catch(err) { 
       console.error('Error al acceder a la cámara:', err);
       let mensaje = 'No se pudo acceder a la cámara. ';
@@ -240,14 +248,31 @@
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
     currentDataUrl = canvas.toDataURL('image/jpeg',0.92);
-    imgPrev.src = currentDataUrl; imgPrev.classList.remove('d-none');
+    imgPrev.src = currentDataUrl; 
+    
+    // Mostrar preview y ocultar video
+    imgPrev.classList.remove('d-none');
+    video.classList.add('d-none');
+    
+    // Cambiar texto del botón capturar
+    document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Recapturar';
   });
 
   // Upload archivo
   document.getElementById('fileImagen').addEventListener('change', async (ev)=>{
     const f = ev.target.files?.[0]; if(!f) return;
     const reader = new FileReader();
-    reader.onload = () => { currentDataUrl = reader.result; imgPrev.src = currentDataUrl; imgPrev.classList.remove('d-none'); };
+    reader.onload = () => { 
+      currentDataUrl = reader.result; 
+      imgPrev.src = currentDataUrl; 
+      
+      // Mostrar preview y ocultar video
+      imgPrev.classList.remove('d-none');
+      video.classList.add('d-none');
+      
+      // Cambiar texto del botón capturar para que permita usar cámara nuevamente
+      document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Usar Cámara';
+    };
     reader.readAsDataURL(f);
   });
 
@@ -291,11 +316,26 @@
       if(res.ok){ 
         vistasGuardadas.add(vista);
         refreshChecklist();
+        
+        // Resetear vista para siguiente captura
+        currentDataUrl = null;
+        imgPrev.classList.add('d-none');
+        imgPrev.src = '';
+        document.getElementById('imgVista').value = '';
+        document.getElementById('imgNotas').value = '';
+        document.getElementById('fileImagen').value = '';
+        
+        // Si hay cámara activa, mostrar video nuevamente
+        if(stream && stream.active) {
+          video.classList.remove('d-none');
+          document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Capturar';
+        }
+        
         const faltan = vistasRequeridas.filter(v=>!vistasGuardadas.has(v));
         if(faltan.length===0){
-          alert('Se completaron las 6 vistas obligatorias.');
+          alert('✅ Se completaron las 6 vistas obligatorias. Objeto listo para entrenamiento IA.');
         } else {
-          alert(`Imagen almacenada. Faltan vistas: ${faltan.join(', ')}`);
+          alert(`✅ Imagen guardada exitosamente.\n\n📸 Faltan ${faltan.length} vistas: ${faltan.join(', ')}\n\nSelecciona la siguiente vista y captura.`);
         }
         cargarObjetos(); 
       }
@@ -346,7 +386,7 @@
         });
         right.insertBefore(btnVer, right.firstChild);
         
-        li.addEventListener('click', ()=>{
+        li.addEventListener('click', async ()=>{
           currentObjetoId = o.id;
           document.getElementById('objNombre').value = o.nombre;
           document.getElementById('objCategoria').value = o.categoria||'';
@@ -354,6 +394,29 @@
           // Detectar tipo basado en categoría para pre-seleccionar radio
           const esEquipo = ['optica', 'electronico', 'mecanico', 'medicion', 'analisis'].some(t => (o.categoria||'').toLowerCase().includes(t));
           document.getElementById(esEquipo ? 'radioEquipo' : 'radioObjeto').checked = true;
+          
+          // Cargar vistas existentes para este objeto
+          try {
+            const resVistas = await fetch(`/api/objetos/${o.id}/vistas_status`);
+            const dataVistas = await resVistas.json();
+            
+            // Resetear y actualizar checklist con vistas existentes
+            vistasGuardadas.clear();
+            if(dataVistas.vistas_guardadas && dataVistas.vistas_guardadas.length > 0) {
+              dataVistas.vistas_guardadas.forEach(v => vistasGuardadas.add(v));
+            }
+            refreshChecklist();
+            
+            // Mostrar mensaje informativo
+            const count = dataVistas.count || 0;
+            if(count > 0) {
+              console.log(`✓ Objeto seleccionado: ${o.nombre} - ${count}/6 vistas registradas`);
+            }
+          } catch(err) {
+            console.warn('No se pudieron cargar las vistas del objeto:', err);
+            vistasGuardadas.clear();
+            refreshChecklist();
+          }
         });
         ul.appendChild(li);
       });

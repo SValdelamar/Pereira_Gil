@@ -179,30 +179,30 @@
 
                         <!-- ⚠️ CAMPOS OBLIGATORIOS (SIEMPRE VISIBLES) -->
                         <div class="mb-4 p-3 border rounded bg-light">
-                            <h6 class="mb-3"><i class="bi bi-exclamation-circle me-2"></i>Campos Obligatorios</h6>
+                            <h6 class="mb-3"><i class="bi bi-exclamation-circle me-2"></i>Campo Obligatorio</h6>
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-book me-2"></i>Programa de Formación *</label>
-                                <input type="text" class="form-control" name="programa" placeholder="Ej: Técnico en Química" required>
+                                <input type="text" class="form-control" name="programa" placeholder="Ej: Técnico en Química, Técnico en Sistemas" required>
                             </div>
+                        </div>
+
+                        <!-- Campos Aprendiz -->
+                        <div class="campos-especificos d-none" id="campos_1">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-hash me-2"></i>Número de Ficha *</label>
                                 <input type="text" class="form-control" name="ficha" placeholder="Ej: 2856789" required>
+                                <small class="text-muted">Solo para aprendices SENA</small>
                             </div>
                         </div>
 
-                        <!-- Campos Aprendiz (ocultos, ya están arriba) -->
-                        <div class="campos-especificos d-none" id="campos_1">
-                            <!-- Campos ya mostrados arriba -->
-                        </div>
-
                         <!-- Información Adicional (Opcional) -->
-                        <div class="mb-3">
+                        <div class="mb-3" id="infoAdicional" style="display: none;">
                             <h6 class="text-muted"><i class="bi bi-info-circle me-2"></i>Información Adicional (Opcional)</h6>
                             <small class="text-muted">Si solicitaste un nivel superior, puedes completar estos campos. Serán revisados junto con tu solicitud.</small>
                         </div>
 
                         <!-- Campos Funcionario -->
-                        <div class="campos-especificos" id="campos_2">
+                        <div class="campos-especificos d-none" id="campos_2">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-briefcase me-2"></i>Cargo</label>
                                 <input type="text" class="form-control" name="cargo" placeholder="Ej: Secretario Académico">
@@ -214,7 +214,7 @@
                         </div>
 
                         <!-- Campos Instructor No Química -->
-                        <div class="campos-especificos" id="campos_3">
+                        <div class="campos-especificos d-none" id="campos_3">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-book me-2"></i>Programa que Dicta</label>
                                 <input type="text" class="form-control" name="programa_formacion" placeholder="Ej: Técnico en Sistemas">
@@ -226,7 +226,7 @@
                         </div>
 
                         <!-- Campos Instructor Química -->
-                        <div class="campos-especificos" id="campos_4">
+                        <div class="campos-especificos d-none" id="campos_4">
                             <input type="hidden" name="programa_formacion" value="Química">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-flask me-2"></i>Especialidad</label>
@@ -235,7 +235,7 @@
                         </div>
 
                         <!-- Campos Instructor Inventario -->
-                        <div class="campos-especificos" id="campos_5">
+                        <div class="campos-especificos d-none" id="campos_5">
                             <input type="hidden" name="programa_formacion" value="Química">
                             <input type="hidden" name="a_cargo_inventario" value="1">
                             <div class="mb-3">
@@ -256,7 +256,7 @@
                         </div>
 
                         <!-- Campos Admin -->
-                        <div class="campos-especificos" id="campos_6">
+                        <div class="campos-especificos d-none" id="campos_6">
                             <div class="alert alert-warning">
                                 <i class="bi bi-shield-exclamation me-2"></i>
                                 <strong>Solicitud de Administrador:</strong> Tu solicitud será revisada cuidadosamente por un administrador actual.
@@ -365,8 +365,26 @@
                 
                 // Mostrar campos específicos del rol seleccionado
                 if (currentStep === 3 && selectedNivel) {
-                    document.querySelectorAll('.campos-especificos').forEach(c => c.classList.remove('active'));
-                    document.getElementById(`campos_${selectedNivel}`).classList.add('active');
+                    // Ocultar todos los campos específicos primero
+                    document.querySelectorAll('.campos-especificos').forEach(c => {
+                        c.classList.remove('active');
+                        c.classList.add('d-none');
+                    });
+                    
+                    // Mostrar solo los campos del nivel seleccionado
+                    const camposActuales = document.getElementById(`campos_${selectedNivel}`);
+                    if (camposActuales) {
+                        camposActuales.classList.remove('d-none');
+                        camposActuales.classList.add('active');
+                    }
+                    
+                    // Mostrar mensaje de información adicional solo si NO es aprendiz (nivel 1)
+                    const infoAdicional = document.getElementById('infoAdicional');
+                    if (selectedNivel !== '1') {
+                        infoAdicional.style.display = 'block';
+                    } else {
+                        infoAdicional.style.display = 'none';
+                    }
                 }
             }
         }

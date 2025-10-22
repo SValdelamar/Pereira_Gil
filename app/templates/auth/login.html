@@ -22,39 +22,45 @@
                                      style="width: 90px; height: auto;">
                             </div>
                             
-                            <h1>Centro Minero SENA</h1>
-                            <p>Sistema de Gestión de Laboratorios</p>
+                            <h1>GIL</h1>
+                            <p>Gestión inteligente de Laboratorios</p>
                             
                             <div class="feature-list">
-                                <div class="feature-item">
-                                    <i class="bi bi-camera-fill"></i>
-                                    <div>
-                                        <h6>Búsqueda Visual con IA</h6>
-                                        <p>Encuentra equipos solo tomando una foto</p>
+                                <!-- Fila Superior -->
+                                <div class="feature-row">
+                                    <div class="feature-item">
+                                        <i class="bi bi-camera-fill"></i>
+                                        <div>
+                                            <h6>Búsqueda Visual</h6>
+                                            <p>Encuentra equipos con IA</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <i class="bi bi-mic-fill"></i>
+                                        <div>
+                                            <h6>Control por Voz</h6>
+                                            <p>Comandos de voz</p>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div class="feature-item">
-                                    <i class="bi bi-mic-fill"></i>
-                                    <div>
-                                        <h6>Comandos por Voz</h6>
-                                        <p>Controla el sistema con tu voz</p>
+                                <!-- Fila Inferior -->
+                                <div class="feature-row">
+                                    <div class="feature-item">
+                                        <i class="bi bi-person-badge"></i>
+                                        <div>
+                                            <h6>Acceso Facial</h6>
+                                            <p>Login sin contraseña</p>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <div class="feature-item">
-                                    <i class="bi bi-person-badge"></i>
-                                    <div>
-                                        <h6>Reconocimiento Facial</h6>
-                                        <p>Acceso rápido y seguro sin contraseñas</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="feature-item">
-                                    <i class="bi bi-robot"></i>
-                                    <div>
-                                        <h6>IA de Inventario</h6>
-                                        <p>Gestión automatizada e inteligente</p>
+                                    
+                                    <div class="feature-item">
+                                        <i class="bi bi-robot"></i>
+                                        <div>
+                                            <h6>IA de Inventario</h6>
+                                            <p>Gestión inteligente</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -123,7 +129,7 @@
                             
                             <div class="text-center">
                                 <p class="mb-3" style="color: #64748b; font-size: 14px;">¿No tienes una cuenta?</p>
-                                <a href="{{ url_for('registro') }}" class="btn-register">
+                                <a href="{{ url_for('registro') }}" class="btn-outline" style="display: block; text-decoration: none;">
                                     <i class="bi bi-person-plus me-2"></i>Crear Cuenta
                                 </a>
                             </div>
@@ -131,19 +137,10 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Footer -->
-            <div class="text-center mt-4">
-                <p style="color: rgba(255, 255, 255, 0.9); font-size: 14px;">
-                    <i class="bi bi-c-circle me-1"></i>2025 Centro Minero SENA | Sistema v1.0
-                </p>
-                <p style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">
-                    Desarrollado por: Steven Valdelamar, Karen Quintero, Zharick Camargo
-                </p>
-            </div>
         </div>
+    </div>
 
-<!-- Modal de Reconocimiento Facial -->
+    <!-- Modal de Reconocimiento Facial -->
     <div class="modal fade" id="facialModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">

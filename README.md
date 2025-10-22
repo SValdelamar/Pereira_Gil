@@ -53,13 +53,22 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-**Edita `.env` con tus credenciales:**
+**Edita el archivo `.env` con tus credenciales de MySQL:**
 ```env
+# =====================================================================
+# BASE DE DATOS MYSQL
+# =====================================================================
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=laboratorios_db
-DB_USER=root
-DB_PASSWORD=tu_password_mysql_aqui   # ⚠️ CAMBIAR ESTO
+DB_USER=root                    # ⚠️ TU USUARIO MySQL
+DB_PASSWORD=tu_password_aqui    # ⚠️ TU PASSWORD MySQL
+
+# Alias (para compatibilidad)
+HOST=localhost
+USUARIO_PRODUCCION=root         # ⚠️ Mismo que DB_USER
+PASSWORD_PRODUCCION=tu_password # ⚠️ Misma que DB_PASSWORD
+BASE_DATOS=laboratorios_db
 ```
 
 #### **5. Crear Base de Datos**

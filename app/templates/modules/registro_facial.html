@@ -6,11 +6,11 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Header -->
-            <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+            <div class="card border-0 shadow-sm mb-4 module-header">
                 <div class="card-body p-4 text-center">
                     <div class="mb-3">
-                        <div class="d-inline-block rounded-circle p-3" style="background: rgba(255,255,255,0.2);">
-                            <i class="bi bi-person-badge fs-1 text-white"></i>
+                        <div class="d-inline-block rounded-circle p-3 bg-white bg-opacity-25">
+                            <i class="bi bi-person-badge fs-1"></i>
                         </div>
                     </div>
                     <h1 class="h3 mb-2 text-white fw-bold">Registro de Reconocimiento Facial</h1>
@@ -20,20 +20,20 @@
 
             <!-- Información del Usuario -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                    <h6 class="mb-0 fw-bold" style="color: #2d6a4f;"><i class="bi bi-person-circle me-2"></i>Información del Usuario</h6>
+                <div class="card-header border-0 card-filter-header">
+                    <h6 class="mb-0 fw-bold section-title-dark"><i class="bi bi-person-circle me-2"></i>Información del Usuario</h6>
                 </div>
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
-                            <h5 class="mb-1 fw-bold" style="color: #2d6a4f;">{{ user.user_name }}</h5>
+                            <h5 class="mb-1 fw-bold text-sena-primary">{{ user.user_name }}</h5>
                             <p class="text-muted mb-0 small">
                                 <i class="bi bi-hash"></i> ID: {{ user.user_id }} | 
                                 <i class="bi bi-person"></i> Tipo: {{ user.user_type }}
                             </p>
                         </div>
                         <div class="col-md-4 text-end">
-                            <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #00b894 0%, #009b7d 100%);">Nivel {{ user.user_level }}</span>
+                            <span class="badge rounded-pill px-3 py-2 badge-disponible">Nivel {{ user.user_level }}</span>
                         </div>
                     </div>
                 </div>
@@ -41,7 +41,7 @@
 
             <!-- Panel de Captura -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header border-0" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+                <div class="card-header border-0 bg-sena-primary">
                     <h5 class="mb-0 text-white fw-bold">
                         <i class="bi bi-camera-fill me-2"></i>
                         Captura de Rostro
@@ -49,11 +49,11 @@
                 </div>
                 <div class="card-body p-4">
                     <!-- Estado del proceso -->
-                    <div id="statusAlert" class="alert border-0 shadow-sm" role="alert" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 155, 125, 0.1) 100%); border-left: 4px solid #00b894 !important;">
+                    <div id="statusAlert" class="alert border-0 shadow-sm alert-sena" role="alert">
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-info-circle fs-4 me-3" style="color: #00b894;"></i>
+                            <i class="bi bi-info-circle fs-4 me-3 text-sena-light"></i>
                             <div>
-                                <strong style="color: #2d6a4f;">Listo para capturar:</strong>
+                                <strong class="text-sena-primary">Listo para capturar:</strong>
                                 <span class="text-muted">Posiciona tu rostro en el centro de la cámara</span>
                             </div>
                         </div>
@@ -63,7 +63,7 @@
                     <div class="row">
                         <div class="col-md-8">
                             <div class="camera-container position-relative">
-                                <video id="videoElement" class="w-100 rounded border" style="max-height: 400px;" autoplay muted></video>
+                                <video id="videoElement" class="w-100 rounded border bg-dark" style="max-height: 400px;" autoplay muted></video>
                                 <canvas id="canvasElement" class="d-none"></canvas>
                                 
                                 <!-- Overlay de guía -->
@@ -104,16 +104,16 @@
 
                     <!-- Controles -->
                     <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
-                        <button id="startCameraBtn" class="btn" style="background: linear-gradient(135deg, #00b894 0%, #009b7d 100%); color: white; border: none; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);">
+                        <button id="startCameraBtn" class="btn btn-success">
                             <i class="bi bi-camera me-1"></i> Iniciar Cámara
                         </button>
-                        <button id="captureBtn" class="btn" disabled style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; border: none;">
+                        <button id="captureBtn" class="btn btn-success" disabled>
                             <i class="bi bi-camera-fill me-1"></i> Capturar Rostro
                         </button>
-                        <button id="registerBtn" class="btn" disabled style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: white; border: none;">
+                        <button id="registerBtn" class="btn btn-warning" disabled>
                             <i class="bi bi-person-plus me-1"></i> Registrar
                         </button>
-                        <button id="retakeBtn" class="btn" disabled style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; border: none;">
+                        <button id="retakeBtn" class="btn btn-secondary" disabled>
                             <i class="bi bi-arrow-clockwise me-1"></i> Repetir
                         </button>
                         <button id="helpCameraBtn" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalAyudaCamara">
@@ -124,7 +124,7 @@
                     <!-- Progreso -->
                     <div id="progressContainer" class="mt-4 d-none">
                         <div class="progress">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
                                  role="progressbar" style="width: 0%"></div>
                         </div>
                         <div id="progressText" class="text-center mt-2 small text-muted"></div>
@@ -134,8 +134,8 @@
 
             <!-- Historial (si existe) -->
             <div id="historialContainer" class="card border-0 shadow-sm mt-4 d-none">
-                <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                    <h6 class="mb-0 fw-bold" style="color: #2d6a4f;">
+                <div class="card-header border-0 card-filter-header">
+                    <h6 class="mb-0 fw-bold section-title-dark">
                         <i class="bi bi-clock-history me-2"></i>
                         Registro Anterior
                     </h6>

@@ -1,10 +1,18 @@
 /* =====================================================================
    LOGIN PAGE SPECIFIC STYLES - Centro Minero SENA
-   Este archivo solo contiene estilos específicos del login
-   Los estilos compartidos están en common.css y auth.css
+   Estilos específicos SOLO para la página de login
+   Los estilos base están en auth.css (se heredan en TODOS los templates)
    ===================================================================== */
 
-/* Este archivo está vacío porque todos los estilos del login
-   están ahora en common.css (variables y componentes) y auth.css (layout de autenticación) */
+/* Los estilos base minimalistas están ahora en auth.css */
+/* Este archivo está reservado para estilos específicos del login */
 
-/* Si necesitas estilos específicos solo para login, agrégalos aquí */
+/* Si necesitas estilos específicos SOLO para login (que no se apliquen a otros templates),
+   agrégalos aquí. Por ejemplo: */
+
+/* Ejemplo de estilo específico para login:
+.login-card .login-footer {
+    color: #666;
+    font-size: 12px;
+}
+*/

@@ -6,6 +6,8 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_restful import Api, Resource, reqparse
 from flask_jwt_extended import JWTManager, create_access_token, verify_jwt_in_request, get_jwt_identity
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import mysql.connector
 from datetime import datetime, timedelta
 import os
@@ -19,6 +21,7 @@ import secrets
 from functools import wraps
 from app.utils.report_generator import report_generator
 from app.utils.notificaciones import NotificacionesManager
+from app.utils.security_validators import SecurityValidator, create_error_response, create_success_response
 from app.utils.permissions import (
     permissions_manager,
     require_permission,
@@ -42,9 +45,8 @@ from app.utils.permissions import (
 # CONFIGURACIÓN DE LA APLICACIÓN WEB
 # =====================================================================
 
-# Cargar variables de entorno desde .env_produccion si existe
-if os.path.exists('.env_produccion'):
-    load_dotenv('.env_produccion')
+# Cargar variables de entorno desde .env (estándar de la industria)
+load_dotenv()  # Busca automáticamente .env en el directorio raíz
 
 # Configurar Flask para usar la nueva estructura app/
 app = Flask(__name__, 
@@ -73,6 +75,15 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
 jwt = JWTManager(app)
 api = Api(app)
 CORS(app)
+
+# Rate Limiter para seguridad (prevenir abuso de API)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
 
 # =====================================================================
 # CONEXIÓN A BASE DE DATOS
@@ -148,6 +159,29 @@ def verify_jwt_or_admin():
             return True
         # Re-lanzar para que el endpoint responda 401 si no cumple
         raise
+
+# =====================================================================
+# LOGGING DE SEGURIDAD
+# =====================================================================
+
+def log_security_event(user_id, action, detail, ip, success):
+    """Registra eventos de seguridad en la base de datos"""
+    try:
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        log_query = """
+            INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso, fecha)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """
+        cursor.execute(log_query, (user_id, action, detail, ip, success))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"[WARNING] Error al guardar log de seguridad: {e}")
 
 # =====================================================================
 # RUTAS WEB - INTERFAZ DE USUARIO
@@ -347,7 +381,7 @@ def registro():
             session['user_name'] = nombre
             session['user_type'] = tipo
             session['user_level'] = nivel_acceso
-            session['a_cargo_inventario'] = bool(a_cargo_inventario)
+            session['a_cargo_inventario'] = bool(campos_extra['a_cargo_inventario'] == '1')
             
             # Generar token JWT automáticamente para la API
             access_token = create_access_token(identity=user_id)
@@ -4765,43 +4799,87 @@ def registros_gestion():
 @app.route('/api/registro-completo', methods=['POST'])
 @require_login
 @require_level(4)
+@limiter.limit("10 per minute")
 def api_registro_completo():
-    """API para guardar registro completo (equipo/item + fotos + IA)"""
+    """
+    API SEGURA para guardar registro completo (equipo/item + fotos + IA)
+    
+    MEJORAS DE SEGURIDAD:
+    - ✅ Validación estricta de todos los campos
+    - ✅ Sanitización de nombres de archivo
+    - ✅ Validación de imágenes (tamaño, tipo, dimensiones)
+    - ✅ Prevención de path traversal
+    - ✅ Rate limiting (10 req/min)
+    - ✅ Manejo seguro de errores
+    - ✅ Logs de seguridad mejorados
+    """
     import json
     import uuid
-    import re
     import base64
     import io
+    from datetime import datetime
     from PIL import Image
     
     try:
-        # Obtener datos JSON
+        # ==================================================================
+        # PASO 1: OBTENER Y VALIDAR DATOS
+        # ==================================================================
+        
         data = request.get_json()
         
-        tipo_registro = data.get('tipo_registro')
-        nombre = data.get('nombre')
-        categoria = data.get('tipo_categoria')  # El frontend envía 'tipo_categoria'
-        descripcion = data.get('descripcion', '')
-        laboratorio_id = data.get('laboratorio_id')
-        ubicacion = data.get('ubicacion', '')
-        estado = data.get('estado', 'disponible')
-        cantidad = data.get('cantidad', 1)
-        fotos = data.get('fotos', {})
+        if not data:
+            return create_error_response('No se recibieron datos', 400)
         
-        # Validar campos obligatorios
-        if not all([nombre, categoria, laboratorio_id]):
-            return jsonify({'success': False, 'message': 'Faltan campos obligatorios'}), 400
+        # Validación completa usando SecurityValidator
+        es_valido, mensaje, datos_sanitizados = SecurityValidator.validate_registro_completo(data)
         
-        # Validar que tenga al menos la foto frontal
-        if 'frontal' not in fotos:
-            return jsonify({'success': False, 'message': 'Debe capturar al menos la foto frontal'}), 400
+        if not es_valido:
+            # Log de intento fallido
+            try:
+                log_security_event(
+                    user_id=session.get('user_id'),
+                    action='registro_completo_validacion_fallida',
+                    detail=mensaje,
+                    ip=request.remote_addr,
+                    success=False
+                )
+            except:
+                pass
+            
+            return create_error_response(mensaje, 400)
         
-        # Iniciar transacción
+        # Extraer datos sanitizados
+        tipo_registro = datos_sanitizados['tipo_registro']
+        nombre = datos_sanitizados['nombre']
+        categoria = datos_sanitizados['categoria']
+        descripcion = datos_sanitizados['descripcion']
+        laboratorio_id = datos_sanitizados['laboratorio_id']
+        ubicacion = datos_sanitizados['ubicacion']
+        estado = datos_sanitizados['estado']
+        cantidad = datos_sanitizados['cantidad']
+        fotos = datos_sanitizados['fotos']
+        
+        # ==================================================================
+        # PASO 2: VALIDAR LABORATORIO EXISTE
+        # ==================================================================
+        
+        query_lab_check = "SELECT id FROM laboratorios WHERE id = %s"
+        lab_exists = db_manager.execute_query(query_lab_check, (laboratorio_id,))
+        
+        if not lab_exists:
+            return create_error_response('Laboratorio no existe', 400)
+        
+        # ==================================================================
+        # PASO 3: INICIAR TRANSACCIÓN
+        # ==================================================================
+        
         conn = db_manager.get_connection()
         cursor = conn.cursor()
         
         try:
-            # PASO 1: Crear registro en equipos o inventario
+            # ==============================================================
+            # PASO 4: CREAR REGISTRO EN EQUIPOS O INVENTARIO
+            # ==============================================================
             if tipo_registro == 'equipo':
                 # Crear equipo
                 equipo_id = f"EQ_{str(uuid.uuid4())[:8].upper()}"
@@ -4830,8 +4908,13 @@ def api_registro_completo():
                 ))
                 registro_id = item_id
             
-            # PASO 2: Si hay fotos, crear objeto para IA
+            # ==============================================================
+            # PASO 5: CREAR OBJETO PARA IA
+            # ==============================================================
+            
             objeto_id = None
+            imagenes_guardadas = []
+            
             if fotos:
                 query_objeto = """
                     INSERT INTO objetos (nombre, categoria, descripcion, equipo_id)
@@ -4843,46 +4926,68 @@ def api_registro_completo():
                 ))
                 objeto_id = cursor.lastrowid
                 
-                # PASO 3: Guardar imágenes
-                # Estructura: imagenes/{tipo}/{nombre_objeto}/
+                # ==========================================================
+                # PASO 6: GUARDAR IMÁGENES DE FORMA SEGURA
+                # ==========================================================
                 
                 # Crear nombre de carpeta seguro
-                nombre_carpeta = nombre.lower().replace(' ', '_')
-                nombre_carpeta = re.sub(r'[^a-z0-9_]', '', nombre_carpeta)
+                nombre_carpeta = SecurityValidator.sanitize_filename(nombre)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                nombre_carpeta = f"{nombre_carpeta}_{timestamp}"
                 
-                # Determinar directorio según tipo
+                # Determinar directorio base seguro
+                BASE_IMAGENES_DIR = os.path.abspath('imagenes')
                 tipo_dir = 'equipo' if tipo_registro == 'equipo' else 'item'
-                objeto_dir = os.path.join('imagenes', tipo_dir, nombre_carpeta)
+                
+                # Validar path (prevenir path traversal)
+                objeto_dir_relativo = os.path.join(tipo_dir, nombre_carpeta)
+                es_valido_path, objeto_dir = SecurityValidator.validate_path(
+                    BASE_IMAGENES_DIR,
+                    objeto_dir_relativo
+                )
+                
+                if not es_valido_path:
+                    raise ValueError('Path de destino inválido (posible ataque)')
+                
+                # Crear directorio
                 os.makedirs(objeto_dir, exist_ok=True)
                 
+                # Procesar cada imagen
                 for vista, imagen_base64 in fotos.items():
-                    # Decodificar imagen
-                    # Remover prefijo data:image
-                    if ',' in imagen_base64:
-                        imagen_base64 = imagen_base64.split(',')[1]
+                    # Validar imagen
+                    es_valida, mensaje_img, imagen = SecurityValidator.validate_image(imagen_base64)
                     
-                    imagen_data = base64.b64decode(imagen_base64)
-                    imagen = Image.open(io.BytesIO(imagen_data))
+                    if not es_valida:
+                        raise ValueError(f'Imagen inválida en vista {vista}: {mensaje_img}')
                     
-                    # Guardar imagen con nombre de vista
-                    # Ejemplo: imagenes/equipo/microscopio_olympus/frontal.jpg
-                    filename = f"{vista}.jpg"
+                    # Nombre de archivo seguro
+                    filename = f"{SecurityValidator.sanitize_filename(vista)}.jpg"
                     filepath = os.path.join(objeto_dir, filename)
-                    imagen.save(filepath, 'JPEG', quality=85)
+                    
+                    # Guardar imagen con calidad optimizada
+                    imagen.save(filepath, 'JPEG', quality=85, optimize=True)
+                    
+                    # Ruta relativa para BD
+                    ruta_relativa = os.path.join('imagenes', tipo_dir, nombre_carpeta, filename)
                     
                     # Insertar en base de datos
                     query_imagen = """
                         INSERT INTO objetos_imagenes (objeto_id, path, vista)
                         VALUES (%s, %s, %s)
                     """
-                    cursor.execute(query_imagen, (objeto_id, filepath, vista))
+                    cursor.execute(query_imagen, (objeto_id, ruta_relativa, vista))
+                    
+                    imagenes_guardadas.append(vista)
                 
-                # PASO 3.5: Crear archivo de metadatos para IA
+                # ==========================================================
+                # PASO 7: CREAR METADATOS PARA IA
+                # ==========================================================
+                
                 # Obtener información del laboratorio
                 lab_query = "SELECT nombre, ubicacion FROM laboratorios WHERE id = %s"
                 lab_result = db_manager.execute_query(lab_query, (laboratorio_id,))
-                laboratorio_nombre = lab_result[0]['nombre'] if lab_result else None
-                laboratorio_ubicacion = lab_result[0]['ubicacion'] if lab_result else None
+                laboratorio_nombre = lab_result[0]['nombre'] if lab_result else 'Desconocido'
+                laboratorio_ubicacion = lab_result[0]['ubicacion'] if lab_result else 'Desconocido'
                 
                 metadatos = {
                     'id': objeto_id,
@@ -4897,19 +5002,23 @@ def api_registro_completo():
                     'cantidad': cantidad if tipo_registro == 'item' else None,
                     'estado': estado if tipo_registro == 'equipo' else None,
                     'equipo_id': equipo_id if tipo_registro == 'equipo' else None,
-                    'fotos_capturadas': list(fotos.keys()),
-                    'total_fotos': len(fotos),
-                    'entrenado_ia': len(fotos) == 6,
-                    'ruta_imagenes': objeto_dir
+                    'fotos_capturadas': imagenes_guardadas,
+                    'total_fotos': len(imagenes_guardadas),
+                    'entrenado_ia': len(imagenes_guardadas) == 6,
+                    'ruta_imagenes': os.path.join('imagenes', tipo_dir, nombre_carpeta),
+                    'fecha_creacion': datetime.now().isoformat(),
+                    'creado_por': session.get('user_id')
                 }
                 
                 metadata_path = os.path.join(objeto_dir, 'metadata.json')
                 with open(metadata_path, 'w', encoding='utf-8') as f:
                     json.dump(metadatos, f, indent=2, ensure_ascii=False)
                 
-                # PASO 4: Actualizar equipo con objeto_id y entrenado_ia
+                # ==========================================================
+                # PASO 8: ACTUALIZAR EQUIPO CON OBJETO_ID Y ENTRENADO_IA
+                # ==========================================================
                 if tipo_registro == 'equipo' and objeto_id:
-                    entrenado_ia = len(fotos) == 6  # Solo si tiene las 6 vistas
+                    entrenado_ia = len(imagenes_guardadas) == 6
                     query_update = """
                         UPDATE equipos 
                         SET objeto_id = %s, entrenado_ia = %s
@@ -4917,46 +5026,79 @@ def api_registro_completo():
                     """
                     cursor.execute(query_update, (objeto_id, entrenado_ia, equipo_id))
             
-            # Commit de la transacción
+            # ==============================================================
+            # PASO 9: COMMIT DE LA TRANSACCIÓN
+            # ==============================================================
+            
             conn.commit()
             
-            # Log de auditoría
+            # ==============================================================
+            # PASO 10: LOG DE AUDITORÍA EXITOSO
+            # ==============================================================
+            
             try:
-                log_query = """
-                    INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
-                    VALUES (%s, 'registro_completo', %s, %s, TRUE)
-                """
-                cursor.execute(log_query, (
-                    session.get('user_id'),
-                    f"Registro completo: {nombre} ({tipo_registro})",
-                    request.remote_addr
-                ))
-                conn.commit()
-            except:
-                pass
+                log_security_event(
+                    user_id=session.get('user_id'),
+                    action='registro_completo',
+                    detail=f"Registro exitoso: {nombre} ({tipo_registro}) - {len(imagenes_guardadas)} fotos",
+                    ip=request.remote_addr,
+                    success=True
+                )
+            except Exception as log_err:
+                # No fallar por error en logging
+                print(f"[WARNING] Error al guardar log: {log_err}")
+            
+            # ==============================================================
+            # PASO 11: RESPUESTA EXITOSA
+            # ==============================================================
             
             cursor.close()
             conn.close()
             
-            return jsonify({
-                'success': True,
+            return create_success_response({
                 'message': 'Registro guardado exitosamente',
                 'id': registro_id,
                 'objeto_id': objeto_id,
-                'entrenado_ia': len(fotos) == 6 if fotos else False
-            }), 201
+                'entrenado_ia': len(imagenes_guardadas) == 6 if fotos else False,
+                'imagenes_guardadas': len(imagenes_guardadas)
+            }, 201)
             
         except Exception as e:
+            # Rollback en caso de error
             conn.rollback()
             cursor.close()
             conn.close()
+            
+            # Log de error
+            try:
+                log_security_event(
+                    user_id=session.get('user_id'),
+                    action='registro_completo_error',
+                    detail=f"Error: {type(e).__name__}",
+                    ip=request.remote_addr,
+                    success=False
+                )
+            except:
+                pass
+            
             raise e
             
+    except ValueError as e:
+        # Error de validación
+        return create_error_response(str(e), 400)
+        
     except Exception as e:
-        print(f"[ERROR] Error en registro completo: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Error al guardar: {str(e)}'}), 500
+        # Error genérico - NO EXPONER DETALLES
+        print(f"[ERROR] Error en registro completo: {type(e).__name__}")
+        
+        # En desarrollo, mostrar más detalles
+        if app.debug:
+            import traceback
+            traceback.print_exc()
+            return create_error_response(f'Error interno: {str(e)}', 500)
+        else:
+            # En producción, mensaje genérico
+            return create_error_response('Error al procesar el registro. Por favor intente nuevamente.', 500)
 
 @app.route('/api/registros-completos')
 @require_login

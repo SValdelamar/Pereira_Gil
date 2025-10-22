@@ -14,13 +14,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- CSS Modular -->
-  <link href="{{ url_for('static', filename='css/common.css') }}?v=2.1" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.3" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/modules.css') }}?v=2.1" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/main.css') }}?v=2.0" rel="stylesheet">
+  <!-- CSS Modular (de general a específico) -->
+  <link href="{{ url_for('static', filename='css/main.css') }}?v=3.0" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/common.css') }}?v=2.2" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/dashboard.css') }}?v=4.2" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/modules.css') }}?v=4.7" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body>
   <div class="d-flex">
     <nav id="sidebar" class="sidebar sidebar-modern text-white p-3">
       <!-- Logo y Título -->
@@ -36,24 +36,7 @@
         </div>
       </div>
       
-      <!-- Información del Usuario -->
-      {% if user %}
-      <div class="sidebar-user-info mb-3">
-        <div class="sidebar-user-avatar">
-          <i class="bi bi-person-circle"></i>
-        </div>
-        <div class="sidebar-user-details">
-          <div class="fw-semibold">{{ user.get('user_name') }}</div>
-          <div class="text-white-50 small">
-            <i class="bi bi-shield-check me-1"></i>{{ user.get('user_type')|capitalize }}
-          </div>
-          <div class="sidebar-user-level">
-            Nivel {{ user.get('user_level') }}
-          </div>
-        </div>
-      </div>
-      <hr class="border-light opacity-25">
-      {% endif %}
+      <hr class="border-light opacity-25 mb-3">
       
       <!-- Menú Principal -->
       <ul class="nav nav-pills flex-column gap-1">
@@ -101,7 +84,7 @@
           </div>
         </li>
         <li class="nav-item">
-          <a class="nav-link nav-link-highlight {{ 'active' if request.path=='/registro-completo' }}" href="{{ url_for('registro_completo') }}">
+          <a class="nav-link text-white {{ 'active' if request.path=='/registro-completo' }}" href="{{ url_for('registro_completo') }}">
             <i class="bi bi-plus-circle-fill me-2"></i>Nuevo Equipo
           </a>
         </li>

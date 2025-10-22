@@ -4,12 +4,12 @@
 <!-- Estilos compartidos ahora en modules.css -->
 
 <!-- Header -->
-<div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+<div class="card border-0 shadow-sm mb-4 module-header">
   <div class="card-body p-4">
     <div class="d-flex justify-content-between align-items-center">
       <div>
-        <h4 class="mb-1 text-white fw-bold"><i class="bi bi-people me-2"></i>Gestión de Usuarios</h4>
-        <p class="mb-0 text-white opacity-90">Administra los usuarios del sistema</p>
+        <h4 class="mb-1 fw-bold"><i class="bi bi-people me-2"></i>Gestión de Usuarios</h4>
+        <p class="mb-0 text-secondary">Administra usuarios del sistema</p>
       </div>
       <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
         <i class="bi bi-person-plus me-1"></i>Nuevo Usuario
@@ -20,7 +20,7 @@
 
 <!-- Tabla de Usuarios -->
 <div class="card border-0 shadow-sm">
-  <div class="card-header border-0" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+  <div class="card-header border-0 bg-sena-primary">
     <h6 class="mb-0 text-white fw-bold"><i class="bi bi-list-ul me-2"></i>Lista de Usuarios</h6>
   </div>
   <div class="card-body p-0">
@@ -44,17 +44,17 @@
           {% for u in usuarios %}
           <tr>
             <td class="text-muted small">{{ u.id }}</td>
-            <td class="fw-semibold" style="color: #2d6a4f;">{{ u.nombre }}</td>
-            <td><span class="badge rounded-pill" style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);">{{ u.tipo }}</span></td>
+            <td class="fw-semibold text-sena-primary">{{ u.nombre }}</td>
+            <td><span class="badge rounded-pill badge-reservado">{{ u.tipo }}</span></td>
             <td class="small">{{ u.programa }}</td>
-            <td><span class="badge rounded-pill px-3" style="background: linear-gradient(135deg, #00b894 0%, #009b7d 100%);">{{ u.nivel_acceso }}</span></td>
+            <td><span class="badge rounded-pill px-3 badge-disponible">{{ u.nivel_acceso }}</span></td>
             <td>
               {% if u.activo %}
-              <span class="badge rounded-pill px-3" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+              <span class="badge rounded-pill px-3 badge-disponible">
                 <i class="bi bi-check-circle me-1"></i>Sí
               </span>
               {% else %}
-              <span class="badge rounded-pill px-3" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
+              <span class="badge rounded-pill px-3 bg-secondary">
                 <i class="bi bi-x-circle me-1"></i>No
               </span>
               {% endif %}
@@ -63,11 +63,11 @@
             <td class="small">{{ u.registro }}</td>
             <td>
               {% if u.tiene_rostro == 'Sí' %}
-              <span class="badge rounded-pill" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+              <span class="badge rounded-pill badge-disponible">
                 <i class="bi bi-check-circle"></i>
               </span>
               {% else %}
-              <span class="badge rounded-pill" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+              <span class="badge rounded-pill bg-danger">
                 <i class="bi bi-x-circle"></i>
               </span>
               {% endif %}
@@ -97,7 +97,7 @@
 <div class="modal fade" id="modalNuevoUsuario" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+      <div class="modal-header bg-sena-primary">
         <h5 class="modal-title text-white"><i class="bi bi-person-plus me-2"></i>Nuevo Usuario</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -144,7 +144,7 @@
 <div class="modal fade" id="modalEditarUsuario" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+      <div class="modal-header bg-sena-primary">
         <h5 class="modal-title text-white"><i class="bi bi-pencil me-2"></i>Editar Usuario</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>

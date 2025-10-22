@@ -5,33 +5,243 @@
 
 /* ===== MÓDULO DE LABORATORIOS ===== */
 
-/* Header del módulo */
+/* Header del módulo - PREMIUM Y PROFESIONAL */
 .module-header {
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    background: linear-gradient(135deg, #1e4d3a 0%, #2d6a4f 30%, #40916c 70%, #52b788 100%);
     border: none;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        0 20px 60px rgba(45, 106, 79, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+}
+
+/* Patrón geométrico de fondo */
+.module-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.08) 0%, transparent 35%),
+        radial-gradient(circle at 85% 75%, rgba(255, 255, 255, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Efecto de líneas decorativas */
+.module-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: 
+        repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.03) 0px,
+            rgba(255, 255, 255, 0.03) 2px,
+            transparent 2px,
+            transparent 12px
+        );
+    border-radius: 50%;
+    pointer-events: none;
+    animation: rotatePattern 60s linear infinite;
+}
+
+@keyframes rotatePattern {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Efecto de brillo en hover */
+.module-header:hover {
+    box-shadow: 
+        0 24px 70px rgba(45, 106, 79, 0.35),
+        0 10px 28px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.module-header h1,
+.module-header h2,
+.module-header h3,
+.module-header h4,
+.module-header h5 {
+    color: #ffffff !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 1;
+}
+
+.module-header p {
+    color: rgba(255, 255, 255, 0.95) !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.module-header i {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
 .module-header .btn-light {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    color: #2d6a4f;
+    font-weight: 600;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
 }
 
-/* Cards de resumen por tipo */
+.module-header .btn-light:hover {
+    background: rgba(255, 255, 255, 1);
+    color: #2d6a4f;
+    border-color: rgba(255, 255, 255, 1);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ===== COMPONENTES DE LA TARJETA DE BIENVENIDA ===== */
+
+/* Círculo del icono principal */
+.header-icon-circle {
+    width: 85px;
+    height: 85px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 2px 8px rgba(255, 255, 255, 0.25);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+}
+
+.header-icon-circle i {
+    font-size: 2.5rem;
+    color: white;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.header-icon-circle:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 
+        0 12px 48px rgba(0, 0, 0, 0.15),
+        inset 0 2px 12px rgba(255, 255, 255, 0.3);
+}
+
+/* Tarjeta de información del usuario */
+.user-info-card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.user-info-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Avatar del usuario */
+.user-avatar-circle {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.user-avatar-circle i {
+    font-size: 1.75rem;
+    color: #2d6a4f;
+}
+
+/* Badges de información */
+.info-badge {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.info-badge i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.info-badge:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Cards de resumen - Paleta Verde SENA Profesional */
 .summary-card-lab {
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%); /* Verde SENA Oscuro */
 }
 
 .summary-card-aula {
-    background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+    background: linear-gradient(135deg, #40916c 0%, #2d6a4f 100%); /* Verde SENA Medio */
 }
 
 .summary-card-taller {
-    background: linear-gradient(135deg, #FF6B35 0%, #E85D2C 100%);
+    background: linear-gradient(135deg, #52b788 0%, #40916c 100%); /* Verde SENA Claro */
 }
 
 .summary-card-almacen {
-    background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); /* Teal - Complementario */
 }
 
 .summary-card-icon {
@@ -128,29 +338,249 @@
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-/* ===== TABLAS ESTILIZADAS ===== */
+/* ===== TABLAS RESPONSIVE Y MODERNAS ===== */
+
+/* Contenedor responsive para tablas */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 1.5rem;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #2d6a4f;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #1b4332;
+}
+
+/* Estilos de tabla */
+.table {
+    width: 100%;
+    min-width: 800px; /* Ancho mínimo para evitar colapso */
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+}
+
+.table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+}
+
 .table thead th {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    color: var(--color-sena-medium);
+    background: transparent;
+    color: white;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: var(--font-size-sm);
-    letter-spacing: 0.5px;
-    padding: var(--spacing-md);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.25rem;
     border: none;
+    text-align: left;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.table thead th:last-child {
+    border-top-right-radius: 12px;
 }
 
 .table tbody tr {
-    transition: background-color var(--transition-fast);
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(45, 106, 79, 0.05);
+    transform: scale(1.005);
+}
+
+.table tbody tr:last-child {
+    border-bottom: none;
 }
 
 .table td {
     vertical-align: middle;
-    padding: var(--spacing-md);
+    padding: 1rem 1.25rem;
+    color: #374151;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.table td:first-child {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+/* Responsive en mobile */
+@media (max-width: 768px) {
+    .table {
+        min-width: 600px;
+    }
+    
+    .table thead th,
+    .table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* ===== MÓDULO NUEVO EQUIPO/REGISTRO COMPLETO ===== */
+
+.form-bg-gray {
+    background: var(--color-gray-50);
+}
+
+.btn-sena-outline {
+    border-color: #2d6a4f !important;
+    color: #2d6a4f !important;
+}
+
+.btn-sena-outline:hover,
+.btn-sena-outline:active,
+.btn-sena-outline.active {
+    background-color: #2d6a4f !important;
+    color: white !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Camera Container */
+.camera-container {
+    position: relative;
+    display: inline-block;
+}
+
+.camera-video {
+    width: 100%;
+    max-width: 640px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.camera-canvas {
+    display: none;
+}
+
+/* Vista Indicator - Mejorado y más prominente */
+.vista-indicator {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    padding: 18px 40px;
+    border-radius: 16px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(45, 106, 79, 0.6),
+                0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
+    animation: pulseVista 2s ease-in-out infinite;
+    backdrop-filter: blur(10px);
+    letter-spacing: 0.5px;
+}
+
+@keyframes pulseVista {
+    0%, 100% {
+        box-shadow: 0 8px 24px rgba(45, 106, 79, 0.6),
+                    0 4px 12px rgba(0, 0, 0, 0.3);
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        box-shadow: 0 12px 32px rgba(45, 106, 79, 0.8),
+                    0 6px 16px rgba(0, 0, 0, 0.4);
+        transform: translateX(-50%) scale(1.05);
+    }
+}
+
+.vista-indicator::before {
+    content: '📸';
+    margin-right: 10px;
+    font-size: 1.6rem;
+    animation: rotateIcon 3s ease-in-out infinite;
+}
+
+@keyframes rotateIcon {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    75% { transform: rotate(10deg); }
+}
+
+/* Capture Button */
+.btn-capture-large {
+    font-size: 1.3rem;
+}
+
+.btn-skip-vista {
+    font-size: 1.1rem;
+    display: none;
+}
+
+/* Preview Container */
+.preview-container {
+    display: none;
+}
+
+.preview-card {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.preview-image {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Thumbnails */
+.thumbnails-container {
+    display: none;
+}
+
+.photo-thumbnail {
+    height: 100px;
+    object-fit: cover;
+}
+
+.btn-activate-camera {
+    background: linear-gradient(135deg, #2d6a4f 0%, #52b788 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+.btn-activate-camera:hover {
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.4);
 }
 
 /* Tabla compacta para inventario */
@@ -739,4 +1169,597 @@ hr {
         height: 40px;
         font-size: 20px;
     }
+}
+
+/* =====================================================================
+   CLASES REUTILIZABLES - Eliminar estilos inline
+   ===================================================================== */
+
+/* Títulos de sección */
+.section-title {
+    color: var(--sena-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.section-title-dark {
+    color: #2d6a4f;
+    font-weight: 600;
+}
+
+/* Headers de tarjetas filtro - MODERNOS */
+.card-filter-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: none;
+    border-bottom: 2px solid rgba(45, 106, 79, 0.1);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-filter-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #2d6a4f 0%, #52b788 100%);
+    border-radius: 2px;
+}
+
+/* Input groups */
+.input-group-icon {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+/* Badges de estado */
+.badge-disponible {
+    background: #10b981;
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.badge-en-uso {
+    background: #f59e0b;
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.badge-mantenimiento {
+    background: #dc2626;
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.badge-reservado {
+    background: #3b82f6;
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+/* Cards con sombra */
+.card-shadow {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: none;
+    border-radius: 12px;
+}
+
+.card-shadow-sm {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border: none;
+    border-radius: 8px;
+}
+
+/* Tablas con hover */
+.table-hover-sena tbody tr:hover {
+    background: rgba(45, 106, 79, 0.05);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+/* Botones SENA - Minimalistas Elegantes */
+.btn-sena-outline {
+    border: 1.5px solid #2d6a4f;
+    color: #2d6a4f;
+    font-weight: 500;
+    padding: 0.625rem 1.5rem;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-sena-outline:hover {
+    background: #2d6a4f;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+    border-color: #2d6a4f;
+}
+
+/* Botón primario verde elegante */
+.btn-sena-primary {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    font-weight: 500;
+    padding: 0.625rem 1.5rem;
+    border-radius: 10px;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.15);
+}
+
+.btn-sena-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.25);
+}
+
+/* Labels con color SENA */
+.label-sena {
+    color: #2d6a4f;
+    font-weight: 600;
+}
+
+/* Backgrounds */
+.bg-light-gradient {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.bg-sena-light {
+    background: rgba(45, 106, 79, 0.05);
+}
+
+.bg-sena-primary {
+    background: #2d6a4f;
+    color: white;
+}
+
+/* Texto colores SENA */
+.text-sena-primary {
+    color: #2d6a4f;
+}
+
+.text-sena-light {
+    color: #52b788;
+}
+
+/* Iconos circulares - Minimalistas */
+.icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;  /* Ligeramente cuadrado, más moderno */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.3s ease;
+}
+
+.icon-circle-sena {
+    background: linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%);
+    color: #2d6a4f;
+}
+
+.icon-circle-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #3b82f6;
+}
+
+.icon-circle-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #f59e0b;
+}
+
+.icon-circle-danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #ef4444;
+}
+
+/* Stats boxes - Paleta Armoniosa Complementaria al Verde SENA */
+
+/* Teal/Cyan - Complementario analógico al verde */
+.stat-box-primary {
+    background: linear-gradient(135deg, rgba(204, 251, 241, 0.15) 0%, rgba(153, 246, 228, 0.1) 100%);
+    border: 1px solid rgba(20, 184, 166, 0.12);
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.06);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.stat-box-primary:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, rgba(204, 251, 241, 0.2) 0%, rgba(153, 246, 228, 0.15) 100%);
+    box-shadow: 0 8px 20px rgba(20, 184, 166, 0.12);
+    border-color: rgba(20, 184, 166, 0.2);
+}
+
+.stat-box-primary .icon-circle {
+    background: linear-gradient(135deg, rgba(204, 251, 241, 0.4) 0%, rgba(153, 246, 228, 0.3) 100%);
+}
+
+.stat-box-primary i {
+    color: #14b8a6; /* Teal-500 */
+}
+
+.stat-box-primary .h2 {
+    color: #1a202c !important;
+}
+
+.stat-box-primary .small {
+    color: #718096 !important;
+}
+
+.stat-box-success {
+    background: linear-gradient(135deg, rgba(216, 243, 220, 0.15) 0%, rgba(183, 228, 199, 0.1) 100%);
+    border: 1px solid rgba(45, 106, 79, 0.12);
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.06);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.stat-box-success:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, rgba(216, 243, 220, 0.2) 0%, rgba(183, 228, 199, 0.15) 100%);
+    box-shadow: 0 8px 20px rgba(45, 106, 79, 0.12);
+    border-color: rgba(45, 106, 79, 0.2);
+}
+
+.stat-box-success .icon-circle {
+    background: linear-gradient(135deg, rgba(216, 243, 220, 0.4) 0%, rgba(183, 228, 199, 0.3) 100%);
+}
+
+.stat-box-success i {
+    color: #2d6a4f;
+}
+
+.stat-box-success .h2,
+.stat-box-success .text-white {
+    color: #1a202c !important;
+}
+
+.stat-box-success .small,
+.stat-box-success .opacity-90 {
+    color: #718096 !important;
+}
+
+/* Amber/Naranja Suave - Complementario cálido al verde */
+.stat-box-warning {
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.15) 0%, rgba(253, 230, 138, 0.1) 100%);
+    border: 1px solid rgba(217, 119, 6, 0.12);
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.06);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.stat-box-warning:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.2) 0%, rgba(253, 230, 138, 0.15) 100%);
+    box-shadow: 0 8px 20px rgba(217, 119, 6, 0.12);
+    border-color: rgba(217, 119, 6, 0.2);
+}
+
+.stat-box-warning .icon-circle {
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(253, 230, 138, 0.3) 100%);
+}
+
+.stat-box-warning i {
+    color: #d97706; /* Amber-600 */
+}
+
+.stat-box-warning .h2,
+.stat-box-warning .text-white {
+    color: #1a202c !important;
+}
+
+.stat-box-warning .small,
+.stat-box-warning .opacity-90 {
+    color: #718096 !important;
+}
+
+/* Form controls personalizados */
+.form-control-sena:focus {
+    border-color: #2d6a4f;
+    box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
+}
+
+.form-select-sena:focus {
+    border-color: #2d6a4f;
+    box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
+}
+
+/* Alerts personalizados */
+.alert-sena {
+    background: rgba(45, 106, 79, 0.1);
+    border-left: 4px solid #2d6a4f;
+    color: #1e5128;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.alert-sena-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 4px solid #10b981;
+    color: #065f46;
+}
+
+.alert-sena-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 4px solid #f59e0b;
+    color: #78350f;
+}
+
+.alert-sena-danger {
+    background: rgba(220, 38, 38, 0.1);
+    border-left: 4px solid #dc2626;
+    color: #7f1d1d;
+}
+
+/* Manual de ayuda */
+.manual-small-text {
+    font-size: 0.8rem;
+}
+
+.manual-badge {
+    font-size: 0.7rem;
+}
+
+/* Thumbnails de imágenes en tablas */
+.img-thumbnail-table {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.img-thumbnail-detail {
+    height: 150px;
+    object-fit: cover;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.img-thumbnail-detail:hover {
+    transform: scale(1.05);
+}
+
+/* Botones de acción en tablas */
+.btn-action-view {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-action-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(45, 106, 79, 0.2);
+}
+
+.btn-action-edit {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-action-edit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.2);
+}
+
+.btn-action-delete {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-action-delete:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+}
+
+/* ===== MÓDULO REGISTRO OBJETOS IA VISUAL ===== */
+
+/* Card de registro principal */
+.card-registro {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.card-registro:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Botones de selección de tipo (Equipo / Item) */
+.tipo-registro-btn {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tipo-registro-btn:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Estado checked para botón de Equipo (Azul) */
+.btn-check:checked + .btn-outline-primary.tipo-registro-btn {
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+    border-color: #3B82F6 !important;
+    color: white !important;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-check:checked + .btn-outline-primary.tipo-registro-btn i,
+.btn-check:checked + .btn-outline-primary.tipo-registro-btn strong,
+.btn-check:checked + .btn-outline-primary.tipo-registro-btn p {
+    color: white !important;
+}
+
+/* Estado checked para botón de Item (Verde) */
+.btn-check:checked + .btn-outline-success.tipo-registro-btn {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+    border-color: #10B981 !important;
+    color: white !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-check:checked + .btn-outline-success.tipo-registro-btn i,
+.btn-check:checked + .btn-outline-success.tipo-registro-btn strong,
+.btn-check:checked + .btn-outline-success.tipo-registro-btn p {
+    color: white !important;
+}
+
+/* Contenedor de video/preview */
+.ratio {
+    position: relative;
+    width: 100%;
+}
+
+#objCam {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #000;
+}
+
+#objPreview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #000;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Asegurar que cuando está oculto, no ocupe espacio */
+#objPreview.d-none {
+    display: none !important;
+}
+
+#objCam.d-none {
+    display: none !important;
+}
+
+/* Estilos para los botones de cámara */
+.btn-outline-sena {
+    border: 2px solid #2d6a4f;
+    color: #2d6a4f;
+    background: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-sena:hover {
+    background: #2d6a4f;
+    color: white;
+    border-color: #2d6a4f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+/* Botón principal SENA */
+.btn-sena {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+.btn-sena:hover {
+    background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.4);
+}
+
+/* Checklist de vistas */
+#checkVistas li {
+    padding: 0.25rem 0;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#checkVistas li.text-success {
+    color: #10B981 !important;
+    font-weight: 600;
+}
+
+#checkVistas li.text-muted {
+    color: #9CA3AF !important;
+}
+
+/* Label con color SENA */
+.text-sena {
+    color: #2d6a4f !important;
+}
+
+/* ===== REGISTRO COMPLETO - BOTONES TIPO ===== */
+
+/* Botones de tipo en registro_completo.html */
+.btn-sena-outline {
+    border: 2px solid #2d6a4f !important;
+    color: #2d6a4f !important;
+    background: white !important;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-sena-outline:hover {
+    background: rgba(45, 106, 79, 0.1) !important;
+    border-color: #1b4332 !important;
+    color: #1b4332 !important;
+}
+
+/* Estado activo/checked para botones de tipo */
+.btn-check:checked + .btn-sena-outline {
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%) !important;
+    border-color: #2d6a4f !important;
+    color: white !important;
+    box-shadow: 0 4px 16px rgba(45, 106, 79, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-check:checked + .btn-sena-outline i {
+    color: white !important;
+}
+
+/* Focus visible para accesibilidad */
+.btn-check:focus + .btn-sena-outline {
+    box-shadow: 0 0 0 0.25rem rgba(45, 106, 79, 0.25);
 }

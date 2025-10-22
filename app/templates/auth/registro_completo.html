@@ -4,22 +4,14 @@
 
 {% block content %}
 
-<!-- Breadcrumb -->
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Registrar Equipo/Item</li>
-    </ol>
-</nav>
-
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-lg border-0">
-                <div class="card-header text-white module-header" style="background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 50%, var(--color-sena-medium) 100%) !important;">
+                <div class="card-header module-header">
                     <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Equipo/Item</h4>
                 </div>
-                <div class="card-body p-4" style="background: var(--color-gray-50);">
+                <div class="card-body p-4 form-bg-gray">
                     <form id="formRegistroCompleto">
                         
                         <!-- Tipo de Registro -->
@@ -28,12 +20,12 @@
                                 <label class="form-label fw-bold">Tipo de Registro <span class="text-danger">*</span></label>
                                 <div class="btn-group w-100" role="group">
                                     <input type="radio" class="btn-check" name="tipo_registro" id="tipoEquipo" value="equipo" checked>
-                                    <label class="btn btn-outline-success" for="tipoEquipo" style="border-color: var(--color-sena-medium); color: var(--color-sena-medium);">
+                                    <label class="btn btn-sena-outline" for="tipoEquipo">
                                         <i class="bi bi-cpu me-2"></i>Equipo (no consumible)
                                     </label>
                                     
                                     <input type="radio" class="btn-check" name="tipo_registro" id="tipoItem" value="item">
-                                    <label class="btn btn-outline-success" for="tipoItem" style="border-color: var(--color-sena-medium); color: var(--color-sena-medium);">
+                                    <label class="btn btn-sena-outline" for="tipoItem">
                                         <i class="bi bi-box-seam me-2"></i>Item de Inventario (consumible)
                                     </label>
                                 </div>
@@ -150,7 +142,7 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6" id="cantidadGroup" style="display: none;">
+                            <div class="col-md-6 hidden" id="cantidadGroup">
                                 <label for="cantidad" class="form-label">Cantidad Inicial <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" value="1" placeholder="Ingrese la cantidad">
                             </div>
@@ -175,38 +167,50 @@
                             <strong>Instrucciones:</strong> Activa la cámara y captura las fotos del objeto. Mínimo 1 foto frontal obligatoria.
                         </div>
 
+                        <!-- Mensaje de instrucción de vista -->
+                        <div id="mensajeVista" class="alert alert-success text-center hidden" style="max-width: 640px; margin: 0 auto 20px;">
+                            <h5 class="mb-2">
+                                <i class="bi bi-camera-fill me-2"></i>
+                                <span id="tituloVista">Primera vista a capturar</span>
+                            </h5>
+                            <p class="mb-0" id="descripcionVista">
+                                <strong>📸 VISTA FRONTAL (1/6)</strong> - Vista obligatoria<br>
+                                <small>Posiciona el objeto de frente a la cámara y presiona "CAPTURAR FOTO"</small>
+                            </p>
+                        </div>
+
                         <!-- Video Principal -->
                         <div class="text-center mb-4">
-                            <div id="cameraContainer" style="position: relative; display: inline-block;">
-                                <button type="button" id="btnActivarCamara" class="btn btn-lg" style="background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 100%); color: white; border: none; box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);">
+                            <div id="cameraContainer" class="camera-container">
+                                <button type="button" id="btnActivarCamara" class="btn btn-lg btn-activate-camera">
                                     <i class="bi bi-camera-video me-2"></i>Activar Cámara
                                 </button>
-                                <video id="video" autoplay style="display: none; width: 100%; max-width: 640px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"></video>
-                                <canvas id="canvas" style="display: none;"></canvas>
+                                <video id="video" autoplay class="hidden camera-video"></video>
+                                <canvas id="canvas" class="camera-canvas"></canvas>
                                 
                                 <!-- Indicador de vista actual -->
-                                <div id="vistaActual" style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; font-weight: bold;">
+                                <div id="vistaActual" class="vista-indicator">
                                     📸 Vista Frontal
                                 </div>
                             </div>
                         </div>
 
                         <!-- Botón de Captura Grande -->
-                        <div class="text-center mb-4" id="captureButtonContainer" style="display: none;">
-                            <button type="button" id="btnCapturar" class="btn btn-success btn-lg px-5 py-3 me-3" style="font-size: 1.3rem;">
+                        <div class="text-center mb-4 hidden" id="captureButtonContainer">
+                            <button type="button" id="btnCapturar" class="btn btn-success btn-lg px-5 py-3 me-3 btn-capture-large">
                                 <i class="bi bi-camera-fill me-2"></i>CAPTURAR FOTO
                             </button>
-                            <button type="button" id="btnSaltarVista" class="btn btn-outline-secondary btn-lg px-4 py-3" style="font-size: 1.1rem; display: none;">
+                            <button type="button" id="btnSaltarVista" class="btn btn-outline-secondary btn-lg px-4 py-3 btn-skip-vista">
                                 <i class="bi bi-skip-forward me-2"></i>Saltar Vista (Opcional)
                             </button>
                         </div>
 
                         <!-- Previsualización y Confirmación -->
-                        <div id="previewContainer" class="text-center mb-4" style="display: none;">
-                            <div class="card" style="max-width: 640px; margin: 0 auto;">
+                        <div id="previewContainer" class="text-center mb-4 preview-container">
+                            <div class="card preview-card">
                                 <div class="card-body">
                                     <h5 class="card-title mb-3">Vista Previa</h5>
-                                    <img id="previewImage" style="max-width: 100%; border-radius: 8px; margin-bottom: 20px;">
+                                    <img id="previewImage" class="preview-image">
                                     <div class="d-flex gap-3 justify-content-center">
                                         <button type="button" id="btnGuardarFoto" class="btn btn-success btn-lg px-4">
                                             <i class="bi bi-check-circle me-2"></i>Guardar Vista
@@ -220,7 +224,7 @@
                         </div>
 
                         <!-- Miniaturas de Fotos Capturadas -->
-                        <div id="thumbnailsContainer" style="display: none;">
+                        <div id="thumbnailsContainer" class="thumbnails-container">
                             <h6 class="mb-3"><i class="bi bi-images me-2"></i>Fotos Capturadas (<span id="photoCount">0</span>/6)</h6>
                             <div class="row g-2" id="thumbnails"></div>
                         </div>
@@ -265,6 +269,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const thumbnailsContainer = document.getElementById('thumbnailsContainer');
     const thumbnails = document.getElementById('thumbnails');
     const photoCount = document.getElementById('photoCount');
+    const mensajeVista = document.getElementById('mensajeVista');
+    const tituloVista = document.getElementById('tituloVista');
+    const descripcionVista = document.getElementById('descripcionVista');
     
     // Verificar que los elementos existan
     if (!btnActivarCamara) {
@@ -275,30 +282,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const vistasOrden = ['frontal', 'posterior', 'superior', 'inferior', 'lateral_derecha', 'lateral_izquierda'];
     const vistasNombres = {
-    'frontal': '📸 Vista Frontal',
-    'posterior': '🔄 Vista Posterior',
-    'superior': '⬆️ Vista Superior',
-    'inferior': '⬇️ Vista Inferior',
-    'lateral_derecha': '➡️ Lateral Derecha',
-    'lateral_izquierda': '⬅️ Lateral Izquierda'
+    'frontal': 'VISTA FRONTAL',
+    'posterior': 'VISTA POSTERIOR',
+    'superior': 'VISTA SUPERIOR',
+    'inferior': 'VISTA INFERIOR',
+    'lateral_derecha': 'LATERAL DERECHA',
+    'lateral_izquierda': 'LATERAL IZQUIERDA'
 };
 let vistaActualIndex = 0;
 let tempImageData = null;
 
 // Mostrar/ocultar campo cantidad según tipo
 document.querySelectorAll('input[name="tipo_registro"]').forEach(radio => {
+    console.log('[TIPO] Radio encontrado:', radio.id, 'Value:', radio.value);
+    
     radio.addEventListener('change', (e) => {
+        console.log('[TIPO] ✓ Cambio detectado:', e.target.value, 'ID:', e.target.id);
         const cantidadGroup = document.getElementById('cantidadGroup');
         const estadoGroup = document.getElementById('estadoGroup');
         
+        // Actualizar clases de los labels para visual feedback
+        document.querySelectorAll('label[for^="tipo"]').forEach(label => {
+            label.style.opacity = '1';
+        });
+        
         if (e.target.value === 'item') {
+            // Mostrar cantidad, ocultar estado
+            cantidadGroup.classList.remove('hidden');
             cantidadGroup.style.display = 'block';
+            estadoGroup.classList.add('hidden');
             estadoGroup.style.display = 'none';
+            console.log('[TIPO] Modo ITEM activado');
         } else {
+            // Mostrar estado, ocultar cantidad
+            cantidadGroup.classList.add('hidden');
             cantidadGroup.style.display = 'none';
+            estadoGroup.classList.remove('hidden');
             estadoGroup.style.display = 'block';
+            console.log('[TIPO] Modo EQUIPO activado');
         }
     });
+    
+    // Trigger inicial para el radio checked
+    if (radio.checked) {
+        console.log('[TIPO] Radio inicial checked:', radio.id);
+        radio.dispatchEvent(new Event('change'));
+    }
 });
 
 // Activar cámara
@@ -324,14 +353,14 @@ btnActivarCamara.addEventListener('click', async () => {
         
         console.log('[CAMARA] Permisos concedidos, activando video...');
         video.srcObject = stream;
-        video.style.display = 'block';
-        btnActivarCamara.style.display = 'none';
-        vistaActualDiv.style.display = 'block';
-        captureButtonContainer.style.display = 'block';
+        video.classList.remove('hidden');
+        btnActivarCamara.classList.add('hidden');
+        vistaActualDiv.classList.remove('hidden');
+        captureButtonContainer.classList.remove('hidden');
         
         // Mostrar vista actual
         actualizarVistaActual();
-        console.log('[CAMARA] Cámara activada exitosamente');
+        console.log('[CAMARA] ✅ Cámara activada exitosamente');
     } catch (error) {
         console.error('[CAMARA] Error:', error);
         let mensajeError = 'Error al acceder a la cámara:\n\n';
@@ -353,18 +382,57 @@ btnActivarCamara.addEventListener('click', async () => {
 // Actualizar indicador de vista actual
 function actualizarVistaActual() {
     const vistaActual = vistasOrden[vistaActualIndex];
-    vistaActualDiv.textContent = vistasNombres[vistaActual];
+    const nombreVista = vistasNombres[vistaActual];
+    const vistaNumero = vistaActualIndex + 1;
+    const totalVistas = vistasOrden.length;
+    
+    // Mostrar vista con contador
+    vistaActualDiv.textContent = `${nombreVista} (${vistaNumero}/${totalVistas})`;
+    
+    // Actualizar mensaje de vista
+    const esObligatoria = vistaActualIndex === 0;
+    const estadoVista = esObligatoria ? 'Vista obligatoria' : 'Vista opcional';
+    const iconoEstado = esObligatoria ? '⚠️' : '✅';
+    
+    tituloVista.textContent = vistaNumero === 1 ? 'Primera vista a capturar' : `Vista ${vistaNumero} de ${totalVistas}`;
+    descripcionVista.innerHTML = `
+        <strong>📸 ${nombreVista} (${vistaNumero}/${totalVistas})</strong> - ${iconoEstado} ${estadoVista}<br>
+        <small>${vistaNumero === 1 ? 'Posiciona el objeto de frente a la cámara y presiona "CAPTURAR FOTO"' : 'Posiciona el objeto para esta vista y captura la foto'}</small>
+    `;
+    
+    // Mostrar el mensaje
+    mensajeVista.classList.remove('hidden');
+    mensajeVista.style.display = 'block';
+    
+    // Cambiar color según si es obligatoria u opcional
+    mensajeVista.className = esObligatoria ? 'alert alert-warning text-center' : 'alert alert-success text-center';
+    mensajeVista.style.maxWidth = '640px';
+    mensajeVista.style.margin = '0 auto 20px';
+    
+    console.log(`[VISTA] ${nombreVista} (${vistaNumero}/${totalVistas}) - ${estadoVista}`);
     
     // Mostrar botón "Saltar" solo después de la vista frontal
     if (vistaActualIndex > 0) {
+        btnSaltarVista.classList.remove('hidden');
         btnSaltarVista.style.display = 'inline-block';
     } else {
-        btnSaltarVista.style.display = 'none';
+        btnSaltarVista.classList.add('hidden');
     }
 }
 
 // Capturar foto
 btnCapturar.addEventListener('click', () => {
+    const vistaActual = vistasOrden[vistaActualIndex];
+    const nombreVista = vistasNombres[vistaActual];
+    
+    console.log('[CAPTURA] Iniciando captura de foto:', nombreVista);
+    
+    if (!video.videoWidth || video.videoWidth === 0) {
+        console.error('[CAPTURA] Video no tiene dimensiones válidas');
+        alert('❌ Error: La cámara no está lista. Espera un momento e intenta de nuevo.');
+        return;
+    }
+    
     // Capturar imagen
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -372,16 +440,25 @@ btnCapturar.addEventListener('click', () => {
     ctx.drawImage(video, 0, 0);
     
     tempImageData = canvas.toDataURL('image/jpeg', 0.8);
+    console.log('[CAPTURA] Imagen capturada:', nombreVista, 'Tamaño:', tempImageData.length, 'bytes');
     
     // Mostrar previsualización
     previewImage.src = tempImageData;
+    
+    // Ocultar botones de captura y mostrar preview
+    captureButtonContainer.classList.add('hidden');
     captureButtonContainer.style.display = 'none';
+    
+    previewContainer.classList.remove('hidden');
     previewContainer.style.display = 'block';
+    
+    console.log('[CAPTURA] ✓ Preview mostrado para:', nombreVista);
 });
 
 // Guardar foto
 btnGuardarFoto.addEventListener('click', () => {
     const vistaActual = vistasOrden[vistaActualIndex];
+    console.log('[GUARDAR] Guardando vista:', vistaActual);
     
     // Guardar la foto
     capturedPhotos[vistaActual] = tempImageData;
@@ -391,6 +468,7 @@ btnGuardarFoto.addEventListener('click', () => {
     agregarMiniatura(vistaActual);
     
     // Ocultar previsualización
+    previewContainer.classList.add('hidden');
     previewContainer.style.display = 'none';
     
     // Avanzar a la siguiente vista
@@ -399,26 +477,47 @@ btnGuardarFoto.addEventListener('click', () => {
     if (vistaActualIndex < vistasOrden.length) {
         // Hay más vistas
         actualizarVistaActual();
+        captureButtonContainer.classList.remove('hidden');
         captureButtonContainer.style.display = 'block';
+        
+        console.log('[GUARDAR] ✓ Vista guardada, lista para siguiente captura');
     } else {
         // Todas las vistas capturadas - DETENER CÁMARA
         const stream = video.srcObject;
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
-        video.style.display = 'none';
-        captureButtonContainer.style.display = 'none';
-        vistaActualDiv.style.display = 'none';
+        video.classList.add('hidden');
+        captureButtonContainer.classList.add('hidden');
+        vistaActualDiv.classList.add('hidden');
         
-        alert('✅ Todas las fotos han sido capturadas. La cámara se ha detenido. Puede proceder a guardar el registro.');
+        // Ocultar mensaje de vista y mostrar mensaje de completado
+        mensajeVista.className = 'alert alert-success text-center';
+        mensajeVista.style.maxWidth = '640px';
+        mensajeVista.style.margin = '0 auto 20px';
+        tituloVista.textContent = '¡Captura completada!';
+        descripcionVista.innerHTML = `
+            <strong>✅ Todas las fotos han sido capturadas</strong><br>
+            <small>La cámara se ha detenido. Puede proceder a guardar el registro completo.</small>
+        `;
+        
+        console.log('[GUARDAR] ✅ Todas las vistas capturadas, cámara detenida');
     }
 });
 
 // Repetir captura
 btnRepetirFoto.addEventListener('click', () => {
+    console.log('[REPETIR] Usuario quiere repetir la captura');
     tempImageData = null;
+    
+    // Ocultar preview y mostrar botones de captura
+    previewContainer.classList.add('hidden');
     previewContainer.style.display = 'none';
+    
+    captureButtonContainer.classList.remove('hidden');
     captureButtonContainer.style.display = 'block';
+    
+    console.log('[REPETIR] ✓ Listo para nueva captura');
 });
 
 // Saltar vista (solo para vistas opcionales)
@@ -440,9 +539,9 @@ btnSaltarVista.addEventListener('click', () => {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
-            video.style.display = 'none';
-            captureButtonContainer.style.display = 'none';
-            vistaActualDiv.style.display = 'none';
+            video.classList.add('hidden');
+            captureButtonContainer.classList.add('hidden');
+            vistaActualDiv.classList.add('hidden');
             
             alert('✅ Proceso de captura finalizado. La cámara se ha detenido.');
         }
@@ -455,10 +554,10 @@ function agregarMiniatura(vista) {
     col.className = 'col-4 col-md-2';
     col.innerHTML = `
         <div class="card">
-            <img src="${capturedPhotos[vista]}" class="card-img-top" style="height: 100px; object-fit: cover;">
+            <img src="${capturedPhotos[vista]}" class="card-img-top photo-thumbnail">
             <div class="card-body p-2 text-center">
                 <small class="d-block mb-1">${vistasNombres[vista]}</small>
-                <button type="button" class="btn btn-sm btn-danger w-100" onclick="deletePhoto('${vista}')">
+                <button type="button" class="btn btn-sm btn-danger w-100 btn-delete-photo" data-vista="${vista}">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -466,6 +565,7 @@ function agregarMiniatura(vista) {
     `;
     
     thumbnails.appendChild(col);
+    thumbnailsContainer.classList.remove('hidden');
     thumbnailsContainer.style.display = 'block';
     photoCount.textContent = Object.keys(capturedPhotos).length;
 }
@@ -486,6 +586,7 @@ function deletePhoto(vista) {
     
     // Si no hay fotos, ocultar contenedor
     if (Object.keys(capturedPhotos).length === 0) {
+        thumbnailsContainer.classList.add('hidden');
         thumbnailsContainer.style.display = 'none';
     }
     
@@ -496,23 +597,38 @@ function deletePhoto(vista) {
 document.getElementById('formRegistroCompleto').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // ===============================================================
+    // VALIDACIONES FRONTEND (primera capa de seguridad)
+    // ===============================================================
+    
     // Validar foto frontal
     if (!capturedPhotos['frontal']) {
         alert('❌ Debe capturar al menos la foto frontal');
         return;
     }
 
-    const tipoRegistro = document.querySelector('input[name="tipo_registro"]:checked').value;
-
+    const tipoRegistro = document.querySelector('input[name="tipo_registro"]:checked')?.value;
     const nombre = document.getElementById('nombre').value.trim();
-
     const tipo_categoria = document.getElementById('tipo_categoria').value;
-
     const laboratorio_id = document.getElementById('laboratorio_id').value;
 
     // Validar campos obligatorios
     if (!nombre) {
         alert('❌ El campo Nombre es obligatorio');
+        document.getElementById('nombre').focus();
+        return;
+    }
+    
+    // Validar longitud del nombre
+    if (nombre.length > 255) {
+        alert('❌ El nombre es demasiado largo (máximo 255 caracteres)');
+        document.getElementById('nombre').focus();
+        return;
+    }
+    
+    // Validar caracteres permitidos en nombre
+    if (!/^[a-zA-Z0-9áéíóúñÑ\s\-\._]+$/.test(nombre)) {
+        alert('❌ El nombre contiene caracteres no permitidos.\nSolo se permiten letras, números, espacios, guiones y puntos.');
         document.getElementById('nombre').focus();
         return;
     }
@@ -529,19 +645,39 @@ document.getElementById('formRegistroCompleto').addEventListener('submit', async
         return;
     }
     
+    // Validar cantidad de fotos
+    const numFotos = Object.keys(capturedPhotos).length;
+    if (numFotos > 10) {
+        alert('❌ Máximo 10 fotos permitidas');
+        return;
+    }
+    
+    // ===============================================================
+    // PREPARAR DATOS
+    // ===============================================================
+    
     const formData = {
         tipo_registro: tipoRegistro,
         nombre: nombre,
         tipo_categoria: tipo_categoria,
-        descripcion: document.getElementById('descripcion').value,
+        descripcion: document.getElementById('descripcion').value.trim(),
         laboratorio_id: parseInt(laboratorio_id),
-        ubicacion: document.getElementById('ubicacion').value,
-        cantidad: tipoRegistro === 'item' ? parseInt(document.getElementById('cantidad').value) : null,
+        ubicacion: document.getElementById('ubicacion').value.trim(),
+        cantidad: tipoRegistro === 'item' ? parseInt(document.getElementById('cantidad').value || 1) : null,
         estado: tipoRegistro === 'equipo' ? document.getElementById('estado').value : null,
         fotos: capturedPhotos
     };
 
+    // ===============================================================
+    // ENVIAR PETICIÓN
+    // ===============================================================
+    
     try {
+        // Deshabilitar botón submit para prevenir doble envío
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        const originalText = btnSubmit.innerHTML;
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Guardando...';
 
         const response = await fetch('/api/registro-completo', {
             method: 'POST',
@@ -552,15 +688,34 @@ document.getElementById('formRegistroCompleto').addEventListener('submit', async
         const result = await response.json();
 
         if (result.success) {
-            alert('✅ Registro creado exitosamente');
+            alert(`✅ Registro creado exitosamente\n\n📦 ID: ${result.id}\n📸 Fotos guardadas: ${result.imagenes_guardadas || 0}\n${result.entrenado_ia ? '🤖 IA: Listo para entrenamiento' : ''}`);
             window.location.href = '/laboratorios';
         } else {
-            console.error('Error del servidor:', result);
-            alert('❌ Error del servidor: ' + (result.message || 'Error desconocido'));
+            console.error('[ERROR] Error del servidor:', result);
+            alert(`❌ Error: ${result.message || 'Error desconocido'}`);
+            
+            // Re-habilitar botón
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalText;
         }
+        
     } catch (error) {
-        console.error('Error al enviar:', error);
-        alert('❌ Error al guardar: ' + error.message);
+        console.error('[ERROR] Error al enviar:', error);
+        alert(`❌ Error de conexión: ${error.message}\n\nPor favor verifica tu conexión e intenta nuevamente.`);
+        
+        // Re-habilitar botón
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="bi bi-check-circle me-2"></i>Guardar Registro';
+    }
+});
+
+// Event delegation para botones de eliminar foto
+document.getElementById('thumbnails').addEventListener('click', function(e) {
+    const deleteBtn = e.target.closest('.btn-delete-photo');
+    if (deleteBtn) {
+        const vista = deleteBtn.dataset.vista;
+        deletePhoto(vista);
     }
 });
 

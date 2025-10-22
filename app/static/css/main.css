@@ -6,38 +6,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
-/* Variables de Color - Paleta Suave y Agradable */
+/* ========================================
+   PALETA DE COLORES PROFESIONAL - SENA
+   Identidad Corporativa del Centro Minero
+   ======================================== */
 :root {
-  /* Paleta Principal - Verde Oscuro SENA */
-  --sena-primary: #00b894;        /* Verde cyan oscuro */
-  --sena-primary-dark: #009b7d;   /* Verde bosque oscuro */
-  --sena-primary-darker: #1e5128; /* Verde muy profundo */
-  --sena-primary-light: #00d4aa;  /* Verde cyan claro */
-  --sena-primary-lighter: #52B788;/* Verde medio */
-  --sena-primary-subtle: #D8F3DC; /* Verde pastel */
+  /* ===== VERDE SENA (Color Institucional) ===== */
+  --sena-dark: #1e5128;           /* Verde oscuro institucional */
+  --sena-primary: #2d6a4f;        /* Verde SENA principal ⭐ */
+  --sena-medium: #40916c;         /* Verde medio */
+  --sena-light: #52b788;          /* Verde claro */
+  --sena-lighter: #74c69d;        /* Verde suave */
+  --sena-subtle: #d8f3dc;         /* Verde pastel (fondos) */
+  --sena-ultra-light: #f1faee;    /* Casi blanco verdoso */
   
-  /* Colores de Acento Vibrantes */
-  --accent-orange: #FF6B35;       /* Naranja vibrante */
-  --accent-orange-dark: #E85D2C;
-  --accent-orange-light: #FFB59D;
-  --accent-yellow: #FFC107;       /* Amarillo brillante */
-  --accent-yellow-dark: #F59E0B;
-  --accent-yellow-light: #FFE5A1;
-  --accent-red: #EF4444;          /* Rojo brillante */
-  --accent-red-dark: #DC2626;
-  --accent-red-light: #FCA5A5;
-  --accent-blue: #3B82F6;         /* Azul brillante */
-  --accent-blue-dark: #2563EB;
-  --accent-blue-light: #93C5FD;
-  --accent-purple: #8B5CF6;       /* Púrpura vibrante */
-  --accent-purple-dark: #7C3AED;
-  --accent-purple-light: #C4B5FD;
-  --accent-cyan: #06B6D4;         /* Cyan brillante */
-  --accent-cyan-dark: #0891B2;
-  --accent-cyan-light: #67E8F9;
-  --accent-pink: #EC4899;         /* Rosa vibrante */
-  --accent-pink-dark: #DB2777;
-  --accent-pink-light: #F9A8D4;
+  /* ===== COLORES DE ESTADO (Semáforo Profesional) ===== */
+  --success: #10b981;             /* Verde éxito */
+  --success-bg: #d1fae5;
+  --success-border: #6ee7b7;
+  
+  --warning: #f59e0b;             /* Amarillo/Naranja alerta */
+  --warning-bg: #fef3c7;
+  --warning-border: #fcd34d;
+  
+  --error: #dc2626;               /* Rojo error */
+  --error-bg: #fee2e2;
+  --error-border: #fca5a5;
+  
+  --info: #3b82f6;                /* Azul información */
+  --info-bg: #dbeafe;
+  --info-border: #93c5fd;
   
   /* Colores de Estado (Profesionales) */
   --status-success: #10b981;      /* Verde éxito */
@@ -49,65 +47,76 @@
   --status-info: #3b82f6;         /* Azul información */
   --status-info-bg: #dbeafe;
   
-  /* Grises Modernos (Tonos Cálidos) */
-  --gray-50: #fafbfc;             /* Blanco azulado */
-  --gray-100: #f3f4f6;            /* Gris perla */
-  --gray-200: #e5e7eb;            /* Gris suave */
-  --gray-300: #d1d5db;            /* Gris medio-claro */
-  --gray-400: #9ca3af;            /* Gris medio */
-  --gray-500: #6b7280;            /* Gris */
-  --gray-600: #4b5563;            /* Gris pizarra */
-  --gray-700: #374151;            /* Gris carbón */
-  --gray-800: #1f2937;            /* Gris oscuro */
-  --gray-900: #111827;            /* Negro azulado */
+  /* ===== NEUTRALES (Grises Profesionales) ===== */
+  --gray-50: #f9fafb;             /* Casi blanco */
+  --gray-100: #f3f4f6;            /* Fondo claro */
+  --gray-200: #e5e7eb;            /* Bordes suaves */
+  --gray-300: #d1d5db;            /* Bordes */
+  --gray-400: #9ca3af;            /* Texto deshabilitado */
+  --gray-500: #6b7280;            /* Texto secundario */
+  --gray-600: #4b5563;            /* Texto normal */
+  --gray-700: #374151;            /* Texto oscuro */
+  --gray-800: #1f2937;            /* Casi negro */
+  --gray-900: #111827;            /* Negro */
   
-  /* Fondos Suaves */
-  --bg-primary: #ffffff;          /* Blanco puro */
-  --bg-secondary: #F7F9F7;        /* Blanco verdoso */
-  --bg-tertiary: #EDF6F0;         /* Verde muy claro */
-  --bg-gradient-main: linear-gradient(135deg, #00b894 0%, #009b7d 100%);
-  --bg-gradient-sidebar: linear-gradient(180deg, #1e5128 0%, #0d3b2f 100%);
-  --bg-glass: rgba(255, 255, 255, 0.9); /* Efecto glassmorphism */
+  --text-primary: #1f2937;        /* Texto principal */
+  --text-secondary: #6b7280;      /* Texto secundario */
+  --text-disabled: #9ca3af;       /* Texto deshabilitado */
   
-  /* Sombras Modernas con Color */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 6px 12px -2px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.15);
-  --shadow-xl: 0 15px 30px -5px rgba(0, 0, 0, 0.18);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  /* ===== FONDOS ===== */
+  --bg-white: #ffffff;            /* Blanco puro */
+  --bg-light: #f9fafb;            /* Fondo claro */
+  --bg-gray-light: #f3f4f6;       /* Gris muy claro */
+  --bg-sena-subtle: #f1faee;      /* Verde muy claro */
   
-  /* Sombras con Color Vibrante */
-  --shadow-sena: 0 8px 20px -4px rgba(0, 212, 170, 0.3);
-  --shadow-sena-lg: 0 12px 30px -6px rgba(0, 212, 170, 0.4);
-  --shadow-purple: 0 8px 20px -4px rgba(168, 85, 247, 0.3);
-  --shadow-pink: 0 8px 20px -4px rgba(236, 72, 153, 0.3);
-  --shadow-glow: 0 0 20px rgba(0, 212, 170, 0.5);
+  /* ===== GRADIENTES PROFESIONALES ===== */
+  --gradient-sena: linear-gradient(135deg, #2d6a4f 0%, #52b788 100%);
+  --gradient-sidebar: linear-gradient(180deg, #1e5128 0%, #2d6a4f 50%, #40916c 100%);
+  --gradient-header: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
   
-  /* Bordes Redondeados */
-  --radius-xs: 0.25rem;           /* 4px */
-  --radius-sm: 0.375rem;          /* 6px */
-  --radius: 0.5rem;               /* 8px */
-  --radius-md: 0.75rem;           /* 12px */
-  --radius-lg: 1rem;              /* 16px */
-  --radius-xl: 1.25rem;           /* 20px */
-  --radius-2xl: 1.5rem;           /* 24px */
+  /* ===== SOMBRAS (Sutiles y Profesionales) ===== */
+  --shadow-xs: 0 1px 2px 0 rgba(45, 106, 79, 0.05);
+  --shadow-sm: 0 2px 4px -1px rgba(45, 106, 79, 0.06), 0 1px 2px -1px rgba(45, 106, 79, 0.06);
+  --shadow-md: 0 4px 6px -2px rgba(45, 106, 79, 0.08), 0 2px 4px -2px rgba(45, 106, 79, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(45, 106, 79, 0.1), 0 4px 6px -2px rgba(45, 106, 79, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(45, 106, 79, 0.12), 0 10px 10px -5px rgba(45, 106, 79, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(45, 106, 79, 0.25);
+  --shadow-sena: 0 4px 12px rgba(45, 106, 79, 0.15);  /* Sombra con tinte verde SENA */
+  
+  /* ===== BORDER RADIUS (Consistente) ===== */
+  --radius-sm: 0.375rem;          /* 6px - Pequeño */
+  --radius-md: 0.5rem;            /* 8px - Medio */
+  --radius-lg: 0.75rem;           /* 12px - Grande */
+  --radius-xl: 1rem;              /* 16px - Extra grande */
+  --radius-2xl: 1.5rem;           /* 24px - Cards grandes */
   --radius-full: 9999px;          /* Completamente redondeado */
   
-  /* Espaciado */
-  --spacing-xs: 0.25rem;          /* 4px */
-  --spacing-sm: 0.5rem;           /* 8px */
-  --spacing: 1rem;                /* 16px */
-  --spacing-md: 1.5rem;           /* 24px */
-  --spacing-lg: 2rem;             /* 32px */
-  --spacing-xl: 3rem;             /* 48px */
-  --spacing-2xl: 4rem;            /* 64px */
+  /* ===== ESPACIADO (Sistema 8px) ===== */
+  --spacing-xs: 0.5rem;           /* 8px */
+  --spacing-sm: 0.75rem;          /* 12px */
+  --spacing-md: 1rem;             /* 16px */
+  --spacing-lg: 1.5rem;           /* 24px */
+  --spacing-xl: 2rem;             /* 32px */
+  --spacing-2xl: 3rem;            /* 48px */
+  --spacing-3xl: 4rem;            /* 64px */
   
-  /* Transiciones */
-  --transition-fast: 150ms ease;
-  --transition: 200ms ease;
-  --transition-slow: 300ms ease;
+  /* ===== TRANSICIONES (Suaves y Naturales) ===== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ===== TIPOGRAFÍA ===== */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Poppins', 'Inter', sans-serif;
+  
+  --text-xs: 0.75rem;             /* 12px */
+  --text-sm: 0.875rem;            /* 14px */
+  --text-base: 0.9375rem;         /* 15px */
+  --text-lg: 1.125rem;            /* 18px */
+  --text-xl: 1.25rem;             /* 20px */
+  --text-2xl: 1.5rem;             /* 24px */
+  --text-3xl: 2rem;               /* 32px */
+  --text-4xl: 2.5rem;             /* 40px */
 }
 
 /* ==========================================

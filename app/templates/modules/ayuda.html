@@ -2,25 +2,25 @@
 {% set title = 'Ayuda - Manual de Usuario' %}
 {% block content %}
 <!-- Portada del Manual (solo visible en impresión) -->
-<div class="manual-cover" style="page-break-after: always;">
+<div class="manual-cover">
     <div class="text-center py-4">
         <!-- Institución -->
-        <h1 class="display-4 fw-bold mb-3" style="color: #00b894;">SENA</h1>
+        <h1 class="display-4 fw-bold mb-3 text-sena-light">SENA</h1>
         <p class="mb-1">Servicio Nacional de Aprendizaje</p>
         <p class="text-muted small mb-3">Centro Minero - Regional Boyacá</p>
         
-        <hr class="my-3" style="width: 50%; margin: 0 auto; border-top: 2px solid #00b894;">
+        <hr class="my-3 w-50 mx-auto border-2 border-success">
         
         <!-- Título del Manual -->
-        <h1 class="display-5 fw-bold my-3" style="color: #2d6a4f;">MANUAL DE USUARIO</h1>
-        <h2 class="h3 mb-2" style="color: #00b894;">Sistema GIL</h2>
+        <h1 class="display-5 fw-bold my-3 text-sena-primary">MANUAL DE USUARIO</h1>
+        <h2 class="h3 mb-2 text-sena-light">Sistema GIL</h2>
         <p class="mb-3">Gestión Inteligente de Laboratorios</p>
         
-        <hr class="my-3" style="width: 50%; margin: 0 auto; border-top: 2px solid #00b894;">
+        <hr class="my-3 w-50 mx-auto border-2 border-success">
         
         <!-- Desarrolladores -->
         <div class="my-3">
-            <p class="fw-bold mb-2" style="color: #2d6a4f;"><i class="bi bi-people-fill me-2"></i>Desarrollado por:</p>
+            <p class="fw-bold mb-2 text-sena-primary"><i class="bi bi-people-fill me-2"></i>Desarrollado por:</p>
             <p class="small mb-1">Steven Jose Valdelamar Gutierrez</p>
             <p class="small mb-1">Karen Stefanie Quintero Albarracin</p>
             <p class="small mb-0">Zharick Alejandra Camargo Velandia</p>
@@ -36,8 +36,8 @@
 </div>
 
 <!-- Índice del Manual (solo visible en impresión) -->
-<div class="manual-index" style="page-break-after: always;">
-    <h3 class="mb-3 pb-2 border-bottom" style="color: #00b894;"><i class="bi bi-list-ul me-2"></i>ÍNDICE DE CONTENIDOS</h3>
+<div class="manual-index">
+    <h3 class="mb-3 pb-2 border-bottom text-sena-light"><i class="bi bi-list-ul me-2"></i>ÍNDICE DE CONTENIDOS</h3>
     
     <div class="row">
         <div class="col-12">
@@ -45,97 +45,97 @@
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Introducción al Sistema</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Bienvenida y características principales</small>
+                        <small class="text-muted manual-small-text">Bienvenida y características principales</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 3</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 3</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Módulos del Sistema</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Dashboard, Laboratorios, Equipos, Inventario, Reservas</small>
+                        <small class="text-muted manual-small-text">Dashboard, Laboratorios, Equipos, Inventario, Reservas</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 5</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 5</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Funciones Avanzadas</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Reconocimiento facial, comandos de voz, IA visual</small>
+                        <small class="text-muted manual-small-text">Reconocimiento facial, comandos de voz, IA visual</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 8</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 8</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Gestión de Usuarios</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Crear, editar y administrar usuarios</small>
+                        <small class="text-muted manual-small-text">Crear, editar y administrar usuarios</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 12</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 12</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Manual de Reservas</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Cómo reservar, modificar y cancelar equipos</small>
+                        <small class="text-muted manual-small-text">Cómo reservar, modificar y cancelar equipos</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 15</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 15</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Reportes y Estadísticas</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Generación y exportación de reportes</small>
+                        <small class="text-muted manual-small-text">Generación y exportación de reportes</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 18</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 18</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Accesibilidad</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Opciones de accesibilidad y atajos de teclado</small>
+                        <small class="text-muted manual-small-text">Opciones de accesibilidad y atajos de teclado</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 20</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 20</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Recuperación de Contraseña</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Pasos para recuperar acceso a tu cuenta</small>
+                        <small class="text-muted manual-small-text">Pasos para recuperar acceso a tu cuenta</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 22</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 22</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Solución de Problemas Comunes</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Errores frecuentes y sus soluciones</small>
+                        <small class="text-muted manual-small-text">Errores frecuentes y sus soluciones</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 24</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 24</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Contacto y Soporte Técnico</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Información de contacto y horarios de atención</small>
+                        <small class="text-muted manual-small-text">Información de contacto y horarios de atención</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 26</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 26</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Preguntas Frecuentes (FAQ)</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Respuestas a las dudas más comunes</small>
+                        <small class="text-muted manual-small-text">Respuestas a las dudas más comunes</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 28</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 28</span>
                 </li>
                 
                 <li class="list-group-item d-flex justify-content-between align-items-start border-0 py-1">
                     <div class="ms-2 me-auto">
                         <div class="fw-bold small">Glosario de Términos</div>
-                        <small class="text-muted" style="font-size: 0.8rem;">Definiciones y conceptos clave</small>
+                        <small class="text-muted manual-small-text">Definiciones y conceptos clave</small>
                     </div>
-                    <span class="badge bg-primary rounded-pill" style="font-size: 0.7rem;">Pág. 30</span>
+                    <span class="badge bg-primary rounded-pill manual-badge">Pág. 30</span>
                 </li>
             </ol>
         </div>

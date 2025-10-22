@@ -3,15 +3,15 @@
 {% block content %}
 
 <!-- Header -->
-<div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+<div class="card border-0 shadow-sm mb-4 module-header">
   <div class="card-body p-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
-        <h4 class="mb-1 text-white fw-bold"><i class="bi bi-gear-fill me-2"></i>Configuración del Sistema</h4>
-        <p class="mb-0 text-white opacity-90">Parámetros y ajustes del sistema</p>
+        <h4 class="mb-1 fw-bold"><i class="bi bi-gear me-2"></i>Configuración del Sistema</h4>
+        <p class="mb-0 text-secondary">Parámetros y ajustes del sistema</p>
       </div>
       <div>
-        <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+        <span class="badge rounded-pill px-3 py-2 badge-disponible">
           <i class="bi bi-check-circle me-1"></i>Sistema Activo
         </span>
       </div>
@@ -22,12 +22,12 @@
 {% if configuraciones and configuraciones|length > 0 %}
 <!-- Buscador -->
 <div class="card border-0 shadow-sm mb-4">
-  <div class="card-header border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-    <h6 class="mb-0 fw-bold" style="color: #2d6a4f;"><i class="bi bi-funnel me-2"></i>Buscar Configuración</h6>
+  <div class="card-header border-0 card-filter-header">
+    <h6 class="mb-0 fw-bold section-title-dark"><i class="bi bi-funnel me-2"></i>Buscar Configuración</h6>
   </div>
   <div class="card-body">
     <div class="input-group">
-      <span class="input-group-text" style="background: #f8f9fa;"><i class="bi bi-search"></i></span>
+      <span class="input-group-text input-group-icon"><i class="bi bi-search"></i></span>
       <input type="text" id="filtroConfig" class="form-control" placeholder="Buscar por parámetro o descripción...">
     </div>
   </div>
@@ -35,7 +35,7 @@
 
 <!-- Tabla de Configuraciones -->
 <div class="card border-0 shadow-sm">
-  <div class="card-header border-0" style="background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);">
+  <div class="card-header border-0 bg-sena-primary">
     <h6 class="mb-0 text-white fw-bold"><i class="bi bi-list-ul me-2"></i>Parámetros del Sistema ({{ configuraciones|length }})</h6>
   </div>
   <div class="card-body p-0">
@@ -43,19 +43,19 @@
       <table class="table table-hover align-middle mb-0" id="tablaConfig">
         <thead class="table-light">
           <tr>
-            <th style="width: 30%;">Parámetro</th>
-            <th style="width: 25%;">Valor</th>
-            <th style="width: 45%;">Descripción</th>
+            <th class="w-30">Parámetro</th>
+            <th class="w-25">Valor</th>
+            <th class="w-45">Descripción</th>
           </tr>
         </thead>
         <tbody>
           {% for c in configuraciones %}
           <tr data-clave="{{ c.clave|lower }}" data-desc="{{ c.descripcion|lower }}">
             <td>
-              <strong style="color: #2d6a4f;">{{ c.clave }}</strong>
+              <strong class="text-sena-primary">{{ c.clave }}</strong>
             </td>
             <td>
-              <code class="px-2 py-1 rounded" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 155, 125, 0.1) 100%); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.2);">{{ c.valor }}</code>
+              <code class="px-2 py-1 rounded bg-sena-light text-sena-primary border border-success border-opacity-25">{{ c.valor }}</code>
             </td>
             <td class="text-muted">
               <small>{{ c.descripcion }}</small>
@@ -66,10 +66,10 @@
       </table>
     </div>
   </div>
-  <div class="card-footer border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+  <div class="card-footer border-0 bg-light-gradient">
     <small>
-      <i class="bi bi-info-circle me-1" style="color: #00b894;"></i>
-      <strong style="color: #2d6a4f;">Nota:</strong> Para modificar estos valores, contacte al administrador del sistema
+      <i class="bi bi-info-circle me-1 text-sena-light"></i>
+      <strong class="text-sena-primary">Nota:</strong> Para modificar estos valores, contacte al administrador del sistema
     </small>
   </div>
 </div>

@@ -37,7 +37,7 @@
 </style>
 
 <div class="backup-header">
-    <i class="bi bi-database" style="font-size: 3em; margin-bottom: 15px;"></i>
+    <i class="bi bi-database display-1 mb-3"></i>
     <h1>Gestión de Backups</h1>
     <p class="mb-0">Crea y restaura copias de seguridad de la base de datos</p>
 </div>
@@ -143,7 +143,7 @@
                 {% endfor %}
             {% else %}
                 <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 4em; color: #ccc;"></i>
+                    <i class="bi bi-inbox display-1 text-muted"></i>
                     <p class="text-muted mt-3">No hay backups disponibles</p>
                     <p class="text-muted">Crea tu primer backup usando el botón de la izquierda</p>
                 </div>
@@ -200,7 +200,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('backup') }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('backup') }}" class="d-inline">
                     <input type="hidden" name="action" value="restore">
                     <input type="hidden" name="backup_file" id="backupFileInput">
                     <button type="submit" class="btn btn-warning">
@@ -232,7 +232,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('backup') }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('backup') }}" class="d-inline">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="backup_file" id="deleteFileInput">
                     <button type="submit" class="btn btn-danger">
@@ -260,17 +260,17 @@
             loadingOverlay = document.createElement('div');
             loadingOverlay.id = 'loadingOverlay';
             loadingOverlay.innerHTML = `
-                <div class="text-center text-white" style="position: relative; max-width: 500px; padding: 40px; background: rgba(45, 106, 79, 0.95); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                <div class="text-center text-white position-relative p-5 rounded-4 shadow-2xl" style="max-width: 500px; background: rgba(45, 106, 79, 0.95);">
                     <button id="emergencyClose" onclick="location.reload()" 
-                            style="display: none; position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">
+                            class="d-none position-absolute top-0 end-0 m-2 btn btn-danger">
                         <i class="bi bi-x-circle me-1"></i>Cerrar y Recargar
                     </button>
-                    <div class="spinner-border mb-3" role="status" style="width: 4rem; height: 4rem; border-color: white; border-right-color: transparent;">
+                    <div class="spinner-border mb-3 text-white" role="status" style="width: 4rem; height: 4rem;">
                         <span class="visually-hidden">Cargando...</span>
                     </div>
-                    <h4 id="loadingText" style="color: white; font-weight: 700;">Procesando backup...</h4>
-                    <p class="mb-0" style="color: rgba(255,255,255,0.9);">Por favor espera, esto puede tardar varios minutos</p>
-                    <small class="d-block mt-3" id="loadingTimer" style="color: rgba(255,255,255,0.7); font-size: 16px; font-weight: 600;"></small>
+                    <h4 id="loadingText" class="text-white fw-bold">Procesando backup...</h4>
+                    <p class="mb-0 text-white opacity-90">Por favor espera, esto puede tardar varios minutos</p>
+                    <small class="d-block mt-3 text-white opacity-75 fs-6 fw-semibold" id="loadingTimer"></small>
                 </div>
             `;
             // NO agregarlo al DOM todavía
