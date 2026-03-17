@@ -30,15 +30,21 @@ wheels/
 *.env
 
 # Base de datos
-*.sql
 backups/
+*.sql
 *.db
 *.sqlite
+# Permitir migraciones y scripts específicos
+!sql/migrations/*.sql
+!scripts/fix_laboratorios.sql
 
-# Imágenes y archivos temporales
+# Imágenes y archivos generados
 imagenes/
 temp/
 *.tmp
+
+# Modelos de IA (se generan automáticamente)
+models/
 
 # IDEs
 .vscode/

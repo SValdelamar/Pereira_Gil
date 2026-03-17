@@ -20,10 +20,11 @@
 
             <!-- Información del Usuario -->
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header border-0 card-filter-header">
-                    <h6 class="mb-0 fw-bold section-title-dark"><i class="bi bi-person-circle me-2"></i>Información del Usuario</h6>
-                </div>
-                <div class="card-body">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-person-circle me-2 text-sena-primary" style="font-size: 1.25rem;"></i>
+                        <h6 class="mb-0 fw-semibold text-sena-primary">Información del Usuario</h6>
+                    </div>
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <h5 class="mb-1 fw-bold text-sena-primary">{{ user.user_name }}</h5>
@@ -41,12 +42,6 @@
 
             <!-- Panel de Captura -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header border-0 bg-sena-primary">
-                    <h5 class="mb-0 text-white fw-bold">
-                        <i class="bi bi-camera-fill me-2"></i>
-                        Captura de Rostro
-                    </h5>
-                </div>
                 <div class="card-body p-4">
                     <!-- Estado del proceso -->
                     <div id="statusAlert" class="alert border-0 shadow-sm alert-sena" role="alert">
@@ -132,16 +127,21 @@
                 </div>
             </div>
 
-            <!-- Historial (si existe) -->
-            <div id="historialContainer" class="card border-0 shadow-sm mt-4 d-none">
-                <div class="card-header border-0 card-filter-header">
-                    <h6 class="mb-0 fw-bold section-title-dark">
-                        <i class="bi bi-clock-history me-2"></i>
-                        Registro Anterior
+            <!-- Estado del Registro Facial -->
+            <div id="registrationStatusCard" class="card border-0 shadow-sm mt-4">
+                <div class="card-header border-0" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); padding: 1.25rem;">
+                    <h6 class="mb-0 fw-semibold" style="color: #374151; font-size: 0.9375rem;">
+                        <i class="bi bi-shield-check me-2" style="color: #10b981;"></i>
+                        Estado del Registro Facial
                     </h6>
                 </div>
-                <div class="card-body">
-                    <div id="historialContent"></div>
+                <div class="card-body p-0">
+                    <div id="registrationStatus" class="text-center py-5">
+                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
+                            <span class="visually-hidden">Verificando...</span>
+                        </div>
+                        <p class="mt-3 mb-0 text-muted" style="font-size: 0.875rem;">Verificando estado del registro...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -159,9 +159,12 @@ class FacialRegistration {
         this.ctx = this.canvas.getContext('2d');
         this.stream = null;
         this.capturedImageData = null;
+        this.userId = '{{ user.user_id }}';
+        this.isRegistered = false;
         
         this.initializeElements();
         this.bindEvents();
+        this.checkRegistrationStatus();
     }
     
     initializeElements() {
@@ -178,24 +181,177 @@ class FacialRegistration {
     bindEvents() {
         this.startBtn.addEventListener('click', (e) => {
             e.preventDefault();
-
             this.startCamera();
         });
         this.captureBtn.addEventListener('click', (e) => {
             e.preventDefault();
-
             this.captureImage();
         });
         this.registerBtn.addEventListener('click', (e) => {
             e.preventDefault();
-
             this.registerFace();
         });
         this.retakeBtn.addEventListener('click', (e) => {
             e.preventDefault();
-
             this.retakePhoto();
         });
+    }
+    
+    async checkRegistrationStatus() {
+        try {
+            const response = await fetch(`/api/facial/register?user_id=${this.userId}`);
+            const result = await response.json();
+            
+            const statusDiv = document.getElementById('registrationStatus');
+            
+            if (result.success && result.registered) {
+                this.isRegistered = true;
+                this.showRegisteredStatus(result);
+            } else {
+                this.isRegistered = false;
+                this.showNotRegisteredStatus();
+            }
+        } catch (error) {
+            console.error('[ERROR] Error verificando estado:', error);
+            document.getElementById('registrationStatus').innerHTML = `
+                <div style="padding: 2rem; text-align: center;">
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                        <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem; color: white;"></i>
+                    </div>
+                    <h6 style="font-size: 1rem; font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Error al verificar</h6>
+                    <p style="font-size: 0.875rem; color: #b45309; margin: 0;">No se pudo verificar el estado del registro</p>
+                </div>
+            `;
+        }
+    }
+    
+    showRegisteredStatus(data) {
+        const statusDiv = document.getElementById('registrationStatus');
+        const fechaRegistro = new Date(data.user.fecha_registro).toLocaleDateString('es-CO', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        statusDiv.innerHTML = `
+            <div class="facial-status-card">
+                <!-- Header -->
+                <div class="facial-status-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="facial-status-icon">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 fw-bold text-success" style="font-size: 1.125rem;">Registro Facial Activo</h6>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">
+                                Tu rostro está registrado y listo para autenticación
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información -->
+                <div class="p-4">
+                    <div class="facial-info-grid">
+                        <div class="facial-info-item">
+                            <div class="facial-info-label">
+                                <i class="bi bi-calendar-check"></i>
+                                Fecha de Registro
+                            </div>
+                            <div class="facial-info-value">${fechaRegistro}</div>
+                        </div>
+                        <div class="facial-info-item">
+                            <div class="facial-info-label">
+                                <i class="bi bi-person"></i>
+                                Usuario
+                            </div>
+                            <div class="facial-info-value">${data.user.nombre}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Imagen Registrada -->
+                    <div class="facial-image-container">
+                        <div class="facial-image-label">
+                            <i class="bi bi-image"></i>
+                            Fotografía Registrada
+                        </div>
+                        <img src="${data.face_image}" alt="Rostro registrado">
+                    </div>
+                </div>
+                
+                <!-- Acciones -->
+                <div class="facial-actions">
+                    <button class="btn-facial-edit" onclick="facialReg.editRegistration()">
+                        <i class="bi bi-pencil-fill"></i>
+                        Actualizar Rostro
+                    </button>
+                    <button class="btn-facial-delete" onclick="facialReg.deleteRegistration()">
+                        <i class="bi bi-trash-fill"></i>
+                        Eliminar Registro
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Ocultar panel de captura si ya está registrado
+        document.querySelector('.camera-container').closest('.card').style.display = 'none';
+    }
+    
+    showNotRegisteredStatus() {
+        const statusDiv = document.getElementById('registrationStatus');
+        statusDiv.innerHTML = `
+            <div class="facial-not-registered">
+                <div class="facial-not-registered-icon">
+                    <i class="bi bi-camera-video-off-fill"></i>
+                </div>
+                <h6>Sin Registro Facial</h6>
+                <p>Utiliza la cámara para capturar y registrar tu rostro en el sistema</p>
+            </div>
+        `;
+    }
+    
+    editRegistration() {
+        if (confirm('¿Deseas actualizar tu foto de registro facial?\n\nSe eliminará la foto actual y podrás capturar una nueva.')) {
+            this.deleteRegistration(true);
+        }
+    }
+    
+    async deleteRegistration(isEdit = false) {
+        const confirmMsg = isEdit ? 
+            'Confirma que deseas actualizar tu registro' : 
+            '¿Estás seguro de eliminar tu registro facial?\n\nDeberás registrarte nuevamente si deseas usar esta funcionalidad.';
+        
+        if (!confirm(confirmMsg)) return;
+        
+        try {
+            const response = await fetch('/api/facial/register', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.updateStatus('success', result.message);
+                
+                if (isEdit) {
+                    // Modo edición: mostrar panel de captura
+                    this.isRegistered = false;
+                    this.showNotRegisteredStatus();
+                    document.querySelector('.camera-container').closest('.card').style.display = 'block';
+                    this.updateStatus('info', 'Ahora puedes capturar tu nuevo rostro');
+                } else {
+                    // Modo eliminación: recargar página
+                    setTimeout(() => window.location.reload(), 2000);
+                }
+            } else {
+                this.updateStatus('danger', result.message || 'Error al eliminar registro');
+            }
+        } catch (error) {
+            console.error('[ERROR] Error eliminando registro:', error);
+            this.updateStatus('danger', 'Error de conexión al eliminar registro');
+        }
     }
     
     async startCamera() {
@@ -347,14 +503,21 @@ class FacialRegistration {
                     this.updateStatus('success', `✅ ${result.message || 'Rostro registrado exitosamente'}`);
                     this.registerBtn.innerHTML = '<i class="bi bi-check-circle"></i> Registrado';
                     
+                    // Actualizar estado
+                    this.isRegistered = true;
+                    
                     // Mostrar opción de ir al dashboard
                     setTimeout(() => {
                         if (confirm('Registro facial completado. ¿Ir al dashboard?')) {
                             window.location.href = '/dashboard';
+                        } else {
+                            // Recargar para mostrar el nuevo estado
+                            window.location.reload();
                         }
                     }, 2000);
                 } else {
-                    this.updateStatus('danger', `❌ Error: ${result.error || 'Error desconocido'}`);
+                    const errorMsg = result.error || result.message || 'Error desconocido al registrar rostro';
+                    this.updateStatus('danger', `❌ Error: ${errorMsg}`);
                     this.registerBtn.disabled = false;
                 }
             }, 1000);
@@ -415,8 +578,20 @@ class FacialRegistration {
 }
 
 // Inicializar cuando la página cargue
+let facialReg = null;
 document.addEventListener('DOMContentLoaded', () => {
-    new FacialRegistration();
+    facialReg = new FacialRegistration();
+    
+    // Event delegation para botón retry camera
+    document.addEventListener('click', function(e) {
+        const btnRetry = e.target.closest('.btn-retry-camera');
+        if (btnRetry) {
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            if (startCameraBtn) {
+                startCameraBtn.click();
+            }
+        }
+    });
 });
 </script>
 
@@ -506,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-sena" data-bs-dismiss="modal" onclick="document.getElementById('startCameraBtn').click()">
+                <button type="button" class="btn btn-sena btn-retry-camera" data-bs-dismiss="modal">
                     <i class="bi bi-camera-video me-2"></i>Intentar Activar
                 </button>
             </div>

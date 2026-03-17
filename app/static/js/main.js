@@ -1,4 +1,5 @@
 // UI Común + Comandos de voz (Web Speech API)
+// Versión: 2.0 - Comandos actualizados para todos los módulos (2025-01-23)
 (() => {
   const sidebar = document.getElementById('sidebar');
   const toggle = document.getElementById('toggleSidebar');
@@ -171,50 +172,102 @@
         }
       } catch (e) { console.error(e); flash('Error enviando comando', 'danger'); }
     } else {
-      // Comandos básicos sin JWT (navegación)
-      if (texto.includes('dashboard') || texto.includes('inicio') || texto.includes('principal')) {
+      // Comandos básicos sin JWT (navegación directa más flexible)
+      const cmd = texto.toLowerCase().trim();
+      
+      // Dashboard / Inicio
+      if (cmd.includes('dashboard') || cmd.includes('inicio') || cmd.includes('principal') || cmd.includes('home')) {
+        flash('📊 Navegando a Dashboard', 'success', 1500);
         window.location.href = '/dashboard';
       }
-      else if (texto.includes('laboratorio')) {
+      // Gestión
+      else if (cmd.includes('laboratorio')) {
+        flash('🏢 Navegando a Laboratorios', 'success', 1500);
         window.location.href = '/laboratorios';
       }
-      else if (texto.includes('equipo')) {
+      else if (cmd.includes('equipo') && !cmd.includes('reconocimiento')) {
+        flash('⚙️ Navegando a Equipos', 'success', 1500);
         window.location.href = '/equipos';
       }
-      else if (texto.includes('inventario') || texto.includes('stock') || texto.includes('almacén')) {
+      else if (cmd.includes('inventario') || cmd.includes('stock') || cmd.includes('almacén') || cmd.includes('almacen')) {
+        flash('📦 Navegando a Inventario', 'success', 1500);
         window.location.href = '/inventario';
       }
-      else if (texto.includes('reserva')) {
+      else if (cmd.includes('reserva')) {
+        flash('📅 Navegando a Reservas', 'success', 1500);
         window.location.href = '/reservas';
       }
-      else if (texto.includes('usuario') || texto.includes('personas')) {
+      else if (cmd.includes('usuario') || cmd.includes('personas') || cmd.includes('gestión de usuarios')) {
+        flash('👥 Navegando a Usuarios', 'success', 1500);
         window.location.href = '/usuarios';
       }
-      else if (texto.includes('reporte') || texto.includes('estadística') || texto.includes('informe')) {
+      // IA y Automatización
+      else if (cmd.includes('facial') || cmd.includes('rostro') || cmd.includes('reconocimiento facial') || cmd.includes('registro facial')) {
+        flash('👤 Navegando a Registro Facial', 'success', 1500);
+        window.location.href = '/facial';
+      }
+      else if (cmd.includes('visual') || cmd.includes('reconocimiento visual') || cmd.includes('entrenamiento visual') || cmd.includes('ia visual') || cmd.includes('reconocimiento de equipo')) {
+        flash('🤖 Navegando a IA Visual', 'success', 1500);
+        window.location.href = '/visual';
+      }
+      // Búsqueda y Reportes
+      else if (cmd.includes('buscar') || cmd.includes('buscador') || cmd.includes('búsqueda')) {
+        flash('🔍 Navegando a Inventario', 'success', 1500);
+        window.location.href = '/inventario';
+      }
+      else if (cmd.includes('reporte') || cmd.includes('estadística') || cmd.includes('estadisticas') || cmd.includes('informe')) {
+        flash('📈 Navegando a Reportes', 'success', 1500);
         window.location.href = '/reportes';
       }
-      else if (texto.includes('configuración') || texto.includes('ajustes')) {
+      // Configuración y Ayuda
+      else if (cmd.includes('configuración') || cmd.includes('configuracion') || cmd.includes('ajustes') || cmd.includes('preferencias')) {
+        flash('⚙️ Navegando a Configuración', 'success', 1500);
         window.location.href = '/configuracion';
       }
-      else if (texto.includes('manual') || texto.includes('ayuda general') || texto.includes('documentación')) {
+      else if (cmd.includes('accesibilidad')) {
+        flash('♿ Abriendo Configuración de Accesibilidad', 'success', 1500);
+        // Abrir modal de accesibilidad si existe
+        const modal = document.getElementById('modalAccesibilidad');
+        if (modal) {
+          new bootstrap.Modal(modal).show();
+        } else {
+          window.location.href = '/configuracion';
+        }
+      }
+      else if (cmd.includes('manual') || cmd.includes('ayuda general') || cmd.includes('documentación') || cmd.includes('documentacion')) {
+        flash('📚 Navegando a Ayuda', 'success', 1500);
         window.location.href = '/ayuda';
       }
-      else if (texto.includes('módulo') || texto.includes('funcionalidades')) {
+      else if (cmd.includes('módulo') || cmd.includes('modulos') || cmd.includes('funcionalidades')) {
+        flash('🧩 Navegando a Módulos', 'success', 1500);
         window.location.href = '/modulos';
       }
-      else if (texto.includes('cerrar sesión') || texto.includes('salir') || texto.includes('logout')) {
-        window.location.href = '/logout';
+      else if (cmd.includes('mi perfil') || cmd.includes('perfil')) {
+        flash('👤 Navegando a Mi Perfil', 'success', 1500);
+        window.location.href = '/perfil';
       }
-      else if (texto.includes('ayuda') || texto.includes('comandos')) {
-        flash(`🎤 Comandos disponibles:
-        • Dashboard/Inicio • Laboratorios • Equipos • Inventario
-        • Reservas • Usuarios • Reportes • Configuración
-        • Ayuda • Módulos • Cerrar sesión
-        
-        💡 Diga "ir a [módulo]" para navegar`, 'info', 6000);
+      // Sesión
+      else if (cmd.includes('cerrar sesión') || cmd.includes('salir') || cmd.includes('logout') || cmd.includes('desconectar')) {
+        flash('👋 Cerrando sesión...', 'info', 1500);
+        setTimeout(() => window.location.href = '/logout', 1000);
+      }
+      // Ayuda
+      else if (cmd.includes('ayuda') || cmd.includes('comando') || cmd.includes('qué puedo decir') || cmd.includes('que puedo decir')) {
+        flash(`🎤 <strong>Comandos de Voz Disponibles:</strong><br><br>
+        <strong>📊 Gestión:</strong><br>
+        • Dashboard/Inicio • Laboratorios • Equipos<br>
+        • Inventario/Stock • Reservas • Usuarios<br><br>
+        <strong>🤖 IA y Automatización:</strong><br>
+        • Registro Facial • IA Visual/Reconocimiento Visual<br><br>
+        <strong>🔍 Herramientas:</strong><br>
+        • Inventario/Buscador • Reportes • Configuración<br>
+        • Accesibilidad • Mi Perfil<br><br>
+        <strong>📚 Otros:</strong><br>
+        • Ayuda • Módulos • Cerrar Sesión<br><br>
+        💡 <em>Simplemente diga el nombre del módulo (ej: "inventario", "facial", "equipos")</em>`, 'info', 10000);
       }
       else {
-        flash('❌ Comando no reconocido. Diga "ayuda" para ver comandos disponibles.', 'warning', 3000);
+        flash(`❌ <strong>Comando no reconocido:</strong> "${texto}"<br><br>💡 Diga <strong>"ayuda"</strong> para ver todos los comandos disponibles.`, 'warning', 4000);
       }
     }
   };

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Registro de Equipo/Item - Centro Minero SENA{% endblock %}
+{% block title %}Registro de Equipo/Item - Centro Minero SENA - v2.0{% endblock %}
 
 {% block content %}
 
@@ -12,7 +12,7 @@
                     <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Equipo/Item</h4>
                 </div>
                 <div class="card-body p-4 form-bg-gray">
-                    <form id="formRegistroCompleto">
+                    <form id="formRegistroCompleto" method="POST">
                         
                         <!-- Tipo de Registro -->
                         <div class="row mb-4">
@@ -249,6 +249,9 @@
 </div>
 
 <script>
+alert('[SCRIPT] JavaScript de registro_completo.html cargado correctamente');
+console.log('[SCRIPT] JavaScript de registro_completo.html cargado correctamente');
+
 // Esperar a que el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[REGISTRO] Inicializando módulo de captura...');
@@ -594,121 +597,149 @@ function deletePhoto(vista) {
 }
 
 // Enviar formulario
-document.getElementById('formRegistroCompleto').addEventListener('submit', async (e) => {
-    e.preventDefault();
+console.log('[SCRIPT] Intentando registrar event listener del formulario');
+const formElement = document.getElementById('formRegistroCompleto');
+if (formElement) {
+    console.log('[SCRIPT] Formulario encontrado, registrando event listener');
+    formElement.addEventListener('submit', async (e) => {
+        console.log('[EVENTO] Formulario submit detectado');
+        e.preventDefault();
+        console.log('[EVENTO] Prevenido submit por defecto');
 
-    // ===============================================================
-    // VALIDACIONES FRONTEND (primera capa de seguridad)
-    // ===============================================================
-    
-    // Validar foto frontal
-    if (!capturedPhotos['frontal']) {
-        alert('❌ Debe capturar al menos la foto frontal');
-        return;
-    }
+        // VALIDACIONES FRONTEND (primera capa de seguridad)
+        
+        // Validar foto frontal
+        console.log('[VALIDACION] Verificando foto frontal...');
+        if (!capturedPhotos['frontal']) {
+            console.log('[VALIDACION] ❌ Falta foto frontal');
+            alert('❌ Debe capturar al menos la foto frontal');
+            return;
+        }
+        console.log('[VALIDACION] ✅ Foto frontal OK');
 
-    const tipoRegistro = document.querySelector('input[name="tipo_registro"]:checked')?.value;
-    const nombre = document.getElementById('nombre').value.trim();
-    const tipo_categoria = document.getElementById('tipo_categoria').value;
-    const laboratorio_id = document.getElementById('laboratorio_id').value;
+        const tipoRegistro = document.querySelector('input[name="tipo_registro"]:checked')?.value;
+        const nombre = document.getElementById('nombre').value.trim();
+        const tipo_categoria = document.getElementById('tipo_categoria').value;
+        const laboratorio_id = document.getElementById('laboratorio_id').value;
+        
+        console.log('[VALIDACION] Datos básicos:', { tipoRegistro, nombre, tipo_categoria, laboratorio_id });
 
-    // Validar campos obligatorios
-    if (!nombre) {
-        alert('❌ El campo Nombre es obligatorio');
-        document.getElementById('nombre').focus();
-        return;
-    }
-    
-    // Validar longitud del nombre
-    if (nombre.length > 255) {
-        alert('❌ El nombre es demasiado largo (máximo 255 caracteres)');
-        document.getElementById('nombre').focus();
-        return;
-    }
-    
-    // Validar caracteres permitidos en nombre
-    if (!/^[a-zA-Z0-9áéíóúñÑ\s\-\._]+$/.test(nombre)) {
-        alert('❌ El nombre contiene caracteres no permitidos.\nSolo se permiten letras, números, espacios, guiones y puntos.');
-        document.getElementById('nombre').focus();
-        return;
-    }
-    
-    if (!tipo_categoria) {
-        alert('❌ Debe seleccionar una Categoría');
-        document.getElementById('tipo_categoria').focus();
-        return;
-    }
-    
-    if (!laboratorio_id) {
-        alert('❌ Debe seleccionar un Laboratorio');
-        document.getElementById('laboratorio_id').focus();
-        return;
-    }
-    
-    // Validar cantidad de fotos
-    const numFotos = Object.keys(capturedPhotos).length;
-    if (numFotos > 10) {
-        alert('❌ Máximo 10 fotos permitidas');
-        return;
-    }
-    
-    // ===============================================================
-    // PREPARAR DATOS
-    // ===============================================================
-    
-    const formData = {
-        tipo_registro: tipoRegistro,
-        nombre: nombre,
-        tipo_categoria: tipo_categoria,
-        descripcion: document.getElementById('descripcion').value.trim(),
-        laboratorio_id: parseInt(laboratorio_id),
-        ubicacion: document.getElementById('ubicacion').value.trim(),
-        cantidad: tipoRegistro === 'item' ? parseInt(document.getElementById('cantidad').value || 1) : null,
-        estado: tipoRegistro === 'equipo' ? document.getElementById('estado').value : null,
-        fotos: capturedPhotos
-    };
-
-    // ===============================================================
-    // ENVIAR PETICIÓN
-    // ===============================================================
-    
-    try {
-        // Deshabilitar botón submit para prevenir doble envío
-        const btnSubmit = e.target.querySelector('button[type="submit"]');
-        const originalText = btnSubmit.innerHTML;
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Guardando...';
-
-        const response = await fetch('/api/registro-completo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert(`✅ Registro creado exitosamente\n\n📦 ID: ${result.id}\n📸 Fotos guardadas: ${result.imagenes_guardadas || 0}\n${result.entrenado_ia ? '🤖 IA: Listo para entrenamiento' : ''}`);
-            window.location.href = '/laboratorios';
-        } else {
-            console.error('[ERROR] Error del servidor:', result);
-            alert(`❌ Error: ${result.message || 'Error desconocido'}`);
-            
-            // Re-habilitar botón
-            btnSubmit.disabled = false;
-            btnSubmit.innerHTML = originalText;
+        // Validar campos obligatorios
+        if (!nombre) {
+            console.log('[VALIDACION] ❌ Nombre vacío');
+            alert('❌ El campo Nombre es obligatorio');
+            document.getElementById('nombre').focus();
+            return;
+        }
+        console.log('[VALIDACION] ✅ Nombre OK');
+        
+        // Validar longitud del nombre
+        if (nombre.length > 255) {
+            alert('❌ El nombre es demasiado largo (máximo 255 caracteres)');
+            document.getElementById('nombre').focus();
+            return;
         }
         
-    } catch (error) {
-        console.error('[ERROR] Error al enviar:', error);
-        alert(`❌ Error de conexión: ${error.message}\n\nPor favor verifica tu conexión e intenta nuevamente.`);
+        // Validar caracteres permitidos en nombre
+        if (!/^[a-zA-Z0-9áéíóúñÑ\s\-\._]+$/.test(nombre)) {
+            alert('❌ El nombre contiene caracteres no permitidos.\nSolo se permiten letras, números, espacios, guiones y puntos.');
+            document.getElementById('nombre').focus();
+            return;
+        }
         
-        // Re-habilitar botón
-        const btnSubmit = e.target.querySelector('button[type="submit"]');
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = '<i class="bi bi-check-circle me-2"></i>Guardar Registro';
-    }
-});
+        if (!tipo_categoria) {
+            alert('❌ Debe seleccionar una Categoría');
+            document.getElementById('tipo_categoria').focus();
+            return;
+        }
+        
+        if (!laboratorio_id) {
+            alert('❌ Debe seleccionar un Laboratorio');
+            document.getElementById('laboratorio_id').focus();
+            return;
+        }
+        
+        // Validar cantidad de fotos
+        const numFotos = Object.keys(capturedPhotos).length;
+        if (numFotos > 10) {
+            alert('❌ Máximo 10 fotos permitidas');
+            return;
+        }
+        
+        // PREPARAR DATOS (con validación segura de campos opcionales)
+        
+        // Obtener valores de campos opcionales de forma segura
+        const descripcionVal = document.getElementById('descripcion').value || '';
+        const ubicacionVal = document.getElementById('ubicacion').value || '';
+        const estadoVal = document.getElementById('estado')?.value || 'disponible';
+        const cantidadVal = document.getElementById('cantidad')?.value || '1';
+        
+        // DEBUG: Imprimir valores que se enviarán
+        console.log('[FRONTEND DEBUG] Tipo de registro:', tipoRegistro);
+        console.log('[FRONTEND DEBUG] Cantidad valor:', cantidadVal);
+        console.log('[FRONTEND DEBUG] Cantidad parseada:', tipoRegistro === 'item' ? parseInt(cantidadVal) : 1);
+        console.log('[FRONTEND DEBUG] Campo cantidad visible:', document.getElementById('cantidad')?.style.display !== 'none');
+        
+        const formData = {
+            tipo_registro: tipoRegistro,
+            nombre: nombre,
+            tipo_categoria: tipo_categoria,
+            descripcion: descripcionVal.trim(),
+            laboratorio_id: parseInt(laboratorio_id),
+            ubicacion: ubicacionVal.trim(),
+            cantidad: tipoRegistro === 'item' ? parseInt(cantidadVal) : 1,
+            estado: tipoRegistro === 'equipo' ? estadoVal : 'disponible',
+            fotos: capturedPhotos
+        };
+        
+        console.log('[FRONTEND DEBUG] FormData completo:', formData);
+
+        // ENVIAR PETICIÓN
+        
+        try {
+            // Deshabilitar botón submit para prevenir doble envío
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            const originalText = btnSubmit.innerHTML;
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Guardando...';
+
+            const response = await fetch('/api/registro-completo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            console.log('[FRONTEND DEBUG] Response status:', response.status);
+            console.log('[FRONTEND DEBUG] Response ok:', response.ok);
+
+            const result = await response.json();
+            console.log('[FRONTEND DEBUG] Response JSON:', result);
+
+            if (result.success) {
+                alert(`✅ Registro creado exitosamente\n\n📦 ID: ${result.id}\n📸 Fotos guardadas: ${result.imagenes_guardadas || 0}\n${result.entrenado_ia ? '🤖 IA: Listo para entrenamiento' : ''}`);
+                window.location.href = '/laboratorios';
+            } else {
+                console.error('[ERROR] Error del servidor:', result);
+                alert(`❌ Error: ${result.message || 'Error desconocido'}`);
+                
+                // Re-habilitar botón
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalText;
+            }
+            
+        } catch (error) {
+            console.error('[ERROR] Error al enviar:', error);
+            alert(`❌ Error de conexión: ${error.message}\n\nPor favor verifica tu conexión e intenta nuevamente.`);
+            
+            // Re-habilitar botón
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '<i class="bi bi-check-circle me-2"></i>Guardar Registro';
+        }
+    });
+} else {
+    console.error('[SCRIPT] ❌ No se encontró el formulario');
+}
 
 // Event delegation para botones de eliminar foto
 document.getElementById('thumbnails').addEventListener('click', function(e) {

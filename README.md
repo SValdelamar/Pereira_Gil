@@ -44,16 +44,17 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-#### **4. Configurar Variables de Entorno**
+#### **4. Configurar Base de Datos**
 ```bash
-# Windows
-copy .env.example .env
+# Crear archivo de configuración
+cp .env.example .env_produccion
 
-# Linux/Mac
-cp .env.example .env
+# Editar con tus credenciales de MySQL
+# Windows: notepad .env_produccion
+# Linux/Mac: nano .env_produccion
 ```
 
-**Edita el archivo `.env` con tus credenciales de MySQL:**
+**Configura tus credenciales de MySQL en `.env_produccion`:**
 ```env
 # =====================================================================
 # BASE DE DATOS MYSQL
@@ -76,12 +77,12 @@ BASE_DATOS=laboratorios_db
 python scripts/setup_database.py
 ```
 
-#### **6. Cargar Datos de Ejemplo (Opcional)**
-```bash
-python scripts/seed_database.py
-```
+Este script crea automáticamente:
+- Base de datos `laboratorio_sistema`
+- Todas las tablas con sus relaciones
+- Usuario administrador por defecto
 
-#### **7. Ejecutar el Servidor**
+#### **6. Iniciar el Servidor**
 ```bash
 python web_app.py
 ```
@@ -172,7 +173,6 @@ Sistema_Laboratorio-v2/
 ├── 📄 web_app.py                 ⭐ EJECUTAR ESTE ARCHIVO
 ├── 📄 requirements.txt           ⭐ DEPENDENCIAS
 ├── 📄 README.md                  ⭐ DOCUMENTACIÓN
-├── 📄 .env.example               ⭐ CONFIGURACIÓN
 │
 ├── 📁 app/                       Aplicación principal
 │   ├── static/                   CSS, JS, imágenes
@@ -181,7 +181,7 @@ Sistema_Laboratorio-v2/
 │
 ├── 📁 scripts/                   Scripts de instalación
 │   ├── setup_database.py         ⭐ Crear base de datos
-│   └── seed_database.py          ⭐ Datos de ejemplo
+│   └── fix_laboratorios.sql      Correcciones de schema
 │
 ├── 📁 modules/                   Módulos de IA
 │   ├── facial_recognition_module.py
@@ -249,9 +249,13 @@ lsof -i :5000
 kill -9 [PID]
 ```
 
-### **Error: "Database doesn't exist"**
+### **Error: "Database doesn't exist" o "Unknown column"**
 ```bash
+# Crear/actualizar base de datos
 python scripts/setup_database.py
+
+# Si persiste el error de columna, ejecutar correcciones:
+mysql -u root -p laboratorio_sistema < scripts/fix_laboratorios.sql
 ```
 
 ### **Reconocimiento facial no funciona**
@@ -274,9 +278,11 @@ pip install dlib face-recognition
 
 ## 📚 DOCUMENTACIÓN ADICIONAL
 
-- 📖 [Guía de Roles y Permisos](docs/GUIA_ROLES_USUARIOS.md)
-- 📖 [Resumen Completo del Proyecto](docs/PROYECTO_RESUMEN_COMPLETO.md)
-- 📖 [Ejemplos de Reportes](docs/reportes/)
+- 📖 [Estructura del Proyecto](ESTRUCTURA_PROYECTO.md) - Organización de carpetas y archivos
+- 📖 [Scripts de Instalación](scripts/README.md) - Guía de scripts de BD
+- 📖 [Guía de Roles y Permisos](docs/GUIA_ROLES_USUARIOS.md) - Niveles de acceso
+- 📖 [Resumen Completo del Proyecto](docs/PROYECTO_RESUMEN_COMPLETO.md) - Arquitectura técnica
+- 📖 [Ejemplos de Reportes](docs/reportes/) - Plantillas PDF/Excel
 
 ---
 
@@ -384,14 +390,14 @@ Sistema desarrollado como prototipo académico funcional para el Centro Minero S
 ```
 [ ] Python 3.11+ instalado
 [ ] MySQL 8.0+ corriendo
-[ ] Repositorio clonado
-[ ] Entorno virtual creado y activado
-[ ] Dependencias instaladas (requirements.txt)
-[ ] Archivo .env configurado
-[ ] Base de datos creada (setup_database.py)
-[ ] Datos de ejemplo cargados (seed_database.py)
+[ ] Repositorio clonado (git clone)
+[ ] Entorno virtual creado y activado (.venv)
+[ ] Dependencias instaladas (pip install -r requirements.txt)
+[ ] Archivo .env configurado (credenciales MySQL)
+[ ] Base de datos creada (python scripts/setup_database.py)
 [ ] Servidor ejecutándose (python web_app.py)
 [ ] Login exitoso en http://localhost:5000
+[ ] Contraseña de admin cambiada
 ```
 
 ---

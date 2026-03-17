@@ -8,11 +8,11 @@ body.auth-body,
 body.auth-body-clean,
 body {
     background: linear-gradient(135deg, 
-        #f0faf3 0%,     /* Verde claro visible */
-        #f3f9f5 25%,    /* Verde grisáceo */
-        #eef8f1 50%,    /* Verde menta suave */
-        #f3f9f5 75%,    /* Verde grisáceo */
-        #f0faf3 100%);  /* Verde claro visible */
+        #e6f7ed 0%,     /* Verde más notorio */
+        #eaf7ef 25%,    /* Verde medio */
+        #e3f5e9 50%,    /* Verde menta más visible */
+        #eaf7ef 75%,    /* Verde medio */
+        #e6f7ed 100%);  /* Verde más notorio */
     background-size: 200% 200%;
     animation: subtleGreen 20s ease-in-out infinite;
     min-height: 100vh;
@@ -35,9 +35,9 @@ body.auth-body-clean::after {
     right: 0;
     bottom: 0;
     background-image: 
-        radial-gradient(circle at 15% 25%, rgba(45, 106, 79, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 85% 75%, rgba(82, 183, 136, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(45, 106, 79, 0.03) 0%, transparent 60%);
+        radial-gradient(circle at 15% 25%, rgba(45, 106, 79, 0.10) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(82, 183, 136, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(45, 106, 79, 0.06) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -45,12 +45,14 @@ body.auth-body-clean::after {
 body.auth-body {
     display: flex;
     flex-direction: column;
-    padding-top: 80px;
+    justify-content: center; /* Center content vertically */
+    padding-top: 0; /* Remove extra offset that pushed content down */
 }
 
 body.auth-body-clean {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     padding: 0;
 }
 
@@ -68,7 +70,7 @@ body.auth-body-clean {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 120px);
+    min-height: auto; /* Avoid exceeding viewport height when body centers */
     padding: 40px 20px;
 }
 
@@ -349,33 +351,64 @@ body.auth-body-clean {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* 4️⃣ BOTÓN FACIAL - MINIMALISTA */
+/* 4️⃣ BOTÓN FACIAL - ESTILO DISTINTIVO PARA RECONOCIMIENTO FACIAL */
 .btn-facial {
     padding: 12px;
-    background: white;
-    border: 1px solid #e5e5e5;
+    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
+    border: 2px solid #2d6a4f;
     border-radius: 8px;
-    color: #1a1a1a;
-    font-size: 18px;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    color: white;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-facial::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-facial:hover::before {
+    width: 200px;
+    height: 200px;
 }
 
 .btn-facial:hover {
-    background: #fafafa;
-    border-color: #2d6a4f;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #40916c 0%, #52b788 100%);
+    border-color: #52b788;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(45, 106, 79, 0.4);
 }
 
 .btn-facial:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+}
+
+.btn-facial i {
+    position: relative;
+    z-index: 1;
+    animation: facialPulse 2s ease-in-out infinite;
+}
+
+@keyframes facialPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
 /* 5️⃣ BOTÓN GHOST - Acciones terciarias o links importantes */
@@ -852,50 +885,59 @@ padding: 16px 12px;
 .register-icon-large {
     width: 100px;
     height: 100px;
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+    backdrop-filter: blur(6px);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48px;
-    color: white;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
 .register-title {
     font-size: 36px;
     font-weight: 800;
-    color: white;
+    color: #0f2f23; /* Texto oscuro para máximo contraste sobre fondo claro */
     margin: 0;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .register-subtitle {
     font-size: 16px;
-    color: rgba(255, 255, 255, 0.95);
+    color: #2d6a4f; /* Verde oscuro legible sobre fondo menta */
     margin: 0;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-weight: 600;
+    text-shadow: none;
 }
 
 /* Footer del auth */
 .auth-footer {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
+    background: #2d6a4f; /* Dark green for strong contrast */
     padding: 20px 0;
-    color: white;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e8f5e9; /* Light mint for primary text */
+    border-top: none;
     margin-top: auto;
 }
 
 .auth-footer p {
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: none;
+}
+
+.auth-footer p:first-child {
+    color: #e8f5e9; /* Title tone */
+    font-weight: 500;
+}
+
+.auth-footer p:last-child {
+    color: #a5d6a7; /* Subtitle soft green */
 }
 
 .auth-footer .small {
-    opacity: 0.9;
+    opacity: 0.95;
 }
 
 /* ===== RESTABLECER CONTRASEÑA ===== */
@@ -986,7 +1028,7 @@ padding: 16px 12px;
 /* Responsive para registro dinámico */
 @media (max-width: 768px) {
     body.auth-body {
-        padding-top: 70px;
+        padding-top: 0; /* Keep centered on small screens */
     }
     
     body.auth-body-clean {
@@ -995,12 +1037,12 @@ padding: 16px 12px;
     
     .auth-main-full {
         padding: 40px 15px;
-        min-height: calc(100vh - 80px);
+        min-height: auto;
     }
     
     .register-main {
         padding: 40px 0;
-        min-height: calc(100vh - 80px);
+        min-height: auto;
     }
     
     .register-container {

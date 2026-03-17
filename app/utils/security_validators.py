@@ -30,12 +30,12 @@ class SecurityValidator:
         """
         try:
             # 1. VALIDAR TIPO DE REGISTRO
-            tipo_registro = data.get('tipo_registro', '').strip()
+            tipo_registro = str(data.get('tipo_registro', '')).strip()
             if tipo_registro not in SecurityValidator.ALLOWED_TIPOS_REGISTRO:
                 return False, 'Tipo de registro inválido', {}
             
             # 2. VALIDAR NOMBRE
-            nombre = data.get('nombre', '').strip()
+            nombre = str(data.get('nombre', '')).strip()
             if not nombre:
                 return False, 'El nombre es obligatorio', {}
             if len(nombre) > SecurityValidator.MAX_STRING_LENGTH:
@@ -44,14 +44,15 @@ class SecurityValidator:
                 return False, 'El nombre contiene caracteres no permitidos', {}
             
             # 3. VALIDAR CATEGORÍA
-            categoria = data.get('tipo_categoria', '').strip()
+            categoria = str(data.get('tipo_categoria', '')).strip()
             if not categoria:
                 return False, 'La categoría es obligatoria', {}
             if len(categoria) > SecurityValidator.MAX_STRING_LENGTH:
                 return False, f'La categoría es demasiado larga', {}
             
-            # 4. VALIDAR DESCRIPCIÓN
-            descripcion = data.get('descripcion', '').strip()
+            # 4. VALIDAR DESCRIPCIÓN (puede ser vacía)
+            descripcion_raw = data.get('descripcion', '')
+            descripcion = str(descripcion_raw).strip() if descripcion_raw is not None else ''
             if len(descripcion) > SecurityValidator.MAX_TEXT_LENGTH:
                 return False, f'La descripción no puede exceder {SecurityValidator.MAX_TEXT_LENGTH} caracteres', {}
             
@@ -63,13 +64,15 @@ class SecurityValidator:
             except (ValueError, TypeError):
                 return False, 'ID de laboratorio debe ser un número', {}
             
-            # 6. VALIDAR UBICACIÓN
-            ubicacion = data.get('ubicacion', '').strip()
+            # 6. VALIDAR UBICACIÓN (puede ser vacía)
+            ubicacion_raw = data.get('ubicacion', '')
+            ubicacion = str(ubicacion_raw).strip() if ubicacion_raw is not None else ''
             if len(ubicacion) > SecurityValidator.MAX_STRING_LENGTH:
                 return False, 'La ubicación es demasiado larga', {}
             
             # 7. VALIDAR ESTADO (solo para equipos)
-            estado = data.get('estado', 'disponible').strip()
+            estado_raw = data.get('estado', 'disponible')
+            estado = str(estado_raw).strip() if estado_raw is not None else 'disponible'
             if tipo_registro == 'equipo' and estado not in SecurityValidator.ALLOWED_ESTADOS:
                 return False, 'Estado inválido', {}
             

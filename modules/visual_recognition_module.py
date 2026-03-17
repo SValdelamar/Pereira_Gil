@@ -40,9 +40,32 @@ class VisualRecognitionManager:
         for path in [self.equipos_path, self.items_path, self.models_path]:
             path.mkdir(parents=True, exist_ok=True)
         
-        # Inicializar detector de características
-        self.detector = cv2.ORB_create(nfeatures=1000)
-        self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # Inicializar detector de características (aumentado para mejor precisión)
+        self.detector = cv2.ORB_create(
+            nfeatures=5000,  # Aumentado de 1000 a 5000
+            scaleFactor=1.2,
+            nlevels=8,
+            edgeThreshold=15,
+            firstLevel=0,
+            WTA_K=2,
+            scoreType=cv2.ORB_HARRIS_SCORE,
+            patchSize=31,
+            fastThreshold=20
+        )
+        
+        # Usar FLANN matcher (más rápido y preciso que BFMatcher)
+        FLANN_INDEX_LSH = 6
+        index_params = dict(
+            algorithm=FLANN_INDEX_LSH,
+            table_number=12,  # Aumentado para mejor precisión
+            key_size=20,
+            multi_probe_level=2
+        )
+        search_params = dict(checks=100)  # Más exhaustivo
+        self.matcher = cv2.FlannBasedMatcher(index_params, search_params)
+        
+        # Ratio test threshold (Lowe's ratio)
+        self.ratio_threshold = 0.75
         
         logger.info("VisualRecognitionManager inicializado")
     
@@ -71,6 +94,31 @@ class VisualRecognitionManager:
             logger.error(f"Error convirtiendo base64 a imagen: {e}")
             return None
     
+    def preprocess_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocesar imagen para mejorar detección de características
+        
+        Args:
+            image: Imagen original
+            
+        Returns:
+            Imagen preprocesada
+        """
+        # Convertir a escala de grises
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+        
+        # Ecualización adaptativa de histograma (CLAHE) para mejor contraste
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray)
+        
+        # Reducción de ruido
+        denoised = cv2.fastNlMeansDenoising(enhanced, None, 10, 7, 21)
+        
+        return denoised
+    
     def extract_features(self, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Extraer características de una imagen
@@ -82,14 +130,11 @@ class VisualRecognitionManager:
             Tupla con keypoints y descriptores
         """
         try:
-            # Convertir a escala de grises si es necesario
-            if len(image.shape) == 3:
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            else:
-                gray = image
+            # Preprocesar imagen
+            processed = self.preprocess_image(image)
             
             # Detectar keypoints y descriptores
-            keypoints, descriptors = self.detector.detectAndCompute(gray, None)
+            keypoints, descriptors = self.detector.detectAndCompute(processed, None)
             
             if descriptors is None:
                 logger.warning("No se pudieron extraer características de la imagen")
@@ -186,7 +231,7 @@ class VisualRecognitionManager:
                 'message': f'Error guardando imagen: {str(e)}'
             }
     
-    def recognize_item(self, image: np.ndarray, confidence_threshold: float = 0.3) -> Dict:
+    def recognize_item(self, image: np.ndarray, confidence_threshold: float = 0.6) -> Dict:
         """
         Reconocer un equipo o item en una imagen
         
@@ -231,16 +276,29 @@ class VisualRecognitionManager:
                             features_data = np.load(str(features_file))
                             stored_descriptors = features_data['descriptors']
                             
-                            # Comparar características
-                            matches = self.matcher.match(query_descriptors, stored_descriptors)
+                            # Comparar características con knnMatch (mejor que match simple)
+                            knn_matches = self.matcher.knnMatch(query_descriptors, stored_descriptors, k=2)
                             
-                            if len(matches) < 10:  # Muy pocas coincidencias
+                            # Aplicar ratio test de Lowe para filtrar buenos matches
+                            good_matches = []
+                            for match_pair in knn_matches:
+                                if len(match_pair) == 2:
+                                    m, n = match_pair
+                                    if m.distance < self.ratio_threshold * n.distance:
+                                        good_matches.append(m)
+                            
+                            if len(good_matches) < 30:  # Aumentado de 10 a 30 para más confiabilidad
                                 continue
                             
-                            # Calcular score basado en distancia promedio
-                            distances = [m.distance for m in matches]
+                            # Calcular score mejorado
+                            distances = [m.distance for m in good_matches]
                             avg_distance = np.mean(distances)
-                            score = max(0, 1 - (avg_distance / 256))  # Normalizar a 0-1
+                            min_distance = np.min(distances)
+                            
+                            # Score combinado (distancia + cantidad de matches)
+                            distance_score = max(0, 1 - (avg_distance / 128))  # Normalizar mejor
+                            quantity_score = min(1.0, len(good_matches) / 100)  # Bonus por muchos matches
+                            score = (distance_score * 0.7) + (quantity_score * 0.3)  # Ponderado
                             
                             # Cargar metadatos
                             metadata_file = features_file.with_suffix('.json').name.replace('_features', '_metadata')
@@ -255,8 +313,11 @@ class VisualRecognitionManager:
                                 'item_type': item_type,
                                 'item_id': item_id,
                                 'score': score,
-                                'num_matches': len(matches),
+                                'num_matches': len(good_matches),
+                                'total_keypoints': len(query_descriptors),
+                                'match_ratio': len(good_matches) / len(query_descriptors),
                                 'avg_distance': avg_distance,
+                                'min_distance': min_distance,
                                 'metadata': metadata
                             }
                             

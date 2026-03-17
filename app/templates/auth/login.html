@@ -17,9 +17,9 @@
                     <div class="col-lg-6">
                         <div class="brand-side">
                             <div class="brand-logo">
-                                <img src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png" 
+                                <img src="{{ url_for('static', filename='logos/Logo_Sena.png') }}" 
                                      alt="Logo SENA" 
-                                     style="width: 90px; height: auto;">
+                                     class="brand-logo-img">
                             </div>
                             
                             <h1>GIL</h1>
@@ -128,8 +128,8 @@
                             <div class="divider"></div>
                             
                             <div class="text-center">
-                                <p class="mb-3" style="color: #64748b; font-size: 14px;">¿No tienes una cuenta?</p>
-                                <a href="{{ url_for('registro') }}" class="btn-outline" style="display: block; text-decoration: none;">
+                                <p class="mb-3 text-muted-small">¿No tienes una cuenta?</p>
+                                <a href="{{ url_for('registro') }}" class="btn-outline btn-block text-decoration-none">
                                     <i class="bi bi-person-plus me-2"></i>Crear Cuenta
                                 </a>
                             </div>

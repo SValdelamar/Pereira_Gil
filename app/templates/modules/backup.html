@@ -261,8 +261,8 @@
             loadingOverlay.id = 'loadingOverlay';
             loadingOverlay.innerHTML = `
                 <div class="text-center text-white position-relative p-5 rounded-4 shadow-2xl" style="max-width: 500px; background: rgba(45, 106, 79, 0.95);">
-                    <button id="emergencyClose" onclick="location.reload()" 
-                            class="d-none position-absolute top-0 end-0 m-2 btn btn-danger">
+                    <button id="emergencyClose" 
+                            class="d-none position-absolute top-0 end-0 m-2 btn btn-danger btn-reload-page">
                         <i class="bi bi-x-circle me-1"></i>Cerrar y Recargar
                     </button>
                     <div class="spinner-border mb-3 text-white" role="status" style="width: 4rem; height: 4rem;">
@@ -416,6 +416,14 @@
                 form.addEventListener('submit', function(e) {
                     showLoading('Creando backup...');
                 });
+            }
+        });
+        
+        // Event delegation para botón de emergencia (aparece después de 30s)
+        document.addEventListener('click', function(e) {
+            const btnReload = e.target.closest('.btn-reload-page');
+            if (btnReload) {
+                location.reload();
             }
         });
     });

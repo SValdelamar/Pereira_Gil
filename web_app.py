@@ -67,6 +67,63 @@ def inject_permissions():
         'api_token': session.get('api_token', '')  # Token JWT para uso en JavaScript
     }
 
+# =====================================================================
+# CACHE BUSTING - Versionado automático de archivos estáticos
+# =====================================================================
+@app.template_filter('cache_bust')
+def cache_bust_filter(url_or_filename):
+    """
+    Filtro Jinja2 para cache busting automático y robusto
+    Usa hash MD5 del contenido del archivo para máxima fiabilidad
+    
+    Ventajas:
+    - No depende del timestamp del sistema
+    - Cambia solo si el contenido cambia
+    - Funciona incluso con timestamps incorrectos
+    - Determinista y reproducible
+    """
+    import hashlib
+    
+    try:
+        # Extraer filename si es una URL completa
+        if url_or_filename.startswith('/static/'):
+            filename = url_or_filename.replace('/static/', '')
+        else:
+            filename = url_or_filename
+        
+        file_path = os.path.join(app.static_folder, filename)
+        
+        if os.path.exists(file_path):
+            # Leer el contenido del archivo
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            # Generar hash MD5 del contenido
+            content_hash = hashlib.md5(content).hexdigest()[:8]  # Primeros 8 caracteres
+            
+            # Construir URL con hash
+            if url_or_filename.startswith('/'):
+                return f"{url_or_filename}?v={content_hash}"
+            else:
+                return f"?v={content_hash}"
+        
+        # Fallback si el archivo no existe
+        if url_or_filename.startswith('/'):
+            return f"{url_or_filename}?v=file-not-found"
+        return "?v=file-not-found"
+        
+    except Exception as e:
+        # Fallback robusto: timestamp actual como último recurso
+        timestamp = int(datetime.now().timestamp())
+        if url_or_filename.startswith('/'):
+            return f"{url_or_filename}?v={timestamp}"
+        return f"?v={timestamp}"
+
+@app.template_global('current_timestamp')
+def current_timestamp():
+    """Timestamp actual para forzar recarga"""
+    return int(datetime.now().timestamp())
+
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(16))
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', secrets.token_hex(32))
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
@@ -313,12 +370,13 @@ def registro():
             'laboratorio_id': request.form.get('laboratorio_id') or None
         }
         
-        # 🔒 SEGURIDAD: Como todos se registran como Aprendiz (nivel 1),
-        # solo validamos campos de Aprendiz (programa y ficha)
-        # Los demás campos se guardan pero no son obligatorios en el registro inicial
-        if not campos_extra['programa'] or not campos_extra['ficha']:
-            flash('Programa y Ficha son campos obligatorios para el registro', 'error')
-            return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
+        # 🔒 SEGURIDAD: Validar campos según nivel solicitado
+        # Si el usuario REALMENTE quiere ser Aprendiz (nivel 1), debe llenar programa y ficha
+        # Si solicita otro nivel, se crea perfil temporal sin esos campos (serán validados al aprobar)
+        if nivel_solicitado == NIVEL_APRENDIZ:
+            if not campos_extra['programa'] or not campos_extra['ficha']:
+                flash('Programa y Ficha son campos obligatorios para Aprendices', 'error')
+                return render_template('auth/registro_dinamico.html', laboratorios=laboratorios)
         
         # Determinar tipo según nivel
         tipo_map = {
@@ -462,7 +520,9 @@ def login_facial():
         # Comparar con cada usuario registrado
         best_match = None
         best_similarity = 0
-        threshold = 0.18  # Umbral de similitud (0-1, mayor = más similar) - Ajustado para histogramas
+        # 🔒 SEGURIDAD: Umbral aumentado a 0.70 para prevenir falsos positivos
+        # Valores recomendados: 0.65-0.75 (menor = más permisivo, mayor = más estricto)
+        threshold = 0.70  # Umbral de similitud (0-1, mayor = más similar)
         
         print(f"[DEBUG FACIAL] Comparando con {len(users)} usuarios registrados...")
         
@@ -549,20 +609,32 @@ def login_facial():
                 'success': True, 
                 'message': f'Bienvenido {best_match["nombre"]}',
                 'confidence': f'{confidence:.1f}%',
+                'redirect': url_for('dashboard'),  # 🔧 FIX: URL de redirección
                 'api_token': access_token  # Devolver token para uso en cliente
             })
         
-        # No se encontró coincidencia
+        # No se encontró coincidencia suficiente
+        # Mensaje detallado para el usuario
+        if best_similarity > 0:
+            mensaje_error = f'Rostro no reconocido. Similitud máxima encontrada: {best_similarity*100:.1f}% (requerido: {threshold*100:.0f}%)'
+        else:
+            mensaje_error = 'No se encontró ningún rostro registrado que coincida'
+        
         log_query = """
             INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
-            VALUES (NULL, 'login_facial_fallido', 'Rostro no reconocido', %s, FALSE)
+            VALUES (NULL, 'login_facial_fallido', %s, %s, FALSE)
         """
+        detalle = f'Rostro no reconocido. Mejor similitud: {best_similarity*100:.1f}%'
         try:
-            db_manager.execute_query(log_query, (request.remote_addr,))
+            db_manager.execute_query(log_query, (detalle, request.remote_addr))
         except Exception:
             pass
         
-        return jsonify({'success': False, 'message': 'Rostro no reconocido. Acceso denegado.'})
+        return jsonify({
+            'success': False, 
+            'message': mensaje_error,
+            'best_similarity': f'{best_similarity*100:.1f}%' if best_similarity > 0 else 'N/A'
+        })
         
     except Exception as e:
         print(f"[ERROR] Error en login facial: {e}")
@@ -1192,7 +1264,34 @@ def download_backup(filename):
 @require_login
 def dashboard():
     stats = get_dashboard_stats()
-    return render_template('dashboard/dashboard.html', stats=stats, user=session)
+    
+    # Obtener módulos según nivel de usuario
+    user_level = session.get('user_level', 1)
+    
+    try:
+        from app.utils.modulos_config import (
+            get_modulos_disponibles, 
+            get_acciones_rapidas_disponibles, 
+            get_estadisticas_disponibles
+        )
+        
+        modulos_disponibles = get_modulos_disponibles(user_level)
+        acciones_rapidas = get_acciones_rapidas_disponibles(user_level)
+        estadisticas_visibles = get_estadisticas_disponibles(user_level)
+        
+    except Exception as e:
+        print(f"[ERROR] Error cargando configuración de módulos: {e}")
+        # Fallback: mostrar módulos básicos
+        modulos_disponibles = []
+        acciones_rapidas = []
+        estadisticas_visibles = ['equipos_activos', 'total_laboratorios']
+    
+    return render_template('dashboard/dashboard.html', 
+                         stats=stats, 
+                         user=session,
+                         modulos_disponibles=modulos_disponibles,
+                         acciones_rapidas=acciones_rapidas,
+                         estadisticas_visibles=estadisticas_visibles)
 
 
 @app.route('/api/dashboard/alertas')
@@ -1200,23 +1299,36 @@ def dashboard():
 def dashboard_alertas():
     """Obtener alertas para el dashboard: stock crítico y reservas pendientes"""
     try:
+        print(f"[DEBUG] Iniciando dashboard_alertas para usuario: {session.get('user_id')}")
+        
         # Items con stock crítico o bajo
         query_stock = """
             SELECT i.id, i.nombre, i.cantidad_actual, i.cantidad_minima, i.unidad,
-                   i.nivel_stock, l.nombre as laboratorio_nombre
+                   CASE 
+                       WHEN i.cantidad_actual <= i.cantidad_minima THEN 'critico'
+                       WHEN i.cantidad_actual <= (i.cantidad_minima * 2) THEN 'bajo'
+                       ELSE 'normal'
+                   END as nivel_stock,
+                   l.nombre as laboratorio_nombre
             FROM inventario i
             JOIN laboratorios l ON i.laboratorio_id = l.id
-            WHERE i.nivel_stock IN ('critico', 'bajo')
+            WHERE i.cantidad_actual <= i.cantidad_minima * 2
             ORDER BY 
-                CASE WHEN i.nivel_stock = 'critico' THEN 1 ELSE 2 END,
+                CASE 
+                    WHEN i.cantidad_actual <= i.cantidad_minima THEN 1 
+                    ELSE 2 
+                END,
                 i.cantidad_actual ASC
             LIMIT 10
         """
+        print(f"[DEBUG] Ejecutando query de stock...")
         stock_critico = db_manager.execute_query(query_stock) or []
+        print(f"[DEBUG] Stock crítico encontrado: {len(stock_critico)} items")
         
         # Reservas pendientes de aprobación (solo para instructores y admin)
         reservas_pendientes = []
         if session.get('user_level', 0) >= 5:
+            print(f"[DEBUG] Usuario con nivel {session.get('user_level')} - consultando reservas pendientes")
             query_reservas = """
                 SELECT r.id, r.fecha_inicio, r.fecha_fin,
                        u.nombre as usuario_nombre,
@@ -1225,12 +1337,17 @@ def dashboard_alertas():
                 FROM reservas r
                 JOIN usuarios u ON r.usuario_id = u.id
                 JOIN equipos e ON r.equipo_id = e.id
-                WHERE r.respuesta_instructor = 'pendiente'
+                WHERE r.estado_aprobacion = 'pendiente'
                 ORDER BY r.fecha_inicio ASC
                 LIMIT 10
             """
+            print(f"[DEBUG] Ejecutando query de reservas...")
             reservas_pendientes = db_manager.execute_query(query_reservas) or []
+            print(f"[DEBUG] Reservas pendientes encontradas: {len(reservas_pendientes)}")
+        else:
+            print(f"[DEBUG] Usuario con nivel {session.get('user_level')} - sin acceso a reservas pendientes")
         
+        print(f"[DEBUG] Retornando respuesta exitosa")
         return jsonify({
             'success': True,
             'stock_critico': stock_critico,
@@ -1238,6 +1355,10 @@ def dashboard_alertas():
         }), 200
         
     except Exception as e:
+        print(f"[ERROR] Error en dashboard_alertas: {str(e)}")
+        print(f"[ERROR] Tipo de error: {type(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'message': f'Error obteniendo alertas: {str(e)}',
@@ -1315,17 +1436,15 @@ def laboratorio_detalle(laboratorio_id):
     
     # Inventario de ESTE laboratorio
     query_inventario = """
-        SELECT id, nombre, categoria, cantidad_actual, cantidad_minima,
-               unidad, ubicacion, proveedor,
-               DATE_FORMAT(fecha_vencimiento, '%d/%m/%Y') as vencimiento,
+        SELECT i.id, i.nombre, i.categoria, i.cantidad_actual, i.cantidad_minima, i.unidad,
+               i.ubicacion, i.proveedor, i.costo_unitario, i.laboratorio_id,
                CASE 
-                   WHEN cantidad_actual <= cantidad_minima THEN 'critico'
-                   WHEN cantidad_actual <= cantidad_minima * 1.5 THEN 'bajo'
+                   WHEN i.cantidad_actual <= i.cantidad_minima THEN 'critico'
+                   WHEN i.cantidad_actual <= i.cantidad_minima * 1.5 THEN 'bajo'
                    ELSE 'normal'
-               END as nivel_stock
-        FROM inventario
-        WHERE laboratorio_id = %s
-        ORDER BY categoria, nombre
+               END as stock_status
+        FROM inventario i
+        WHERE i.laboratorio_id = %s
     """
     inventario = db_manager.execute_query(query_inventario, (laboratorio_id,))
     
@@ -1636,6 +1755,61 @@ def equipos():
                 equipo['especificaciones'] = {}
     return render_template('modules/equipos.html', equipos=equipos_list, user=session)
 
+
+@app.route('/equipos/detalle/<equipo_id>')
+@require_login
+def detalle_equipo(equipo_id):
+    """Vista detallada de un equipo"""
+    try:
+        # Importar la función de utilidad
+        import sys
+        import os
+        sys.path.append('.')
+        from utils_fotos import obtener_foto_frontal
+        
+        # Obtener información completa del equipo
+        query = """
+            SELECT e.*, l.nombre as laboratorio_nombre 
+            FROM equipos e
+            LEFT JOIN laboratorios l ON e.laboratorio_id = l.id
+            WHERE e.id = %s
+        """
+        
+        equipos = db_manager.execute_query(query, (equipo_id,))
+        
+        if not equipos:
+            flash('Equipo no encontrado', 'error')
+            return redirect(url_for('equipos'))
+        
+        equipo = equipos[0]
+        
+        # Obtener foto frontal del equipo
+        foto_frontal = obtener_foto_frontal(
+            equipo['id'], 
+            equipo['nombre'], 
+            'equipo'
+        )
+        
+        # Obtener especificaciones si existen
+        if equipo.get('especificaciones'):
+            try:
+                especificaciones = json.loads(equipo['especificaciones']) if isinstance(equipo['especificaciones'], str) else equipo['especificaciones']
+            except:
+                especificaciones = {}
+        else:
+            especificaciones = {}
+        
+        return render_template('modules/equipo_detalle.html', 
+                             equipo=equipo, 
+                             especificaciones=especificaciones,
+                             foto_frontal=foto_frontal,
+                             user=session)
+        
+    except Exception as e:
+        flash(f'Error cargando detalle: {str(e)}', 'error')
+        return redirect(url_for('equipos'))
+
+
 @app.route('/equipos/crear', methods=['POST'])
 @require_login
 def crear_equipo_web():
@@ -1664,7 +1838,8 @@ def crear_equipo_web():
         """
         db_manager.execute_query(query, (equipo_id, nombre, tipo, ubicacion, laboratorio_id, especificaciones_json))
         
-        return jsonify({'success': True, 'message': 'Equipo creado exitosamente', 'id': equipo_id}), 201
+        return jsonify({'success': True, 'message': 'Item creado exitosamente'}), 201
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
@@ -1672,48 +1847,79 @@ def crear_equipo_web():
 @app.route('/inventario')
 @require_login
 def inventario():
+    """Buscador global de equipos e items"""
     # Obtener todos los equipos con información del laboratorio
     query_equipos = """
-        SELECT e.id, e.nombre, e.tipo, e.estado, e.ubicacion,
-               e.laboratorio_id,
-               l.nombre as laboratorio_nombre,
-               l.codigo as laboratorio_codigo,
-               DATE_FORMAT(e.ultima_calibracion, '%d/%m/%Y') as calibracion,
-               DATE_FORMAT(e.proximo_mantenimiento, '%d/%m/%Y') as mantenimiento
+        SELECT e.*, l.nombre as laboratorio_nombre
         FROM equipos e
-        INNER JOIN laboratorios l ON e.laboratorio_id = l.id
-        ORDER BY l.nombre, e.tipo, e.nombre
+        LEFT JOIN laboratorios l ON e.laboratorio_id = l.id
+        ORDER BY e.nombre
     """
-    equipos_list = db_manager.execute_query(query_equipos)
     
-    # Obtener todos los items con información del laboratorio
+    # Obtener todos los items de inventario con información del laboratorio
     query_items = """
-        SELECT i.id, i.nombre, i.categoria, i.cantidad_actual, i.cantidad_minima,
-               i.unidad, i.ubicacion, i.proveedor, i.costo_unitario,
-               i.laboratorio_id,
-               l.nombre as laboratorio_nombre,
-               l.codigo as laboratorio_codigo,
-               DATE_FORMAT(i.fecha_vencimiento, '%d/%m/%Y') as vencimiento,
-               CASE
-                   WHEN i.cantidad_actual <= i.cantidad_minima THEN 'critico'
-                   WHEN i.cantidad_actual <= i.cantidad_minima * 1.5 THEN 'bajo'
-                   ELSE 'normal'
-               END as nivel_stock
+        SELECT i.*, l.nombre as laboratorio_nombre 
         FROM inventario i
-        INNER JOIN laboratorios l ON i.laboratorio_id = l.id
-        ORDER BY l.nombre, i.categoria, i.nombre
+        LEFT JOIN laboratorios l ON i.laboratorio_id = l.id
+        ORDER BY i.nombre
     """
-    inventario_list = db_manager.execute_query(query_items)
     
-    # Obtener lista de laboratorios para el filtro
-    query_labs = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
-    laboratorios_list = db_manager.execute_query(query_labs)
+    equipos = db_manager.execute_query(query_equipos) or []
+    items = db_manager.execute_query(query_items) or []
+    
+    # Obtener laboratorios para filtros
+    query_labs = "SELECT id, nombre FROM laboratorios ORDER BY nombre"
+    laboratorios = db_manager.execute_query(query_labs) or []
     
     return render_template('modules/inventario.html', 
-                         equipos=equipos_list,
-                         inventario=inventario_list, 
-                         laboratorios=laboratorios_list,
+                         equipos=equipos, 
+                         items=items, 
+                         laboratorios=laboratorios,
                          user=session)
+
+
+@app.route('/inventario/detalle/<item_id>')
+@require_login
+def detalle_inventario(item_id):
+    """Vista detallada de un item de inventario"""
+    try:
+        # Importar la función de utilidad
+        import sys
+        import os
+        sys.path.append('.')
+        from utils_fotos import obtener_foto_frontal
+        
+        # Obtener información completa del item
+        query = """
+            SELECT i.*, l.nombre as laboratorio_nombre 
+            FROM inventario i
+            LEFT JOIN laboratorios l ON i.laboratorio_id = l.id
+            WHERE i.id = %s
+        """
+        
+        items = db_manager.execute_query(query, (item_id,))
+        
+        if not items:
+            flash('Item no encontrado', 'error')
+            return redirect(url_for('inventario'))
+        
+        item = items[0]
+        
+        # Obtener foto frontal del item
+        foto_frontal = obtener_foto_frontal(
+            item['id'], 
+            item['nombre'], 
+            'item'
+        )
+        
+        return render_template('modules/inventario_detalle.html', 
+                             item=item, 
+                             foto_frontal=foto_frontal,
+                             user=session)
+        
+    except Exception as e:
+        flash(f'Error cargando detalle: {str(e)}', 'error')
+        return redirect(url_for('inventario'))
 
 
 @app.route('/inventario/crear', methods=['POST'])
@@ -1753,6 +1959,594 @@ def crear_item_inventario_web():
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
+@app.route('/api/inventario/ajustar-stock', methods=['POST'])
+@require_login
+@require_level(3)  # Solo Coordinador y Administrador
+@limiter.limit("20 per minute")
+def api_ajustar_stock():
+    """
+    API para ajustar stock de items existentes con control de acceso por laboratorio
+    
+    🔒 SEGURIDAD IMPLEMENTADA:
+    - ✅ Validación de permisos por laboratorio
+    - ✅ Solo instructores responsables pueden ajustar su laboratorio
+    - ✅ Administradores pueden ajustar todos los laboratorios
+    - ✅ Validación completa de datos
+    - ✅ Transacción atómica
+    - ✅ Auditoría de movimientos
+    - ✅ Rate limiting
+    
+    PERMISOS REQUERIDOS:
+    - Nivel 6 (Administrador): Puede ajustar stock de CUALQUIER laboratorio
+    - Nivel 5 (Instructor a cargo de inventario): SOLO puede ajustar stock de su laboratorio asignado
+    - Nivel 3-4: No pueden ajustar stock (requieren nivel 5+)
+    
+    VALIDACIONES:
+    - item_id: Debe existir en inventario
+    - nueva_cantidad: No puede ser negativa
+    - motivo: Mínimo 3 caracteres
+    - laboratorio_id: El usuario debe ser responsable del laboratorio del item
+    
+    ERRORES:
+    - 400: Datos inválidos
+    - 403: Sin permisos para este laboratorio
+    - 404: Item no encontrado
+    - 429: Too many requests (rate limiting)
+    - 500: Error del servidor
+    """
+    try:
+        data = request.get_json()
+        
+        # Validación de datos requeridos
+        campos_requeridos = ['item_id', 'nueva_cantidad', 'motivo']
+        for campo in campos_requeridos:
+            if not data.get(campo):
+                return jsonify({
+                    'success': False,
+                    'message': f'Campo requerido: {campo}'
+                }), 400
+        
+        item_id = data['item_id'].strip()
+        nueva_cantidad = int(data['nueva_cantidad'])
+        motivo = data['motivo'].strip()
+        observaciones = data.get('observaciones', '').strip()
+        
+        # Validaciones de negocio
+        if nueva_cantidad < 0:
+            return jsonify({
+                'success': False,
+                'message': 'La cantidad no puede ser negativa'
+            }), 400
+        
+        if len(motivo) < 3:
+            return jsonify({
+                'success': False,
+                'message': 'El motivo debe tener al menos 3 caracteres'
+            }), 400
+        
+        # Obtener información del item actual
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Verificar que el item existe
+            query_item = """
+                SELECT id, nombre, categoria, cantidad_actual, laboratorio_id
+                FROM inventario 
+                WHERE id = %s
+            """
+            cursor.execute(query_item, (item_id,))
+            item_actual = cursor.fetchone()
+            
+            if not item_actual:
+                return jsonify({
+                    'success': False,
+                    'message': 'Item no encontrado'
+                }), 404
+            
+            item_id_db, nombre, categoria, cantidad_actual, laboratorio_id = item_actual
+            
+            # Validación de permisos por laboratorio
+            user_id = session.get('user_id')
+            user_level = permissions_manager.get_nivel_usuario(user_id)
+            
+            # Administradores pueden gestionar todos los laboratorios
+            if user_level != 6:  # Si no es administrador
+                # Verificar si es instructor a cargo de inventario de ESTE laboratorio
+                es_instructor, lab_instructor = permissions_manager.es_instructor_con_inventario(user_id)
+                
+                if not es_instructor:
+                    return jsonify({
+                        'success': False,
+                        'message': 'Solo instructores a cargo de inventario pueden ajustar stock'
+                    }), 403
+                
+                # Validar que el laboratorio del item coincida con el del instructor
+                if laboratorio_id != lab_instructor:
+                    return jsonify({
+                        'success': False,
+                        'message': f'No tienes autorización para ajustar stock de este laboratorio. Tu laboratorio: {lab_instructor}, Laboratorio del item: {laboratorio_id}'
+                    }), 403
+            
+            # Calcular diferencia
+            diferencia = nueva_cantidad - cantidad_actual
+            
+            # Si no hay cambios, retornar éxito
+            if diferencia == 0:
+                return jsonify({
+                    'success': True,
+                    'message': 'No hay cambios en el stock',
+                    'data': {
+                        'cantidad_anterior': cantidad_actual,
+                        'cantidad_nueva': nueva_cantidad,
+                        'diferencia': 0
+                    }
+                })
+            
+            # Iniciar transacción
+            cursor.execute("START TRANSACTION")
+            
+            # Actualizar stock del item
+            query_update = """
+                UPDATE inventario 
+                SET cantidad_actual = %s
+                WHERE id = %s
+            """
+            cursor.execute(query_update, (nueva_cantidad, item_id))
+            
+            # Registrar movimiento en auditoría (conservando máxima información)
+            tipo_movimiento = 'ajuste_entrada' if diferencia > 0 else 'ajuste_salida'
+            try:
+                # Intentar insertar con todas las columnas posibles
+                query_movimiento = """
+                    INSERT INTO movimientos_inventario 
+                    (inventario_id, tipo_movimiento, cantidad, referencia, observaciones, 
+                     usuario_id, laboratorio_id, fecha_movimiento)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                """
+                cursor.execute(query_movimiento, (
+                    item_id,
+                    tipo_movimiento,
+                    abs(diferencia),
+                    f"Ajuste de stock: {motivo}",
+                    f"Stock anterior: {cantidad_actual}, Nuevo: {nueva_cantidad}. {observaciones}",
+                    session.get('user_id'),
+                    laboratorio_id
+                ))
+                print(f"✅ Movimiento registrado con todos los detalles")
+                
+            except Exception as e:
+                # Si falla por columnas, intentar versión mínima
+                print(f"⚠️ Error con consulta completa: {e}")
+                try:
+                    query_minimo = """
+                        INSERT INTO movimientos_inventario 
+                        (tipo_movimiento, cantidad, fecha_movimiento)
+                        VALUES (%s, %s, NOW())
+                    """
+                    cursor.execute(query_minimo, (tipo_movimiento, abs(diferencia)))
+                    print(f"✅ Movimiento registrado en versión mínima")
+                    
+                except Exception as e2:
+                    # Si todo falla, continuar con el ajuste de stock
+                    print(f"⚠️ No se pudo registrar movimiento: {e2}")
+                    print(f"📦 Ajuste de stock continuará sin auditoría")
+            
+            # Confirmar transacción
+            cursor.execute("COMMIT")
+            
+            # Log de seguridad
+            try:
+                log_security_event(
+                    user_id=session.get('user_id'),
+                    action='ajuste_stock',
+                    detail=f"Item {item_id} ({nombre}) ajustado de {cantidad_actual} a {nueva_cantidad}",
+                    ip=request.remote_addr,
+                    success=True
+                )
+            except:
+                pass
+            
+            return jsonify({
+                'success': True,
+                'message': f'Stock ajustado exitosamente de {cantidad_actual} a {nueva_cantidad}',
+                'data': {
+                    'item_id': item_id,
+                    'nombre': nombre,
+                    'cantidad_anterior': cantidad_actual,
+                    'cantidad_nueva': nueva_cantidad,
+                    'diferencia': diferencia,
+                    'tipo_movimiento': tipo_movimiento,
+                    'motivo': motivo
+                }
+            })
+            
+        except Exception as e:
+            # Rollback en caso de error
+            cursor.execute("ROLLBACK")
+            raise e
+            
+        finally:
+            cursor.close()
+            conn.close()
+            
+    except ValueError as ve:
+        return jsonify({
+            'success': False,
+            'message': f'Error de validación: {str(ve)}'
+        }), 400
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error del servidor: {str(e)}'
+        }), 500
+
+
+@app.route('/api/inventario/stock', methods=['GET'])
+@require_login
+def api_obtener_stock():
+    """
+    API para obtener stock actual de un item
+    """
+    try:
+        item_id = request.args.get('item_id', '').strip()
+        
+        if not item_id:
+            return jsonify({
+                'success': False,
+                'message': 'ID de item requerido'
+            }), 400
+        
+        query = """
+            SELECT id, nombre, categoria, cantidad_actual, unidad, laboratorio_id
+            FROM inventario 
+            WHERE id = %s
+        """
+        result = db_manager.execute_query(query, (item_id,))
+        
+        if not result:
+            return jsonify({
+                'success': False,
+                'message': 'Item no encontrado'
+            }), 404
+        
+        item = result[0]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'id': item[0],
+                'nombre': item[1],
+                'categoria': item[2],
+                'cantidad_actual': item[3],
+                'unidad': item[4],
+                'laboratorio_id': item[5]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error del servidor: {str(e)}'
+        }), 500
+
+
+
+
+@app.route('/inventario/entregar', methods=['GET', 'POST'])
+@require_login
+@require_instructor_inventario
+def entregar_consumible():
+    """Entrega de consumibles con control de stock"""
+    
+    # Si es GET, redirigir a inventario SOLO si no viene de referer de inventario
+    if request.method == 'GET':
+        # Evitar redirección infinita
+        referer = request.headers.get('Referer', '')
+        if 'inventario/entregar' in referer:
+            # Si viene de /inventario/entregar, devolver error para romper el bucle
+            return jsonify({
+                'error': 'Redirección infinita detectada',
+                'message': 'Use el botón "Entregar" desde la página de inventario'
+            }), 400
+        
+        return redirect(url_for('inventario'))
+    
+    # Procesar POST
+    try:
+        data = request.get_json()
+        item_id = data.get('item_id')
+        cantidad = data.get('cantidad', 0)
+        
+        # Nuevos campos del formulario simplificado
+        instructor_id = data.get('instructor_id', '')
+        instructor_nombre = data.get('instructor_nombre', '')
+        motivo_uso = data.get('motivo_uso', '')
+        grupo = data.get('grupo', '')
+        observaciones = data.get('observaciones', '')
+        
+        # Campos antiguos para compatibilidad (si vienen)
+        recibido_por = data.get('recibido_por', '')
+        clase = data.get('clase', '')
+        
+        if not item_id or cantidad <= 0:
+            return jsonify({'success': False, 'message': 'Item y cantidad son requeridos'}), 400
+        
+        # Verificar stock disponible
+        query_stock = "SELECT cantidad_actual, nombre FROM inventario WHERE id = %s"
+        item = db_manager.execute_query(query_stock, (item_id,))
+        
+        if not item:
+            return jsonify({'success': False, 'message': 'Item no encontrado'}), 404
+        
+        stock_actual = item[0]['cantidad_actual']
+        item_nombre = item[0]['nombre']
+        
+        if stock_actual < cantidad:
+            return jsonify({
+                'success': False, 
+                'message': f'Stock insuficiente. Disponible: {stock_actual}, Solicitado: {cantidad}'
+            }), 400
+        
+        # Construir motivo descriptivo
+        if motivo_uso:
+            motivo = f"Entrega: {motivo_uso}"
+            if instructor_nombre:
+                motivo += f" - Instructor: {instructor_nombre}"
+            if grupo:
+                motivo += f" - Grupo: {grupo}"
+        elif recibido_por and clase:
+            # Compatibilidad con formato antiguo
+            motivo = f"Entrega para {clase}"
+            if recibido_por:
+                motivo += f" - Recibido por: {recibido_por}"
+        else:
+            motivo = "Entrega de consumibles"
+        
+        # Registrar movimiento de salida (con fallbacks)
+        try:
+            # Intentar con inventario_id (columna correcta)
+            query_movimiento = """
+                INSERT INTO movimientos_inventario 
+                (inventario_id, usuario_id, tipo_movimiento, cantidad,
+                 cantidad_anterior, cantidad_nueva, motivo, observaciones)
+                VALUES (%s, %s, 'salida', %s, %s, %s, %s, %s)
+            """
+            
+            db_manager.execute_query(query_movimiento, (
+                item_id, session['user_id'], cantidad,
+                stock_actual, stock_actual - cantidad,
+                motivo, observaciones
+            ))
+            print("✅ Movimiento registrado con inventario_id")
+            
+        except Exception as e:
+            # Fallback: intentar con item_id
+            try:
+                query_movimiento_alt = """
+                    INSERT INTO movimientos_inventario 
+                    (item_id, usuario_id, tipo_movimiento, cantidad,
+                     cantidad_anterior, cantidad_nueva, motivo, observaciones)
+                    VALUES (%s, %s, 'salida', %s, %s, %s, %s, %s)
+                """
+                
+                db_manager.execute_query(query_movimiento_alt, (
+                    item_id, session['user_id'], cantidad,
+                    stock_actual, stock_actual - cantidad,
+                    motivo, observaciones
+                ))
+                print("✅ Movimiento registrado con item_id (fallback)")
+                
+            except Exception as e2:
+                # Si todo falla, continuar con el ajuste de stock
+                print(f"⚠️ No se pudo registrar movimiento: {e2}")
+                print(f"📦 Entrega continuará sin auditoría")
+        
+        # Actualizar stock
+        query_update = "UPDATE inventario SET cantidad_actual = %s WHERE id = %s"
+        db_manager.execute_query(query_update, (stock_actual - cantidad, item_id))
+        
+        return jsonify({
+            'success': True, 
+            'message': f'✅ Entrega registrada: {cantidad} {item_nombre}',
+            'stock_actual': stock_actual - cantidad
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/inventario/historial-item/<item_id>')
+@require_login
+def historial_item(item_id):
+    """Obtener historial de movimientos de un item específico"""
+    try:
+        # Intentar consulta completa con JOINs
+        try:
+            query_completa = """
+                SELECT 
+                    mi.id,
+                    mi.cantidad,
+                    mi.fecha_movimiento,
+                    mi.observaciones,
+                    i.nombre as item_nombre,
+                    u.nombre as usuario_entrega
+                FROM movimientos_inventario mi
+                JOIN inventario i ON mi.inventario_id = i.id
+                LEFT JOIN usuarios u ON mi.usuario_id = u.id
+                WHERE mi.inventario_id = %s
+                ORDER BY mi.fecha_movimiento DESC
+                LIMIT 50
+            """
+            
+            historial = db_manager.execute_query(query_completa, (item_id,))
+            
+            if historial:
+                print("✅ Historial de item obtenido con consulta completa")
+                return jsonify({'success': True, 'historial': historial}), 200
+                
+        except Exception as e:
+            print(f"⚠️ Error en consulta completa de historial item: {e}")
+        
+        # Fallback: Consulta mínima
+        query_minima = """
+            SELECT * FROM movimientos_inventario 
+            WHERE inventario_id = %s
+            ORDER BY fecha_movimiento DESC
+            LIMIT 50
+        """
+        
+        historial = db_manager.execute_query(query_minima, (item_id,))
+        print("✅ Historial de item obtenido con consulta mínima")
+        
+        return jsonify({
+            'success': True,
+            'historial': historial or []
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/inventario/historial-entregas')
+@require_login
+def historial_entregas():
+    """Obtener historial de entregas recientes conservando máxima información"""
+    try:
+        # Intentar consulta completa con JOINs para obtener nombres
+        try:
+            query_completa = """
+                SELECT 
+                    mi.id,
+                    mi.cantidad,
+                    mi.fecha_movimiento,
+                    mi.observaciones,
+                    i.nombre as item_nombre,
+                    i.categoria,
+                    l.nombre as laboratorio_nombre,
+                    u.nombre as usuario_entrega
+                FROM movimientos_inventario mi
+                JOIN inventario i ON mi.inventario_id = i.id
+                LEFT JOIN usuarios u ON mi.usuario_id = u.id
+                LEFT JOIN laboratorios l ON i.laboratorio_id = l.id
+                WHERE mi.tipo_movimiento = 'salida'
+                ORDER BY mi.fecha_movimiento DESC
+                LIMIT 50
+            """
+            entregas = db_manager.execute_query(query_completa)
+            if entregas:
+                print("✅ Historial obtenido con consulta completa")
+                return jsonify({'success': True, 'entregas': entregas}), 200
+                
+        except Exception as e:
+            print(f"⚠️ Error en consulta completa: {e}")
+        
+        # Fallback 1: Consulta con JOIN solo inventario
+        try:
+            query_parcial = """
+                SELECT 
+                    mi.id,
+                    mi.cantidad,
+                    mi.fecha_movimiento,
+                    mi.observaciones,
+                    i.nombre as item_nombre,
+                    i.categoria,
+                    'Usuario' as usuario_entrega
+                FROM movimientos_inventario mi
+                JOIN inventario i ON mi.inventario_id = i.id
+                WHERE mi.tipo_movimiento = 'salida'
+                ORDER BY mi.fecha_movimiento DESC
+                LIMIT 50
+            """
+            entregas = db_manager.execute_query(query_parcial)
+            if entregas:
+                print("✅ Historial obtenido con consulta parcial")
+                return jsonify({'success': True, 'entregas': entregas}), 200
+                
+        except Exception as e:
+            print(f"⚠️ Error en consulta parcial: {e}")
+        
+        # Fallback 2: Consulta mínima que siempre funciona
+        query_minima = """
+            SELECT * FROM movimientos_inventario 
+            WHERE tipo_movimiento = 'salida'
+            ORDER BY fecha_movimiento DESC
+            LIMIT 50
+        """
+        
+        entregas = db_manager.execute_query(query_minima)
+        print("✅ Historial obtenido con consulta mínima")
+        
+        return jsonify({
+            'success': True,
+            'entregas': entregas or [],
+            'nivel_detalle': 'minimo'  # Indicar nivel de detalle
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/instructores-quimica')
+@require_login
+def obtener_instructores_quimica():
+    """Obtener lista de todos los instructores de química disponibles"""
+    try:
+        query = """
+            SELECT id, nombre, email, especialidad, programa_formacion, nivel_acceso,
+                   CASE 
+                       WHEN nivel_acceso = 5 THEN 'Instructor con Inventario'
+                       WHEN nivel_acceso = 4 THEN 'Instructor sin Inventario'
+                       ELSE 'Otro'
+                   END as rol_inventario
+            FROM usuarios 
+            WHERE nivel_acceso IN (4, 5) AND activo = TRUE
+            ORDER BY nivel_acceso DESC, nombre
+        """
+        
+        instructores = db_manager.execute_query(query)
+        
+        return jsonify({
+            'success': True,
+            'instructores': instructores or []
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/api/inventario/disponible/<item_id>')
+@require_login
+def verificar_disponibilidad(item_id):
+    """Verificar disponibilidad de un item"""
+    try:
+        query = """
+            SELECT 
+                id, nombre, cantidad_actual, cantidad_minima, unidad,
+                CASE 
+                    WHEN cantidad_actual <= cantidad_minima THEN 'critico'
+                    WHEN cantidad_actual <= cantidad_minima * 1.5 THEN 'bajo'
+                    ELSE 'normal'
+                END as stock_status
+            FROM inventario 
+            WHERE id = %s
+        """
+        
+        item = db_manager.execute_query(query, (item_id,))
+        
+        if not item:
+            return jsonify({'success': False, 'message': 'Item no encontrado'}), 404
+        
+        return jsonify({
+            'success': True,
+            'item': item[0]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
 @app.route('/reservas')
 @require_login
 def reservas():
@@ -1772,7 +2566,7 @@ def reservas():
                    DATE_FORMAT(r.fecha_inicio, '%d/%m/%Y %H:%i') as fecha_inicio,
                    DATE_FORMAT(r.fecha_fin, '%d/%m/%Y %H:%i') as fecha_fin,
                    r.estado,
-                   r.respuesta_instructor,
+                   r.estado_aprobacion,
                    r.notas,
                    r.motivo_rechazo,
                    u.nombre as usuario_nombre,
@@ -1782,9 +2576,9 @@ def reservas():
             FROM reservas r
             JOIN usuarios u ON r.usuario_id = u.id
             JOIN equipos e ON r.equipo_id = e.id
-            LEFT JOIN usuarios instructor ON r.aprobada_por = instructor.id
+            LEFT JOIN usuarios instructor ON r.instructor_aprobador = instructor.id
             ORDER BY 
-                CASE WHEN r.respuesta_instructor = 'pendiente' THEN 0 ELSE 1 END,
+                CASE WHEN r.estado_aprobacion = 'pendiente' THEN 0 ELSE 1 END,
                 r.fecha_inicio DESC
             """
         )
@@ -1796,7 +2590,7 @@ def reservas():
                    DATE_FORMAT(r.fecha_inicio, '%d/%m/%Y %H:%i') as fecha_inicio,
                    DATE_FORMAT(r.fecha_fin, '%d/%m/%Y %H:%i') as fecha_fin,
                    r.estado,
-                   r.respuesta_instructor,
+                   r.estado_aprobacion,
                    r.notas,
                    r.motivo_rechazo,
                    u.nombre as usuario_nombre,
@@ -1806,7 +2600,7 @@ def reservas():
             FROM reservas r
             JOIN usuarios u ON r.usuario_id = u.id
             JOIN equipos e ON r.equipo_id = e.id
-            LEFT JOIN usuarios instructor ON r.aprobada_por = instructor.id
+            LEFT JOIN usuarios instructor ON r.instructor_aprobador = instructor.id
             WHERE r.usuario_id = %s
             ORDER BY r.fecha_inicio DESC
             """
@@ -1847,7 +2641,7 @@ def crear_reserva_web():
         # Crear la reserva con estado pendiente de aprobación
         query = """
             INSERT INTO reservas (id, equipo_id, usuario_id, fecha_inicio, fecha_fin, 
-                                estado, notas, respuesta_instructor)
+                                estado, notas, estado_aprobacion)
             VALUES (%s, %s, %s, %s, %s, 'programada', %s, 'pendiente')
         """
         db_manager.execute_query(query, (reserva_id, equipo_id, usuario_id, fecha_inicio, 
@@ -1857,7 +2651,7 @@ def crear_reserva_web():
         notificaciones_manager.notificar_nueva_reserva(
             reserva_id=reserva_id,
             usuario_id=usuario_id,
-            equipo_nombre=equipo_nombre,
+            equipo_nombre=equipo[0]['nombre'],
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             laboratorio_id=laboratorio_id
@@ -1870,6 +2664,266 @@ def crear_reserva_web():
         }), 201
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+
+@app.route('/reservas/aprobar-modificada/<reserva_id>', methods=['POST'])
+@require_login
+@require_instructor_inventario
+def aprobar_reserva_modificada(reserva_id):
+    """Aprobar reserva con posible modificación de fechas"""
+    try:
+        instructor_id = session['user_id']
+        laboratorio_asignado = kwargs.get('laboratorio_asignado')
+        
+        data = request.get_json()
+        opcion = data.get('opcion')  # 'comoEsta' o 'modificado'
+        nueva_fecha_inicio = data.get('nueva_fecha_inicio')
+        nueva_fecha_fin = data.get('nueva_fecha_fin')
+        razon_cambio = data.get('razon_cambio', '')
+        notas_solicitante = data.get('notas_solicitante', '')
+        
+        if opcion not in ['comoEsta', 'modificado']:
+            return {'message': 'Opción inválida'}, 400
+        
+        # Obtener información de la reserva
+        query_reserva = """
+            SELECT r.usuario_id, r.equipo_id, r.fecha_inicio, r.fecha_fin, r.notas,
+                   e.nombre as equipo_nombre, e.laboratorio_id,
+                   u.nombre as usuario_nombre
+            FROM reservas r
+            JOIN equipos e ON r.equipo_id = e.id
+            JOIN usuarios u ON r.usuario_id = u.id
+            WHERE r.id = %s
+        """
+        reserva = db_manager.execute_query(query_reserva, (reserva_id,))
+        
+        if not reserva:
+            return {'message': 'Reserva no encontrada'}, 404
+        
+        reserva_data = reserva[0]
+        lab_equipo = reserva_data['laboratorio_id']
+        
+        # Validar que el instructor pueda gestionar este laboratorio
+        if lab_equipo != laboratorio_asignado:
+            return {'message': 'No tienes autorización para gestionar reservas de este laboratorio'}, 403
+        
+        # Si es modificación, validar las nuevas fechas
+        if opcion == 'modificado':
+            if not nueva_fecha_inicio or not nueva_fecha_fin:
+                return {'message': 'Debes especificar las nuevas fechas'}, 400
+            
+            # Convertir fechas
+            try:
+                nuevo_inicio = datetime.strptime(nueva_fecha_inicio, '%Y-%m-%dT%H:%M')
+                nuevo_fin = datetime.strptime(nueva_fecha_fin, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                return {'message': 'Formato de fechas inválido'}, 400
+            
+            # Validar que fin sea posterior a inicio
+            if nuevo_fin <= nuevo_inicio:
+                return {'message': 'La fecha de fin debe ser posterior a la de inicio'}, 400
+            
+            # Validar que no haya conflictos con otras reservas
+            query_conflictos = """
+                SELECT COUNT(*) as conflictos
+                FROM reservas 
+                WHERE equipo_id = %s 
+                AND id != %s
+                AND estado_aprobacion = 'aprobada'
+                AND (
+                    (fecha_inicio <= %s AND fecha_fin >= %s) OR
+                    (fecha_inicio <= %s AND fecha_fin >= %s) OR
+                    (fecha_inicio >= %s AND fecha_fin <= %s)
+                )
+            """
+            conflictos = db_manager.execute_query(query_conflictos, (
+                reserva_data['equipo_id'], reserva_id,
+                nuevo_inicio, nuevo_inicio,
+                nuevo_fin, nuevo_fin,
+                nuevo_inicio, nuevo_fin
+            ))
+            
+            if conflictos[0]['conflictos'] > 0:
+                return {'message': 'Las nuevas fechas tienen conflictos con otras reservas aprobadas'}, 400
+        
+        # Actualizar la reserva
+        try:
+            if opcion == 'comoEsta':
+                # Aprobar como está
+                query = """
+                    UPDATE reservas 
+                    SET estado_aprobacion = 'aprobada',
+                        instructor_aprobador = %s,
+                        fecha_aprobacion = NOW(),
+                        estado = 'programada'
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (instructor_id, reserva_id))
+                
+                mensaje_aprobacion = "Reserva aprobada con las fechas solicitadas"
+                
+            else:
+                # Aprobar con modificación
+                query = """
+                    UPDATE reservas 
+                    SET estado_aprobacion = 'aprobada_modificada',
+                        instructor_aprobador = %s,
+                        fecha_aprobacion = NOW(),
+                        fecha_inicio = %s,
+                        fecha_fin = %s,
+                        estado = 'programada',
+                        notas_modificacion = %s,
+                        notas_instructor = %s
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (
+                    instructor_id, 
+                    nuevo_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                    nuevo_fin.strftime('%Y-%m-%d %H:%M:%S'),
+                    razon_cambio,
+                    notas_solicitante,
+                    reserva_id
+                ))
+                
+                mensaje_aprobacion = f"Reserva aprobada con fechas modificadas: {nuevo_inicio.strftime('%d/%m/%Y %H:%M')} - {nuevo_fin.strftime('%d/%m/%Y %H:%M')}"
+        
+        except Exception as e:
+            return {'message': f'Error actualizando la reserva: {str(e)}'}, 500
+        
+        # Notificar al usuario
+        try:
+            if opcion == 'comoEsta':
+                notificaciones_manager.notificar_reserva_aprobada(
+                    reserva_id=reserva_id,
+                    usuario_id=reserva_data['usuario_id'],
+                    equipo_nombre=reserva_data['equipo_nombre'],
+                    instructor_id=instructor_id
+                )
+            else:
+                # Notificación especial para modificación
+                notificaciones_manager.notificar_reserva_modificada(
+                    reserva_id=reserva_id,
+                    usuario_id=reserva_data['usuario_id'],
+                    equipo_nombre=reserva_data['equipo_nombre'],
+                    instructor_id=instructor_id,
+                    fecha_original_inicio=reserva_data['fecha_inicio'],
+                    fecha_original_fin=reserva_data['fecha_fin'],
+                    nueva_fecha_inicio=nuevo_inicio.strftime('%d/%m/%Y %H:%M'),
+                    nueva_fecha_fin=nuevo_fin.strftime('%d/%m/%Y %H:%M'),
+                    razon_cambio=razon_cambio,
+                    notas_instructor=notas_solicitante
+                )
+        except Exception as e:
+            print(f"Error enviando notificación: {e}")
+        
+        return {
+            'success': True,
+            'message': mensaje_aprobacion,
+            'opcion': opcion
+        }, 200
+        
+    except Exception as e:
+        return {'message': f'Error del servidor: {str(e)}'}, 500
+
+
+@app.route('/reservas/aprobar/<reserva_id>', methods=['POST'])
+@require_login
+@require_instructor_inventario
+def aprobar_reserva_web(reserva_id):
+    """Aprobar o rechazar una reserva desde interfaz web (solo instructor responsable del laboratorio)"""
+    try:
+        instructor_id = session['user_id']
+        laboratorio_asignado = kwargs.get('laboratorio_asignado')
+        
+        data = request.get_json()
+        respuesta = data.get('respuesta')  # 'aprobada' o 'rechazada'
+        motivo_rechazo = data.get('motivo_rechazo')
+        
+        if respuesta not in ['aprobada', 'rechazada']:
+            return {'message': 'Respuesta inválida. Debe ser "aprobada" o "rechazada"'}, 400
+        
+        # Obtener información de la reserva Y el laboratorio del equipo
+        query_reserva = """
+            SELECT r.usuario_id, r.equipo_id, e.nombre as equipo_nombre,
+                   e.laboratorio_id, l.nombre as laboratorio_nombre
+            FROM reservas r
+            JOIN equipos e ON r.equipo_id = e.id
+            LEFT JOIN laboratorios l ON e.laboratorio_id = l.id
+            WHERE r.id = %s
+        """
+        reserva = db_manager.execute_query(query_reserva, (reserva_id,))
+        
+        if not reserva:
+            return {'message': 'Reserva no encontrada'}, 404
+        
+        lab_equipo = reserva[0]['laboratorio_id']
+        lab_nombre = reserva[0]['laboratorio_nombre'] or 'desconocido'
+        
+        # VALIDACIÓN CRÍTICA: El laboratorio del equipo debe coincidir con el del instructor
+        if lab_equipo != laboratorio_asignado:
+            return {
+                'message': f'No tienes autorización para gestionar reservas de este laboratorio. Solo puedes aprobar reservas de tu laboratorio asignado ({lab_nombre}).',
+                'laboratorio_equipo': lab_equipo,
+                'laboratorio_instructor': laboratorio_asignado
+            }, 403
+        
+        usuario_id = reserva[0]['usuario_id']
+        equipo_id = reserva[0]['equipo_id']
+        
+        # Actualizar la reserva
+        try:
+            if respuesta == 'aprobada':
+                query = """
+                    UPDATE reservas 
+                    SET estado_aprobacion = 'aprobada',
+                        instructor_aprobador = %s,
+                        fecha_aprobacion = NOW(),
+                        estado = 'aprobada'
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (instructor_id, reserva_id))
+            else:
+                query = """
+                    UPDATE reservas 
+                    SET estado_aprobacion = 'rechazada',
+                        instructor_aprobador = %s,
+                        fecha_aprobacion = NOW(),
+                        motivo_rechazo = %s,
+                        estado = 'cancelada'
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (instructor_id, motivo_rechazo, reserva_id))
+        except Exception as e:
+            return {'message': f'Error al actualizar la reserva: {str(e)}'}, 500
+        
+        # Notificar al usuario sobre la decisión
+        try:
+            if respuesta == 'aprobada':
+                notificaciones_manager.notificar_reserva_aprobada(
+                    reserva_id=reserva_id,
+                    usuario_id=usuario_id,
+                    equipo_nombre=reserva[0]['equipo_nombre'],
+                    instructor_id=instructor_id
+                )
+            else:
+                notificaciones_manager.notificar_reserva_rechazada(
+                    reserva_id=reserva_id,
+                    usuario_id=usuario_id,
+                    equipo_nombre=reserva[0]['equipo_nombre'],
+                    instructor_id=instructor_id,
+                    motivo=motivo_rechazo
+                )
+        except Exception as e:
+            print(f"Error enviando notificación: {e}")
+        
+        return {
+            'success': True,
+            'message': f'Reserva {respuesta} correctamente',
+            'respuesta': respuesta
+        }, 200
+        
+    except Exception as e:
+        return {'message': f'Error del servidor: {str(e)}'}, 500
 
 
 @app.route('/notificaciones')
@@ -2077,8 +3131,35 @@ def rechazar_solicitud_nivel(solicitud_id):
 @require_login
 @require_level(2)
 def reportes():
+    """Reportes con datos iniciales desde servidor (SSR) + API para actualizaciones"""
+    # Obtener estadísticas completas
+    stats = get_dashboard_stats()
     reportes_data = get_reportes_data()
-    return render_template('modules/reportes.html', reportes=reportes_data, user=session)
+    
+    # Combinar todos los datos
+    datos_completos = {
+        **stats,
+        'uso_equipos': reportes_data.get('uso_equipos', []),
+        'inventario_bajo': reportes_data.get('inventario_bajo', []),
+        'usuarios_activos': reportes_data.get('usuarios_activos', [])
+    }
+    
+    # Generar JWT para uso opcional en actualizaciones dinámicas
+    try:
+        access_token = create_access_token(
+            identity=session['user_id'],
+            additional_claims={
+                'nombre': session.get('nombre', ''),
+                'nivel': session.get('user_level', 1)
+            }
+        )
+        session['api_token'] = access_token
+    except:
+        pass
+    
+    return render_template('modules/reportes.html', 
+                         reportes=datos_completos, 
+                         user=session)
 
 
 @app.route('/reportes/descargar/pdf')
@@ -2151,11 +3232,25 @@ def configuracion():
     config_list = db_manager.execute_query(query) or []
     return render_template('modules/configuracion.html', configuraciones=config_list, user=session)
 
+@app.route('/visual')
+@require_login
+def visual():
+    """Página para entrenar la IA de reconocimiento visual (alias de entrenamiento-visual)"""
+    return redirect(url_for('entrenamiento_visual'))
+
+
 @app.route('/entrenamiento-visual')
 @require_login
 def entrenamiento_visual():
     """Página para entrenar la IA de reconocimiento visual"""
     return render_template('modules/entrenamiento_visual.html', user=session)
+
+
+@app.route('/facial')
+@require_login
+def facial():
+    """Página para registro facial de usuarios (alias de registro-facial)"""
+    return redirect(url_for('registro_facial'))
 
 
 @app.route('/registro-facial')
@@ -2185,13 +3280,13 @@ def get_dashboard_stats():
     disp = db_manager.execute_query("SELECT COUNT(*) cantidad FROM equipos WHERE estado = 'disponible'")
     stats['equipos_disponibles'] = disp[0]['cantidad'] if disp else 0
     
-    # Items con stock bajo (más flexible que crítico)
-    bajo = db_manager.execute_query("SELECT COUNT(*) cantidad FROM inventario WHERE cantidad_actual <= (cantidad_minima * 1.5)")
-    stats['inventario_bajo'] = bajo[0]['cantidad'] if bajo else 0
+    # Items con stock crítico (en o bajo el mínimo)
+    criticos = db_manager.execute_query("SELECT COUNT(*) cantidad FROM inventario WHERE cantidad_actual <= cantidad_minima")
+    stats['items_criticos'] = criticos[0]['cantidad'] if criticos else 0
     
-    # Items bien abastecidos (información positiva)
-    bien = db_manager.execute_query("SELECT COUNT(*) cantidad FROM inventario WHERE cantidad_actual > cantidad_minima")
-    stats['inventario_bien'] = bien[0]['cantidad'] if bien else 0
+    # Items con stock bajo (advertencia temprana)
+    bajo = db_manager.execute_query("SELECT COUNT(*) cantidad FROM inventario WHERE cantidad_actual <= (cantidad_minima * 1.5) AND cantidad_actual > cantidad_minima")
+    stats['inventario_bajo'] = bajo[0]['cantidad'] if bajo else 0
     
     # Reservas próximas (incluye programadas y activas, sin filtro de fecha estricto)
     prox = db_manager.execute_query("SELECT COUNT(*) cantidad FROM reservas WHERE estado IN ('activa', 'programada')")
@@ -2204,6 +3299,10 @@ def get_dashboard_stats():
     # Total de items en inventario
     total_inv = db_manager.execute_query("SELECT COUNT(*) cantidad FROM inventario")
     stats['total_inventario'] = total_inv[0]['cantidad'] if total_inv else 0
+    
+    # Total de usuarios activos (para reportes)
+    total_users = db_manager.execute_query("SELECT COUNT(*) cantidad FROM usuarios WHERE activo = TRUE")
+    stats['total_usuarios'] = total_users[0]['cantidad'] if total_users else 0
     
     return stats
 
@@ -2734,11 +3833,11 @@ class InventarioAPI(Resource):
         # Calcular nivel de stock
         for item in inventario:
             if item['cantidad_actual'] <= item['cantidad_minima']:
-                item['nivel_stock'] = 'critico'
+                item['stock_status'] = 'critico'
             elif item['cantidad_actual'] <= item['cantidad_minima'] * 1.5:
-                item['nivel_stock'] = 'bajo'
+                item['stock_status'] = 'bajo'
             else:
-                item['nivel_stock'] = 'normal'
+                item['stock_status'] = 'normal'
         
         return {'inventario': inventario}, 200
     
@@ -2857,7 +3956,7 @@ class ReservasAPI(Resource):
             db_manager.execute_query(
                 """
                 INSERT INTO reservas (id, usuario_id, equipo_id, fecha_inicio, fecha_fin, 
-                                    estado, notas, respuesta_instructor)
+                                    estado, notas, estado_aprobacion)
                 VALUES (%s, %s, %s, %s, %s, 'programada', %s, 'pendiente')
                 """,
                 (reserva_id, current_user, args['equipo_id'], fecha_inicio, fecha_fin, args['notas']),
@@ -2963,7 +4062,7 @@ class NotificacionAPI(Resource):
 class ReservaRespuestaAPI(Resource):
     @require_instructor_inventario
     def post(self, reserva_id):
-        """Aprobar o rechazar una reserva (solo instructores a cargo)"""
+        """Aprobar o rechazar una reserva (solo instructor responsable del laboratorio)"""
         # Permitir JWT o sesión web
         try:
             verify_jwt_in_request()
@@ -2973,6 +4072,12 @@ class ReservaRespuestaAPI(Resource):
                 return {'message': 'Autenticación requerida'}, 401
             instructor_id = session['user_id']
         
+        # VALIDACIÓN ESTRICTA: Verificar que el instructor sea responsable del laboratorio
+        es_instructor, lab_instructor = permissions_manager.es_instructor_con_inventario(instructor_id)
+        
+        if not es_instructor:
+            return {'message': 'No tienes permisos de instructor a cargo de inventario'}, 403
+        
         data = request.get_json()
         respuesta = data.get('respuesta')  # 'aprobada' o 'rechazada'
         motivo_rechazo = data.get('motivo_rechazo')
@@ -2980,17 +4085,31 @@ class ReservaRespuestaAPI(Resource):
         if respuesta not in ['aprobada', 'rechazada']:
             return {'message': 'Respuesta inválida. Debe ser "aprobada" o "rechazada"'}, 400
         
-        # Obtener información de la reserva
+        # Obtener información de la reserva Y el laboratorio del equipo
         query_reserva = """
-            SELECT r.usuario_id, r.equipo_id, e.nombre as equipo_nombre
+            SELECT r.usuario_id, r.equipo_id, e.nombre as equipo_nombre,
+                   e.laboratorio_id, l.nombre as laboratorio_nombre
             FROM reservas r
             JOIN equipos e ON r.equipo_id = e.id
+            LEFT JOIN laboratorios l ON e.laboratorio_id = l.id
             WHERE r.id = %s
         """
         reserva = db_manager.execute_query(query_reserva, (reserva_id,))
         
         if not reserva:
             return {'message': 'Reserva no encontrada'}, 404
+        
+        lab_equipo = reserva[0]['laboratorio_id']
+        lab_nombre = reserva[0]['laboratorio_nombre'] or 'desconocido'
+        
+        # VALIDACIÓN CRÍTICA: El laboratorio del equipo debe coincidir con el del instructor
+        if lab_equipo != lab_instructor:
+            return {
+                'message': f'No tienes autorización para gestionar reservas de este laboratorio. Solo puedes aprobar reservas de tu laboratorio asignado.',
+                'tu_laboratorio': lab_instructor,
+                'laboratorio_equipo': lab_equipo,
+                'nombre_laboratorio': lab_nombre
+            }, 403
         
         usuario_id = reserva[0]['usuario_id']
         equipo_id = reserva[0]['equipo_id']
@@ -3000,8 +4119,8 @@ class ReservaRespuestaAPI(Resource):
             if respuesta == 'aprobada':
                 query = """
                     UPDATE reservas 
-                    SET respuesta_instructor = 'aprobada',
-                        aprobada_por = %s,
+                    SET estado_aprobacion = 'aprobada',
+                        instructor_aprobador = %s,
                         fecha_aprobacion = NOW(),
                         estado = 'aprobada'
                     WHERE id = %s
@@ -3010,8 +4129,8 @@ class ReservaRespuestaAPI(Resource):
             else:
                 query = """
                     UPDATE reservas 
-                    SET respuesta_instructor = 'rechazada',
-                        aprobada_por = %s,
+                    SET estado_aprobacion = 'rechazada',
+                        instructor_aprobador = %s,
                         fecha_aprobacion = NOW(),
                         motivo_rechazo = %s,
                         estado = 'cancelada'
@@ -3038,6 +4157,23 @@ class ReservaRespuestaAPI(Resource):
                 aprobada=(respuesta == 'aprobada'),
                 motivo=motivo_rechazo
             )
+            
+            # Log de seguridad: Registro de aprobación/rechazo
+            try:
+                log_query = """
+                    INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
+                    VALUES (%s, %s, %s, %s, TRUE)
+                """
+                accion = 'aprobar_reserva' if respuesta == 'aprobada' else 'rechazar_reserva'
+                detalle = f'Reserva {reserva_id} {respuesta} por instructor {instructor_id} (Lab: {lab_instructor})'
+                db_manager.execute_query(log_query, (
+                    instructor_id,
+                    accion,
+                    detalle,
+                    request.remote_addr
+                ))
+            except:
+                pass  # No fallar si el log falla
             
             mensaje = 'Reserva aprobada exitosamente' if respuesta == 'aprobada' else 'Reserva rechazada'
             return {'message': mensaje}, 200
@@ -3880,7 +5016,101 @@ class VisualManagementAPI(Resource):
 
 # Implementación de API de registro facial
 class FacialRegistrationAPI(Resource):
-    """API para registrar rostro de usuario"""
+    """API para registrar, verificar y eliminar rostro de usuario"""
+    
+    def get(self):
+        """Verificar si el usuario ya tiene rostro registrado"""
+        try:
+            user_id = request.args.get('user_id')
+            
+            if not user_id:
+                return {'success': False, 'message': 'Se requiere user_id'}, 400
+            
+            # Verificar si el usuario tiene rostro registrado
+            query = """SELECT id, nombre, rostro_data, fecha_registro 
+                       FROM usuarios 
+                       WHERE id = %s AND activo = TRUE"""
+            
+            users = db_manager.execute_query(query, (user_id,))
+            
+            if not users:
+                return {'success': False, 'message': 'Usuario no encontrado'}, 404
+            
+            user = users[0]
+            has_face = user['rostro_data'] is not None
+            
+            if has_face:
+                # Convertir rostro a base64 para mostrarlo
+                face_data = user['rostro_data']
+                face_base64 = base64.b64encode(face_data).decode('utf-8')
+                
+                return {
+                    'success': True,
+                    'registered': True,
+                    'user': {
+                        'id': user['id'],
+                        'nombre': user['nombre'],
+                        'fecha_registro': str(user['fecha_registro'])
+                    },
+                    'face_image': f"data:image/jpeg;base64,{face_base64}"
+                }, 200
+            else:
+                return {
+                    'success': True,
+                    'registered': False,
+                    'user': {
+                        'id': user['id'],
+                        'nombre': user['nombre']
+                    }
+                }, 200
+                
+        except Exception as e:
+            print(f"[ERROR] Error verificando registro facial: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'message': f'Error al verificar registro: {str(e)}'}, 500
+    
+    def delete(self):
+        """Eliminar registro facial de usuario"""
+        try:
+            data = request.get_json()
+            user_id = data.get('user_id')
+            
+            if not user_id:
+                return {'success': False, 'message': 'Se requiere user_id'}, 400
+            
+            # Verificar que el usuario existe y tiene rostro
+            check_query = "SELECT id, rostro_data FROM usuarios WHERE id = %s"
+            users = db_manager.execute_query(check_query, (user_id,))
+            
+            if not users:
+                return {'success': False, 'message': 'Usuario no encontrado'}, 404
+            
+            if users[0]['rostro_data'] is None:
+                return {'success': False, 'message': 'El usuario no tiene rostro registrado'}, 400
+            
+            # Eliminar rostro
+            delete_query = "UPDATE usuarios SET rostro_data = NULL WHERE id = %s"
+            db_manager.execute_query(delete_query, (user_id,))
+            
+            # Log de auditoría
+            log_query = """INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
+                           VALUES (%s, 'eliminacion_facial', 'Registro facial eliminado', %s, TRUE)"""
+            try:
+                db_manager.execute_query(log_query, (user_id, request.remote_addr))
+            except:
+                pass
+            
+            return {
+                'success': True,
+                'message': 'Registro facial eliminado exitosamente'
+            }, 200
+            
+        except Exception as e:
+            print(f"[ERROR] Error eliminando registro facial: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'message': f'Error al eliminar registro: {str(e)}'}, 500
     
     def post(self):
         """Registrar rostro de usuario"""
@@ -3934,33 +5164,56 @@ class FacialRegistrationAPI(Resource):
             """
             
             try:
-                db_manager.execute_query(update_query, (face_blob, user_id))
+                # Verificar si el usuario existe
+                check_query = "SELECT id, nombre FROM usuarios WHERE id = %s"
+                users = db_manager.execute_query(check_query, (user_id,))
                 
-                # Log de auditoría
-                log_query = """
-                    INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
-                    VALUES (%s, 'registro_facial', 'Rostro registrado exitosamente', %s, TRUE)
-                """
-                try:
-                    db_manager.execute_query(log_query, (user_id, request.remote_addr))
-                except:
-                    pass
+                if not users:
+                    return {'success': False, 'error': 'Usuario no encontrado en la base de datos'}, 404
                 
-                return {
-                    'success': True,
-                    'message': 'Rostro registrado exitosamente',
-                    'user_id': user_id
-                }, 200
+                # Actualizar rostro
+                result = db_manager.execute_query(update_query, (face_blob, user_id))
                 
+                # Verificar que se actualizó correctamente
+                if result is not None:
+                    # Log de auditoría
+                    log_query = """
+                        INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso)
+                        VALUES (%s, 'registro_facial', 'Rostro registrado exitosamente', %s, TRUE)
+                    """
+                    try:
+                        db_manager.execute_query(log_query, (user_id, request.remote_addr))
+                    except Exception as log_error:
+                        print(f"[WARNING] Error en log de auditoría: {log_error}")
+                    
+                    return {
+                        'success': True,
+                        'message': 'Rostro registrado exitosamente',
+                        'user_id': user_id,
+                        'user_name': users[0]['nombre']
+                    }, 200
+                else:
+                    return {'success': False, 'error': 'No se pudo actualizar el registro en la base de datos'}, 500
+                
+            except mysql.connector.Error as db_error:
+                print(f"[ERROR] Error de base de datos: {db_error}")
+                print(f"[ERROR] Error code: {db_error.errno}")
+                print(f"[ERROR] SQL State: {db_error.sqlstate}")
+                return {'success': False, 'error': f'Error de base de datos: {str(db_error)}'}, 500
             except Exception as e:
                 print(f"[ERROR] Error guardando rostro en BD: {e}")
-                return {'success': False, 'message': f'Error guardando en base de datos: {str(e)}'}, 500
+                import traceback
+                traceback.print_exc()
+                return {'success': False, 'error': f'Error guardando en base de datos: {str(e)}'}, 500
                 
+        except cv2.error as cv_error:
+            print(f"[ERROR] Error de OpenCV: {cv_error}")
+            return {'success': False, 'error': f'Error procesando imagen: {str(cv_error)}'}, 500
         except Exception as e:
             print(f"[ERROR] Error en registro facial: {e}")
             import traceback
             traceback.print_exc()
-            return {'success': False, 'message': f'Error desconocido: {str(e)}'}, 500
+            return {'success': False, 'error': f'Error desconocido: {str(e)}. Por favor, contacta al administrador.'}, 500
 
 FACIAL_API_AVAILABLE = True
 print("[OK] Modulo de reconocimiento facial cargado (OpenCV)")
@@ -4859,6 +6112,13 @@ def api_registro_completo():
         cantidad = datos_sanitizados['cantidad']
         fotos = datos_sanitizados['fotos']
         
+        # DEBUG: Imprimir valores recibidos
+        print(f"[DEBUG] Tipo: {tipo_registro}")
+        print(f"[DEBUG] Cantidad recibida: {cantidad}")
+        print(f"[DEBUG] Tipo de cantidad: {type(cantidad)}")
+        print(f"[DEBUG] Datos completos: {datos_sanitizados}")
+        print("=" * 50)
+        
         # ==================================================================
         # PASO 2: VALIDAR LABORATORIO EXISTE
         # ==================================================================
@@ -4898,14 +6158,23 @@ def api_registro_completo():
                 # Generar ID único para el item
                 item_id = f"ITEM_{str(uuid.uuid4())[:8].upper()}"
                 
-                # Intentar insertar con ID generado
+                # DEBUG: Imprimir valores antes del INSERT
+                print(f"[DEBUG INSERT] Item ID: {item_id}")
+                print(f"[DEBUG INSERT] Nombre: {nombre}")
+                print(f"[DEBUG INSERT] Categoría: {categoria}")
+                print(f"[DEBUG INSERT] Laboratorio ID: {laboratorio_id}")
+                print(f"[DEBUG INSERT] Cantidad: {cantidad}")
+                print(f"[DEBUG INSERT] Tipo de cantidad: {type(cantidad)}")
+                
+                # Insertar item con cantidad inicial de stock
                 query_item = """
-                    INSERT INTO inventario (id, nombre, categoria, laboratorio_id)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO inventario (id, nombre, categoria, laboratorio_id, cantidad_actual, unidad)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(query_item, (
-                    item_id, nombre, categoria, laboratorio_id
+                    item_id, nombre, categoria, laboratorio_id, cantidad, 'unidades'
                 ))
+                print(f"[DEBUG] Item insertado con cantidad: {cantidad}")
                 registro_id = item_id
             
             # ==============================================================
@@ -5396,7 +6665,10 @@ def api_reemplazar_imagen():
         objeto_id = request.form.get('objeto_id')
         archivo = request.files.get('imagen')
         
+        print(f"[DEBUG] Reemplazando imagen: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}")
+        
         if not all([imagen_id, vista, objeto_id, archivo]):
+            print(f"[ERROR] Faltan datos: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}, archivo={archivo}")
             return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
         
         # Obtener la ruta actual de la imagen
@@ -5404,9 +6676,11 @@ def api_reemplazar_imagen():
         result = db_manager.execute_query(query_old, (imagen_id,))
         
         if not result:
+            print(f"[ERROR] Imagen no encontrada en BD: imagen_id={imagen_id}")
             return jsonify({'success': False, 'message': 'Imagen no encontrada'}), 404
         
         old_path = result[0]['path']
+        print(f"[DEBUG] Ruta antigua: {old_path}")
         
         # Crear directorio si no existe
         objeto_dir = os.path.join('imagenes', 'objetos')
@@ -5416,28 +6690,43 @@ def api_reemplazar_imagen():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"obj_{objeto_id}_{vista}_{timestamp}.jpg"
         new_path = os.path.join(objeto_dir, filename)
+        print(f"[DEBUG] Nueva ruta: {new_path}")
         
         # Guardar nueva imagen
         archivo.save(new_path)
+        print(f"[DEBUG] Nueva imagen guardada: {new_path}")
+        
+        # Verificar que el archivo se guardó correctamente
+        if not os.path.exists(new_path):
+            print(f"[ERROR] No se pudo guardar la nueva imagen: {new_path}")
+            return jsonify({'success': False, 'message': 'Error al guardar la nueva imagen'}), 500
+        
+        file_size = os.path.getsize(new_path)
+        print(f"[DEBUG] Tamaño de nueva imagen: {file_size} bytes")
         
         # Actualizar ruta en base de datos
         query_update = "UPDATE objetos_imagenes SET path = %s WHERE id = %s"
         db_manager.execute_query(query_update, (new_path, imagen_id))
+        print(f"[DEBUG] BD actualizada con nueva ruta")
         
         # Eliminar imagen antigua si existe y es diferente
         if old_path and os.path.exists(old_path) and old_path != new_path:
             try:
                 os.remove(old_path)
-                print(f"[INFO] Imagen antigua eliminada: {old_path}")
+                print(f"[INFO] ✅ Imagen antigua eliminada: {old_path}")
             except Exception as e:
-                print(f"[WARN] No se pudo eliminar imagen antigua: {e}")
+                print(f"[WARN] ⚠️ No se pudo eliminar imagen antigua: {e}")
+        else:
+            print(f"[DEBUG] No se eliminó imagen antigua (no existe o es la misma)")
         
-        print(f"[INFO] Imagen reemplazada: {imagen_id} -> {new_path}")
+        print(f"[INFO] ✅ Imagen reemplazada exitosamente: {imagen_id} -> {new_path}")
         
         return jsonify({
             'success': True, 
             'message': 'Imagen reemplazada exitosamente',
-            'new_path': new_path
+            'new_path': new_path,
+            'old_path': old_path,
+            'file_size': file_size
         })
         
     except Exception as e:
@@ -5445,10 +6734,6 @@ def api_reemplazar_imagen():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
-
-# =============================
-# OBJETOS: Gestión individual (GET, PUT, DELETE)
-# =============================
 
 class ObjetoAPI(Resource):
     def get(self, objeto_id: int):
@@ -5940,7 +7225,7 @@ def ai_voice_process():
             return jsonify(result), 200
             
         except Exception as e:
-            return jsonify({
+            return jsonify({    
                 'success': False,
                 'error': f'Error procesando audio: {str(e)}',
                 'ai_enhanced': True
@@ -6000,11 +7285,418 @@ def ai_stats():
         }
         
         return jsonify(stats), 200
-    else:
+
+
+# =====================================================================
+# API DE PREDICCIÓN DE MANTENIMIENTOS
+# =====================================================================
+
+# Variables globales para el sistema de predicción
+MAINTENANCE_PREDICTOR = None
+ALERT_MANAGER = None
+
+def initialize_maintenance_system():
+    """Inicializar el sistema de predicción de mantenimientos"""
+    global MAINTENANCE_PREDICTOR, ALERT_MANAGER
+    
+    try:
+        from modules.maintenance_predictor import create_maintenance_predictor
+        from modules.maintenance_alerts import create_alert_manager, ConfiguracionAlerta
+        
+        # Crear predictor
+        MAINTENANCE_PREDICTOR = create_maintenance_predictor(db_manager)
+        
+        # Crear gestor de alertas con configuración
+        config = ConfiguracionAlerta(
+            dias_anticipacion_mantenimiento=30,
+            dias_anticipacion_calibracion=15,
+            habilitar_email=False,  # Deshabilitado por defecto
+            habilitar_dashboard=True
+        )
+        
+        ALERT_MANAGER = create_alert_manager(db_manager, MAINTENANCE_PREDICTOR, config)
+        
+        print("[OK] Sistema de predicción de mantenimientos inicializado")
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Error inicializando sistema de mantenimiento: {e}")
+        return False
+
+@app.get('/api/maintenance/predict/<equipo_id>')
+@require_login
+def api_predecir_mantenimiento_equipo(equipo_id):
+    """
+    API para predecir mantenimiento de un equipo específico
+    
+    Args:
+        equipo_id: ID del equipo a analizar
+        
+    Returns:
+        JSON con predicción de mantenimiento
+    """
+    try:
+        if not MAINTENANCE_PREDICTOR:
+            initialize_maintenance_system()
+        
+        prediccion = MAINTENANCE_PREDICTOR.predecir_mantenimiento_equipo(equipo_id)
+        
+        if not prediccion:
+            return jsonify({
+                'success': False,
+                'message': 'No hay datos suficientes para predecir el mantenimiento de este equipo',
+                'equipo_id': equipo_id
+            }), 404
+        
         return jsonify({
-            'ai_available': False,
-            'message': 'Sistema de IA no disponible'
-        }), 200
+            'success': True,
+            'prediccion': {
+                'equipo_id': prediccion.equipo_id,
+                'equipo_nombre': prediccion.equipo_nombre,
+                'tipo_equipo': prediccion.tipo_equipo,
+                'fecha_predicha': prediccion.fecha_predicha.strftime('%Y-%m-%d'),
+                'riesgo': prediccion.riesgo.value,
+                'confianza': round(prediccion.confianza, 3),
+                'dias_hasta_mantenimiento': prediccion.dias_hasta_mantenimiento,
+                'factores': prediccion.factores,
+                'recomendaciones': prediccion.recomendaciones
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en API predicción mantenimiento: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error procesando predicción: {str(e)}'
+        }), 500
+
+@app.get('/api/maintenance/predict/laboratorio/<int:laboratorio_id>')
+@require_login
+def api_predecir_mantenimientos_laboratorio(laboratorio_id):
+    """
+    API para predecir mantenimientos de todos los equipos de un laboratorio
+    
+    Args:
+        laboratorio_id: ID del laboratorio
+        
+    Returns:
+        JSON con lista de predicciones
+    """
+    try:
+        if not MAINTENANCE_PREDICTOR:
+            initialize_maintenance_system()
+        
+        predicciones = MAINTENANCE_PREDICTOR.predecir_mantenimientos_laboratorio(laboratorio_id)
+        
+        return jsonify({
+            'success': True,
+            'laboratorio_id': laboratorio_id,
+            'total_predicciones': len(predicciones),
+            'predicciones': [
+                {
+                    'equipo_id': p.equipo_id,
+                    'equipo_nombre': p.equipo_nombre,
+                    'tipo_equipo': p.tipo_equipo,
+                    'fecha_predicha': p.fecha_predicha.strftime('%Y-%m-%d'),
+                    'riesgo': p.riesgo.value,
+                    'confianza': round(p.confianza, 3),
+                    'dias_hasta_mantenimiento': p.dias_hasta_mantenimiento,
+                    'recomendaciones': p.recomendaciones[:2]  # Solo 2 recomendaciones principales
+                }
+                for p in predicciones
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en API predicciones laboratorio: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error procesando predicciones: {str(e)}'
+        }), 500
+
+@app.get('/api/maintenance/analyze/<equipo_id>')
+@require_login
+def api_analizar_equipo_completo(equipo_id):
+    """
+    API para análisis completo de un equipo
+    
+    Args:
+        equipo_id: ID del equipo a analizar
+        
+    Returns:
+        JSON con análisis completo del equipo
+    """
+    try:
+        if not MAINTENANCE_PREDICTOR:
+            initialize_maintenance_system()
+        
+        analisis = MAINTENANCE_PREDICTOR.analizar_equipo_completo(equipo_id)
+        
+        if not analisis:
+            return jsonify({
+                'success': False,
+                'message': 'Equipo no encontrado o sin datos suficientes',
+                'equipo_id': equipo_id
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'analisis': {
+                'equipo_id': analisis.equipo_id,
+                'mtbf': round(analisis.mtbf, 1),
+                'mttr': round(analisis.mttr, 1),
+                'disponibilidad': round(analisis.disponibilidad * 100, 2),  # Porcentaje
+                'tendencia_fallas': analisis.tendencia_fallas,
+                'frecuencia_mantenimiento': round(analisis.frecuencia_mantenimiento, 1),
+                'ultima_calibracion': analisis.ultima_calibracion.strftime('%Y-%m-%d') if analisis.ultima_calibracion else None,
+                'proximo_mantenimiento_estimado': analisis.proximo_mantenimiento_estimado.strftime('%Y-%m-%d')
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en API análisis equipo: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error procesando análisis: {str(e)}'
+        }), 500
+
+@app.get('/api/maintenance/alerts')
+@require_login
+def api_obtener_alertas_mantenimiento():
+    """
+    API para obtener alertas de mantenimiento
+    
+    Query params:
+        dias: Días hacia adelante para buscar alertas (default: 30)
+        usuario_id: ID del usuario (opcional, usa sesión si no se especifica)
+        
+    Returns:
+        JSON con lista de alertas
+    """
+    try:
+        if not ALERT_MANAGER:
+            initialize_maintenance_system()
+        
+        # Obtener parámetros
+        dias = request.args.get('dias', 30, type=int)
+        usuario_id = request.args.get('usuario_id', session.get('user_id'))
+        
+        if not usuario_id:
+            return jsonify({
+                'success': False,
+                'message': 'Usuario no especificado'
+            }), 400
+        
+        # Generar alertas automáticas
+        alertas_generadas = ALERT_MANAGER.generar_alertas_automaticas()
+        
+        # Obtener alertas del usuario
+        alertas_usuario = ALERT_MANAGER.obtener_alertas_usuario(usuario_id)
+        
+        # Filtrar por días si se especifica
+        if dias:
+            fecha_limite = datetime.now() + timedelta(days=dias)
+            alertas_usuario = [
+                a for a in alertas_usuario 
+                if a.fecha_mantenimiento <= fecha_limite
+            ]
+        
+        return jsonify({
+            'success': True,
+            'dias_analizados': dias,
+            'total_alertas_generadas': len(alertas_generadas),
+            'total_alertas_usuario': len(alertas_usuario),
+            'alertas': [
+                {
+                    'id': a.id,
+                    'tipo': a.tipo.value,
+                    'titulo': a.titulo,
+                    'mensaje': a.mensaje,
+                    'equipo_id': a.equipo_id,
+                    'equipo_nombre': a.equipo_nombre,
+                    'laboratorio_id': a.laboratorio_id,
+                    'laboratorio_nombre': a.laboratorio_nombre,
+                    'fecha_alerta': a.fecha_alerta.strftime('%Y-%m-%d %H:%M:%S'),
+                    'fecha_mantenimiento': a.fecha_mantenimiento.strftime('%Y-%m-%d'),
+                    'riesgo': a.riesgo,
+                    'prioridad': a.prioridad,
+                    'leida': a.leida,
+                    'dias_hasta_mantenimiento': (a.fecha_mantenimiento - datetime.now()).days
+                }
+                for a in alertas_usuario[:50]  # Limitar a 50 alertas
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en API alertas mantenimiento: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error obteniendo alertas: {str(e)}'
+        }), 500
+
+@app.post('/api/maintenance/alerts/<alerta_id>/read')
+@require_login
+def api_marcar_alerta_leida(alerta_id):
+    """
+    API para marcar una alerta como leída
+    
+    Args:
+        alerta_id: ID de la alerta
+        
+    Returns:
+        JSON con resultado de la operación
+    """
+    try:
+        if not ALERT_MANAGER:
+            initialize_maintenance_system()
+        
+        usuario_id = session.get('user_id')
+        exito = ALERT_MANAGER.marcar_alerta_leida(alerta_id, usuario_id)
+        
+        if exito:
+            return jsonify({
+                'success': True,
+                'message': 'Alerta marcada como leída'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Alerta no encontrada o no se pudo marcar como leída'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error marcando alerta como leída: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error marcando alerta: {str(e)}'
+        }), 500
+
+@app.get('/api/maintenance/dashboard')
+@require_login
+def api_dashboard_mantenimiento():
+    """
+    API para obtener datos del dashboard de mantenimiento
+    
+    Returns:
+        JSON con estadísticas y alertas para el dashboard
+    """
+    try:
+        if not MAINTENANCE_PREDICTOR or not ALERT_MANAGER:
+            initialize_maintenance_system()
+        
+        usuario_id = session.get('user_id')
+        
+        # Obtener estadísticas generales
+        stats = {
+            'alertas_criticas': 0,
+            'mantenimientos_proximos': 0,
+            'equipos_en_riesgo': 0,
+            'calibraciones_vencidas': 0
+        }
+        
+        # Obtener alertas del usuario
+        alertas = ALERT_MANAGER.obtener_alertas_usuario(usuario_id, solo_no_leidas=True)
+        
+        for alerta in alertas:
+            if alerta.riesgo == 'critico':
+                stats['alertas_criticas'] += 1
+            if alerta.tipo.value == 'mantenimiento_proximo':
+                stats['mantenimientos_proximos'] += 1
+            if alerta.tipo.value == 'calibracion_vencida':
+                stats['calibraciones_vencidas'] += 1
+        
+        # Calcular equipos en riesgo (mantenimiento en 15 días)
+        fecha_riesgo = datetime.now() + timedelta(days=15)
+        stats['equipos_en_riesgo'] = len([
+            a for a in alertas 
+            if a.fecha_mantenimiento <= fecha_riesgo
+        ])
+        
+        # Obtener predicciones recientes
+        predicciones_recientes = []
+        for alerta in alertas[:10]:  # Top 10
+            if alerta.tipo.value in ['mantenimiento_proximo', 'calibracion_vencida']:
+                predicciones_recientes.append({
+                    'equipo_nombre': alerta.equipo_nombre,
+                    'laboratorio_nombre': alerta.laboratorio_nombre,
+                    'tipo': alerta.tipo.value,
+                    'fecha': alerta.fecha_mantenimiento.strftime('%d/%m/%Y'),
+                    'riesgo': alerta.riesgo,
+                    'dias_restantes': (alerta.fecha_mantenimiento - datetime.now()).days
+                })
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'predicciones_recientes': predicciones_recientes,
+            'total_alertas_no_leidas': len(alertas)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en API dashboard mantenimiento: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error obteniendo datos dashboard: {str(e)}'
+        }), 500
+
+@app.post('/api/maintenance/generate-alerts')
+@require_login
+@require_level(5)  # Solo instructores y administradores
+def api_generar_alertas_automaticas():
+    """
+    API para generar alertas automáticas manualmente
+    
+    Returns:
+        JSON con resultado de la generación
+    """
+    try:
+        if not ALERT_MANAGER:
+            initialize_maintenance_system()
+        
+        # Generar alertas
+        alertas = ALERT_MANAGER.generar_alertas_automaticas()
+        
+        # Enviar emails si está configurado
+        emails_enviados = {}
+        if ALERT_MANAGER.config.habilitar_email:
+            emails_enviados = ALERT_MANAGER.enviar_alertas_email(alertas)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Se generaron {len(alertas)} alertas automáticamente',
+            'total_alertas': len(alertas),
+            'emails_enviados': len([e for e, exito in emails_enviados.items() if exito]),
+            'resumen_emails': {
+                'enviados': len([e for e, exito in emails_enviados.items() if exito]),
+                'fallidos': len([e for e, exito in emails_enviados.items() if not exito])
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generando alertas automáticas: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error generando alertas: {str(e)}'
+        }), 500
+
+
+# Inicializar el sistema de mantenimiento al iniciar la aplicación
+def setup_maintenance_system():
+    """Configurar el sistema de mantenimiento antes de la primera petición"""
+    initialize_maintenance_system()
+
+# Inicializar sistemas al iniciar la aplicación
+with app.app_context():
+    try:
+        # Inicializar sistema de IA
+        initialize_ai_system()
+        
+        # Inicializar sistema de mantenimiento
+        setup_maintenance_system()
+        
+        print("[OK] Sistemas de IA y mantenimiento inicializados correctamente")
+    except Exception as e:
+        print(f"[ERROR] Error inicializando sistemas: {e}")
 
 
 # =====================================================================

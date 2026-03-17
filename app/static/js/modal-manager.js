@@ -27,7 +27,7 @@
     
     const CONFIG = {
         debug: false, // Cambiar a true para ver logs en consola
-        cleanupInterval: 50, // Intervalo de limpieza en milisegundos
+        cleanupInterval: 500, // Intervalo de limpieza en milisegundos (500ms = 2 veces por segundo)
         backdropSelectors: [
             '.modal-backdrop',
             'div.modal-backdrop',
@@ -101,9 +101,10 @@
     // =====================================================================
     
     let activeCleanupInterval = null;
+    let activeModalsCount = 0; // Contador de modales abiertos
     
     /**
-     * Inicia limpieza continua de backdrops
+     * Inicia limpieza continua de backdrops (solo una vez)
      */
     function iniciarLimpieza() {
         if (activeCleanupInterval) return;
@@ -113,13 +114,14 @@
     }
     
     /**
-     * Detiene limpieza continua de backdrops
+     * Detiene limpieza continua de backdrops (solo si no hay modales abiertos)
      */
     function detenerLimpieza() {
-        if (activeCleanupInterval) {
+        activeModalsCount--;
+        if (activeModalsCount <= 0 && activeCleanupInterval) {
             clearInterval(activeCleanupInterval);
             activeCleanupInterval = null;
-            log.info('Limpieza continua detenida');
+            log.info('Limpieza continua detenida (no hay modales abiertos)');
         }
     }
     
@@ -134,16 +136,17 @@
         
         // Event listener: Cuando el modal se muestra
         modalElement.addEventListener('shown.bs.modal', function() {
+            activeModalsCount++;
             eliminarBackdrops();
-            iniciarLimpieza();
-            log.success(`Modal "${modalId}" abierto con protección activa`);
+            iniciarLimpieza(); // Solo inicia si no hay otro activo
+            log.success(`Modal "${modalId}" abierto con protección activa (${activeModalsCount} modales abiertos)`);
         });
         
         // Event listener: Cuando el modal se oculta
         modalElement.addEventListener('hidden.bs.modal', function() {
-            detenerLimpieza();
+            detenerLimpieza(); // Detiene solo si es el último
             eliminarBackdrops();
-            log.info(`Modal "${modalId}" cerrado`);
+            log.info(`Modal "${modalId}" cerrado (${activeModalsCount} modales abiertos)`);
         });
         
         log.info(`Modal "${modalId}" configurado`);

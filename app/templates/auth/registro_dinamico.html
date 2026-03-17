@@ -62,14 +62,22 @@
                                     <i class="bi bi-card-text me-2"></i>ID de Usuario *
                                 </label>
                                 <input type="text" class="form-control" id="user_id" name="user_id" 
-                                       placeholder="Documento o usuario" required>
+                                       placeholder="Documento o usuario" required
+                                       autocomplete="username"
+                                       minlength="4" maxlength="20"
+                                       pattern="^[A-Za-z0-9_-]{4,20}$"
+                                       title="Use 4-20 caracteres: letras, números, guion y guion bajo">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="nombre" class="form-label">
                                     <i class="bi bi-person me-2"></i>Nombre Completo *
                                 </label>
                                 <input type="text" class="form-control" id="nombre" name="nombre" 
-                                       placeholder="Nombre completo" required>
+                                       placeholder="Nombre completo" required
+                                       autocomplete="name"
+                                       minlength="3" maxlength="60"
+                                       pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]{3,60}$"
+                                       title="Solo letras y espacios, 3 a 60 caracteres">
                             </div>
                         </div>
 
@@ -78,7 +86,10 @@
                                 <i class="bi bi-envelope me-2"></i>Correo Electrónico *
                             </label>
                             <input type="email" class="form-control" id="email" name="email" 
-                                   placeholder="correo@ejemplo.com" required>
+                                   placeholder="correo@ejemplo.com" required
+                                   inputmode="email" autocomplete="email"
+                                   maxlength="100"
+                                   title="Ingresa un correo válido (ejemplo@dominio.com)">
                         </div>
 
                         <div class="mb-3">
@@ -86,7 +97,9 @@
                                 <i class="bi bi-telephone me-2"></i>Teléfono
                             </label>
                             <input type="tel" class="form-control" id="telefono" name="telefono" 
-                                   placeholder="3001234567">
+                                   placeholder="3001234567" inputmode="numeric" autocomplete="tel"
+                                   pattern="^\d{7,15}$" maxlength="15"
+                                   title="Solo dígitos, entre 7 y 15 números">
                         </div>
 
                         <button type="button" class="btn btn-register w-100" onclick="nextStep()">
@@ -147,7 +160,7 @@
                             {% endif %}
                         </div>
 
-                        <input type="hidden" name="nivel_acceso" id="nivel_acceso" required>
+                        <input type="hidden" name="nivel_acceso" id="nivel_acceso">
 
                         <div id="roleDesc" class="role-description" style="display: none;">
                             <h6 id="roleTitle"></h6>
@@ -177,21 +190,23 @@
                             Si solicitaste un nivel superior, será revisado por un administrador.
                         </div>
 
-                        <!-- ⚠️ CAMPOS OBLIGATORIOS (SIEMPRE VISIBLES) -->
-                        <div class="mb-4 p-3 border rounded bg-light">
-                            <h6 class="mb-3"><i class="bi bi-exclamation-circle me-2"></i>Campo Obligatorio</h6>
-                            <div class="mb-3">
-                                <label class="form-label"><i class="bi bi-book me-2"></i>Programa de Formación *</label>
-                                <input type="text" class="form-control" name="programa" placeholder="Ej: Técnico en Química, Técnico en Sistemas" required>
-                            </div>
-                        </div>
-
                         <!-- Campos Aprendiz -->
                         <div class="campos-especificos d-none" id="campos_1">
-                            <div class="mb-3">
-                                <label class="form-label"><i class="bi bi-hash me-2"></i>Número de Ficha *</label>
-                                <input type="text" class="form-control" name="ficha" placeholder="Ej: 2856789" required>
-                                <small class="text-muted">Solo para aprendices SENA</small>
+                            <div class="mb-4 p-3 border rounded bg-light">
+                                <h6 class="mb-3"><i class="bi bi-exclamation-circle me-2"></i>Campos Obligatorios para Aprendices</h6>
+                                <div class="mb-3">
+                                    <label class="form-label"><i class="bi bi-book me-2"></i>Programa de Formación *</label>
+                                    <input type="text" class="form-control" name="programa" placeholder="Ej: Técnico en Química, Técnico en Sistemas"
+                                           minlength="3" maxlength="100"
+                                           title="Mínimo 3 y máximo 100 caracteres">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label"><i class="bi bi-hash me-2"></i>Número de Ficha *</label>
+                                    <input type="text" class="form-control" name="ficha" placeholder="Ej: 2856789"
+                                           inputmode="numeric" pattern="^\d{4,10}$" maxlength="10"
+                                           title="Solo dígitos (4 a 10)">
+                                    <small class="text-muted">Número de ficha del programa SENA</small>
+                                </div>
                             </div>
                         </div>
 
@@ -205,11 +220,13 @@
                         <div class="campos-especificos d-none" id="campos_2">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-briefcase me-2"></i>Cargo</label>
-                                <input type="text" class="form-control" name="cargo" placeholder="Ej: Secretario Académico">
+                                <input type="text" class="form-control" name="cargo" placeholder="Ej: Secretario Académico"
+                                       minlength="2" maxlength="100">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-building me-2"></i>Dependencia</label>
-                                <input type="text" class="form-control" name="dependencia" placeholder="Ej: Coordinación Académica">
+                                <input type="text" class="form-control" name="dependencia" placeholder="Ej: Coordinación Académica"
+                                       minlength="2" maxlength="100">
                             </div>
                         </div>
 
@@ -217,11 +234,13 @@
                         <div class="campos-especificos d-none" id="campos_3">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-book me-2"></i>Programa que Dicta</label>
-                                <input type="text" class="form-control" name="programa_formacion" placeholder="Ej: Técnico en Sistemas">
+                                <input type="text" class="form-control" name="programa_formacion" placeholder="Ej: Técnico en Sistemas"
+                                       minlength="3" maxlength="100">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-star me-2"></i>Especialidad</label>
-                                <input type="text" class="form-control" name="especialidad" placeholder="Ej: Programación, Redes">
+                                <input type="text" class="form-control" name="especialidad" placeholder="Ej: Programación, Redes"
+                                       minlength="3" maxlength="100">
                             </div>
                         </div>
 
@@ -230,7 +249,8 @@
                             <input type="hidden" name="programa_formacion" value="Química">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-flask me-2"></i>Especialidad</label>
-                                <input type="text" class="form-control" name="especialidad_quimica" placeholder="Ej: Química Analítica">
+                                <input type="text" class="form-control" name="especialidad_quimica" placeholder="Ej: Química Analítica"
+                                       minlength="3" maxlength="100">
                             </div>
                         </div>
 
@@ -240,7 +260,8 @@
                             <input type="hidden" name="a_cargo_inventario" value="1">
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-flask me-2"></i>Especialidad</label>
-                                <input type="text" class="form-control" name="especialidad_inv" placeholder="Ej: Química Analítica">
+                                <input type="text" class="form-control" name="especialidad_inv" placeholder="Ej: Química Analítica"
+                                       minlength="3" maxlength="100">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label"><i class="bi bi-box me-2"></i>Laboratorio/Inventario Asignado</label>
@@ -351,6 +372,16 @@
                 document.getElementById('roleText').textContent = info.desc;
                 document.getElementById('roleDesc').style.display = 'block';
             });
+
+        // Solo dígitos en teléfono
+        (function() {
+            const tel = document.getElementById('telefono');
+            if (tel) {
+                tel.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D+/g, '');
+                });
+            }
+        })();
         });
 
         function nextStep() {
@@ -385,6 +416,17 @@
                     } else {
                         infoAdicional.style.display = 'none';
                     }
+
+                    // Reglas de requerido dinámico según rol
+                    const prog = document.querySelector('[name="programa"]');
+                    const ficha = document.querySelector('[name="ficha"]');
+                    if (selectedNivel === '1') { // Aprendiz
+                        if (prog) prog.setAttribute('required', 'required');
+                        if (ficha) ficha.setAttribute('required', 'required');
+                    } else {
+                        if (prog) prog.removeAttribute('required');
+                        if (ficha) ficha.removeAttribute('required');
+                    }
                 }
             }
         }
@@ -400,21 +442,15 @@
 
         function validateStep(step) {
             const currentStepDiv = document.getElementById(`step${step}`);
-            const inputs = currentStepDiv.querySelectorAll('input[required]:not([type="hidden"]), select[required]');
-            let valid = true;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
+            const inputs = currentStepDiv.querySelectorAll('input:not([type="hidden"]), select, textarea');
+            for (const input of inputs) {
+                // Limpiar invalid si corrige
+                input.classList.remove('is-invalid');
+                if (!input.checkValidity()) {
                     input.classList.add('is-invalid');
-                    valid = false;
-                } else {
-                    input.classList.remove('is-invalid');
+                    input.reportValidity();
+                    return false;
                 }
-            });
-
-            if (!valid) {
-                alert('Por favor completa todos los campos requeridos');
-                return false;
             }
 
             // Validación especial paso 2
@@ -426,11 +462,24 @@
             return true;
         }
 
-        // Validación de contraseñas al enviar
+        // Validación al enviar
         document.getElementById('registroForm').addEventListener('submit', function(e) {
+            // Validación HTML5 completa
+            if (!this.checkValidity()) {
+                e.preventDefault();
+                this.reportValidity();
+                return false;
+            }
+            // Asegurar que se haya seleccionado un rol (nivel_acceso)
+            if (!document.getElementById('nivel_acceso').value) {
+                e.preventDefault();
+                alert('Por favor selecciona un tipo de usuario (Rol) en el paso 2.');
+                return false;
+            }
+
+            // Confirmación de contraseñas
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
-
             if (password !== confirmPassword) {
                 e.preventDefault();
                 alert('Las contraseñas no coinciden');

@@ -130,10 +130,14 @@ def crear_tablas():
                 tipo ENUM('laboratorio','aula','taller','almacen') NOT NULL DEFAULT 'laboratorio',
                 ubicacion VARCHAR(200),
                 capacidad_estudiantes INT DEFAULT 0,
+                area_m2 DECIMAL(10,2),
                 responsable VARCHAR(100),
+                equipamiento_especializado TEXT,
+                normas_seguridad TEXT,
                 estado ENUM('activo','mantenimiento','inactivo') NOT NULL DEFAULT 'activo',
                 descripcion TEXT,
                 fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha_modificacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
                 
                 INDEX idx_tipo (tipo),
                 INDEX idx_estado (estado),
@@ -317,6 +321,7 @@ def crear_tablas():
             CREATE TABLE IF NOT EXISTS logs_seguridad (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
                 usuario_id VARCHAR(50),
                 accion VARCHAR(100),
                 detalle TEXT,
@@ -324,11 +329,35 @@ def crear_tablas():
                 exitoso BOOLEAN,
                 
                 INDEX idx_timestamp (timestamp),
+                INDEX idx_fecha (fecha),
                 INDEX idx_usuario (usuario_id),
                 INDEX idx_accion (accion)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         print_success("Tabla 'logs_seguridad' creada")
+        
+        # TABLA: solicitudes_nivel
+        print_step("Creando tabla 'solicitudes_nivel'...")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS solicitudes_nivel (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id VARCHAR(50) NOT NULL,
+                nivel_solicitado INT NOT NULL,
+                nivel_actual INT NOT NULL,
+                estado ENUM('pendiente','aprobada','rechazada') DEFAULT 'pendiente',
+                fecha_solicitud DATETIME DEFAULT CURRENT_TIMESTAMP,
+                fecha_respuesta DATETIME,
+                admin_revisor VARCHAR(50),
+                comentario_admin TEXT,
+                
+                INDEX idx_usuario_id (usuario_id),
+                INDEX idx_estado (estado),
+                INDEX idx_fecha_solicitud (fecha_solicitud),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_revisor) REFERENCES usuarios(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        print_success("Tabla 'solicitudes_nivel' creada")
         
         # TABLA: configuracion_sistema
         print_step("Creando tabla 'configuracion_sistema'...")
@@ -388,6 +417,25 @@ def crear_tablas():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """)
         print_success("Tabla 'objetos_imagenes' creada")
+        
+        # TABLA: logs_sistema
+        print_step("Creando tabla 'logs_sistema'...")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS logs_sistema (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id VARCHAR(50),
+                accion VARCHAR(100) NOT NULL,
+                detalles TEXT,
+                fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ip_origen VARCHAR(45),
+                
+                INDEX idx_fecha (fecha),
+                INDEX idx_usuario_id (usuario_id),
+                INDEX idx_accion (accion),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+        print_success("Tabla 'logs_sistema' creada")
         
         connection.commit()
         cursor.close()

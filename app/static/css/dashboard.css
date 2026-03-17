@@ -407,7 +407,43 @@ body::before {
 
 /* Container del contenido */
 .container-fluid.flex-grow-1 {
-    padding: 24px 32px;
+    padding: 24px 60px;  /* Aumentado padding lateral para verdadero centrado */
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Centrado específico para fila de estadísticas */
+.stats-row {
+    max-width: 1200px;  /* Reducido para mejor centrado */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 60px;  /* Aumentado */
+    padding-right: 60px; /* Aumentado */
+}
+
+/* Ajuste para tablets */
+@media (max-width: 1200px) {
+    .container-fluid.flex-grow-1 {
+        padding: 20px 40px;
+        max-width: 1200px;
+    }
+    
+    .stats-row {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+@media (max-width: 992px) {
+    .container-fluid.flex-grow-1 {
+        padding: 20px 32px;
+    }
+    
+    .stats-row {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
 }
 
 /* Cards generales con mejor aspecto */
@@ -1298,6 +1334,15 @@ body {
 @media (max-width: 768px) {
     .main-content {
         padding: var(--spacing-md);
+    }
+    
+    .container-fluid.flex-grow-1 {
+        padding: 16px 20px;
+    }
+    
+    .stats-row {
+        padding-left: 0;
+        padding-right: 0;
     }
     
     .stats-container {

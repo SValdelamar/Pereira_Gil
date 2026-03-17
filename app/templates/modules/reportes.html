@@ -9,15 +9,18 @@
       <p class="mb-0 opacity-75">Análisis detallado del uso del sistema</p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-light export-btn" onclick="exportarReportePDF()">
+      <button class="btn btn-light export-btn btn-exportar-pdf">
         <i class="bi bi-file-pdf me-2"></i>Descargar PDF
       </button>
-      <button class="btn btn-success export-btn" onclick="exportarReporteExcel()">
+      <button class="btn btn-success export-btn btn-exportar-excel">
         <i class="bi bi-file-excel me-2"></i>Descargar Excel
       </button>
     </div>
   </div>
 </div>
+
+<!-- Datos SSR para evitar hardcode y problemas de lint con Jinja en JS -->
+<script id="reportes-data" type="application/json">{{ reportes|tojson|safe }}</script>
 
 <!-- Filtros -->
 <div class="filter-section">
@@ -40,7 +43,7 @@
       </select>
     </div>
     <div class="col-md-3">
-      <button class="btn w-100 btn-sena-primary" onclick="aplicarFiltros()">
+      <button class="btn w-100 btn-sena-primary btn-aplicar-filtros">
         <i class="bi bi-funnel me-2"></i>Aplicar Filtros
       </button>
     </div>
@@ -173,7 +176,7 @@
         </h6>
       </div>
       <div class="card-body p-4">
-        <div id="inventarioCritico" style="max-height: 300px; overflow-y: auto;">
+        <div id="inventarioCritico" class="scroll-y-300">
           <div class="text-center text-muted py-4">
             <i class="bi bi-hourglass-split fs-2"></i>
             <p class="mt-2">Cargando datos...</p>
@@ -233,73 +236,90 @@ const colores = {
   info: 'rgba(59, 130, 246, 0.85)'
 };
 
-// Función para cargar datos
+// Datos iniciales del servidor (SSR - Server Side Rendering)
+const _SSR_DATA_EL = document.getElementById('reportes-data');
+const datosServidor = _SSR_DATA_EL ? JSON.parse(_SSR_DATA_EL.textContent || '{}') : {};
+
+// Función para cargar datos (ahora usa datos del servidor primero)
+let lastApiCall = 0; // Control de cache para evitar llamadas repetitivas
+const API_CALL_COOLDOWN = 30000; // 30 segundos entre llamadas a la API
+
 async function cargarDatos() {
   try {
-    const token = localStorage.getItem('jwt');
+    // Control de cooldown para evitar llamadas repetitivas
+    const now = Date.now();
+    if (now - lastApiCall < API_CALL_COOLDOWN) {
+      console.log('⏸️ API en cooldown, esperando...');
+      return;
+    }
+    
+    // ✅ MEJOR PRÁCTICA: Usar datos del servidor (SSR) - Carga instantánea
+    if (datosServidor && Object.keys(datosServidor).length > 0) {
+      console.log('✅ Usando datos del servidor (SSR)');
+      renderizarDatos(datosServidor);
+      return;
+    }
+    
+    // Fallback: Intentar API REST (solo si SSR falla)
+    const token = localStorage.getItem('jwt') || '{{ session.get("api_token", "") }}';
     if (!token) {
-      mostrarAlerta('Por favor, inicia sesión con el token JWT para ver los reportes completos.');
+      console.warn('⚠️ No hay token JWT, mostrando datos básicos');
       cargarDatosDummy();
       return;
     }
+
+    console.log('🔄 Realizando llamada a API de estadísticas...');
+    lastApiCall = now; // Marcar tiempo de esta llamada
 
     const res = await fetch('/api/estadisticas', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
 
-    if (!res.ok) {
-      if (res.status === 401) {
-        mostrarAlerta('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        if (window.ApiAuth) window.ApiAuth.openLogin();
-      }
+    if (res.ok) {
+      const data = (await res.json()).estadisticas;
+      renderizarDatos(data);
+    } else {
       cargarDatosDummy();
-      return;
     }
-
-    const data = (await res.json()).estadisticas;
-    renderizarDatos(data);
   } catch (e) {
     console.error('Error cargando datos:', e);
-    cargarDatosDummy();
+    // Si todo falla, intentar con datos del servidor aunque estén vacíos
+    if (datosServidor) {
+      renderizarDatos(datosServidor);
+    } else {
+      cargarDatosDummy();
+    }
   }
 }
 
 // Renderizar datos reales
 function renderizarDatos(data) {
+  console.log('📊 Renderizando datos:', data);
 
-  // Calcular total de equipos activos (excluyendo fuera_servicio)
+  // Calcular total de equipos activos
   const totalEquipos = data.equipos_activos || 0;
   
-  // Obtener total de usuarios desde el endpoint correcto
-  // Hacer una petición adicional para obtener el total real de usuarios
-  fetch('/api/usuarios', {
-    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('jwt') }
-  })
-  .then(res => res.json())
-  .then(usersData => {
-    const totalUsuarios = usersData.usuarios ? usersData.usuarios.filter(u => u.activo).length : 0;
-    document.getElementById('totalUsuarios').textContent = totalUsuarios;
-  })
-  .catch(err => {
-    console.error('[ERROR] No se pudo obtener usuarios:', err);
-    document.getElementById('totalUsuarios').textContent = '--';
-  });
+  // Total de usuarios activos (desde total_inventario o conteo)
+  const totalUsuarios = data.total_usuarios || 0;
   
-  // Total de reservas (activas + programadas)
-  const totalReservas = (data.reservas_proximas || 0);
+  // Total de reservas próximas
+  const totalReservas = data.reservas_proximas || 0;
   
-  // Calcular horas de uso aproximadas (basado en comandos de la semana)
-  const horasUso = Math.round((data.comandos_semana || 0) * 0.5); // Estimación
+  // Calcular horas de uso (estimación basada en uso de equipos)
+  const usoEquipos = data.uso_equipos || [];
+  const totalUsos = usoEquipos.reduce((sum, eq) => sum + (eq.usos || 0), 0);
+  const horasUso = Math.round(totalUsos * 0.5); // Estimación: 30min por uso
   
-  // Mini estadísticas
+  // Actualizar mini estadísticas
   document.getElementById('totalEquipos').textContent = totalEquipos;
-  document.getElementById('totalUsuarios').textContent = '...'; // Se actualizará con la petición
+  document.getElementById('totalUsuarios').textContent = totalUsuarios || '--';
   document.getElementById('totalReservas').textContent = totalReservas;
-  document.getElementById('horasUso').textContent = horasUso + 'h';
+  document.getElementById('horasUso').textContent = horasUso ? horasUso + 'h' : '--';
 
   // Gráfico de equipos más usados
-  const eNames = (data.equipos_mas_usados || []).map(x => x.nombre);
-  const eUsos = (data.equipos_mas_usados || []).map(x => x.usos);
+  const equiposData = data.uso_equipos || data.equipos_mas_usados || [];
+  const eNames = equiposData.map(x => x.nombre || 'Sin nombre');
+  const eUsos = equiposData.map(x => x.usos || 0);
   
   new Chart(document.getElementById('chartEquipos'), {
     type: 'bar',
@@ -373,7 +393,7 @@ function renderizarDatos(data) {
     }
   });
 
-  crearGraficosAdicionales(data);
+  crearGraficosAdicionales({});
 }
 
 // Cargar datos dummy si no hay conexión
@@ -464,13 +484,16 @@ function crearGraficosAdicionales(data) {
   });
 
   // Tendencia semanal
+  const tendenciaLabels = (data.tendencia_semanal && data.tendencia_semanal.labels) || ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const tendenciaValues = (data.tendencia_semanal && data.tendencia_semanal.values) || [12, 19, 15, 17, 14, 8, 6];
+
   new Chart(document.getElementById('chartTendencia'), {
     type: 'line',
     data: {
-      labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+      labels: tendenciaLabels,
       datasets: [{
         label: 'Usos',
-        data: [12, 19, 15, 17, 14, 8, 6],
+        data: tendenciaValues,
         borderColor: colores.warning,
         backgroundColor: 'rgba(255, 193, 7, 0.1)',
         tension: 0.4,
@@ -489,51 +512,63 @@ function crearGraficosAdicionales(data) {
     }
   });
 
-  // Inventario crítico
-  document.getElementById('inventarioCritico').innerHTML = `
-    <div class="list-group list-group-flush">
-      <div class="list-group-item d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-exclamation-triangle text-warning me-2"></i>Guantes de látex</span>
-        <span class="badge bg-warning">5 unidades</span>
-      </div>
-      <div class="list-group-item d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-exclamation-triangle text-warning me-2"></i>Pipetas 10ml</span>
-        <span class="badge bg-warning">8 unidades</span>
-      </div>
-      <div class="list-group-item d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-exclamation-triangle text-danger me-2"></i>Reactivo A</span>
-        <span class="badge bg-danger">2 unidades</span>
-      </div>
-    </div>
-  `;
+  // Inventario crítico (dinámico)
+  const invCritico = data.inventario_bajo || [];
+  const invContainer = document.getElementById('inventarioCritico');
+  if (invCritico.length === 0) {
+    invContainer.innerHTML = `
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-check-circle text-success fs-2"></i>
+        <p class="mt-2 mb-0">No hay items con stock crítico</p>
+      </div>`;
+  } else {
+    invContainer.innerHTML = `
+      <div class="list-group list-group-flush">
+        ${invCritico.map(it => {
+          const badgeClass = (it.cantidad_actual <= (it.cantidad_minima || 0)) ? 'bg-danger' : 'bg-warning';
+          const nombre = it.nombre || 'Sin nombre';
+          const unidades = (it.cantidad_actual !== undefined && it.cantidad_minima !== undefined)
+            ? `${it.cantidad_actual}/${it.cantidad_minima} ${it.unidad || ''}`
+            : (it.unidad ? `${it.unidad}` : '');
+          return `<div class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-exclamation-triangle text-warning me-2"></i>${nombre}</span>
+            <span class="badge ${badgeClass}">${unidades}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
 
-  // Tabla de actividades
-  document.getElementById('tablaActividades').innerHTML = `
-    <tr>
-      <td>13/10/2025 09:15</td>
-      <td>Juan Pérez</td>
-      <td>Microscopio Óptico</td>
-      <td><span class="badge bg-success">Uso</span></td>
-      <td>2h 30m</td>
-      <td><i class="bi bi-check-circle-fill text-success"></i></td>
-    </tr>
-    <tr>
-      <td>13/10/2025 08:45</td>
-      <td>María García</td>
-      <td>Balanza Analítica</td>
-      <td><span class="badge bg-info">Reserva</span></td>
-      <td>1h 15m</td>
-      <td><i class="bi bi-clock-fill text-warning"></i></td>
-    </tr>
-    <tr>
-      <td>12/10/2025 16:30</td>
-      <td>Carlos López</td>
-      <td>Osciloscopio</td>
-      <td><span class="badge bg-success">Uso</span></td>
-      <td>3h 00m</td>
-      <td><i class="bi bi-check-circle-fill text-success"></i></td>
-    </tr>
-  `;
+  // Tabla de actividades (dinámico)
+  const actividades = data.actividades_recientes || data.actividades || [];
+  const tbody = document.getElementById('tablaActividades');
+  if (actividades.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          <i class="bi bi-inbox me-2"></i>Sin actividades recientes
+        </td>
+      </tr>`;
+  } else {
+    tbody.innerHTML = actividades.map(a => {
+      const fecha = a.fecha || a.fecha_hora || '';
+      const usuario = a.usuario || a.usuario_nombre || '—';
+      const equipo = a.equipo || a.equipo_nombre || '—';
+      const accion = (a.accion || '').toLowerCase();
+      const duracion = a.duracion || a.tiempo || '—';
+      const estadoIcon = a.estado === 'ok' ? 'bi-check-circle-fill text-success' : 'bi-clock-fill text-warning';
+      const badge = accion.includes('reserva') ? 'bg-info' : 'bg-success';
+      const accionTxt = accion ? accion.charAt(0).toUpperCase() + accion.slice(1) : '—';
+      return `
+        <tr>
+          <td>${fecha}</td>
+          <td>${usuario}</td>
+          <td>${equipo}</td>
+          <td><span class="badge ${badge}">${accionTxt}</span></td>
+          <td>${duracion}</td>
+          <td><i class="bi ${estadoIcon}"></i></td>
+        </tr>`;
+    }).join('');
+  }
 }
 
 // Funciones auxiliares
@@ -629,6 +664,30 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Cargar datos
   cargarDatos();
+  
+  // Event delegation para botones
+  document.addEventListener('click', function(e) {
+    // Botón exportar PDF
+    const btnPDF = e.target.closest('.btn-exportar-pdf');
+    if (btnPDF) {
+      exportarReportePDF();
+      return;
+    }
+    
+    // Botón exportar Excel
+    const btnExcel = e.target.closest('.btn-exportar-excel');
+    if (btnExcel) {
+      exportarReporteExcel();
+      return;
+    }
+    
+    // Botón aplicar filtros
+    const btnFiltros = e.target.closest('.btn-aplicar-filtros');
+    if (btnFiltros) {
+      aplicarFiltros();
+      return;
+    }
+  });
 });
 </script>
 {% endblock %}

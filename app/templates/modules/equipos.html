@@ -29,6 +29,7 @@
         <th>Ubicación</th>
         <th>Calibración</th>
         <th>Mantenimiento</th>
+        <th>Predicción IA</th>
         <th></th>
       </tr>
     </thead>
@@ -49,8 +50,21 @@
         <td>{{ e.ubicacion or '-' }}</td>
         <td>{{ e.calibracion or 'N/A' }}</td>
         <td>{{ e.mantenimiento or 'N/A' }}</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <div class="prediction-indicator me-2" data-equipo-id="{{ e.id }}">
+              <span class="badge bg-secondary">🔄</span>
+            </div>
+            <button class="btn btn-sm btn-outline-info" onclick="analizarEquipo('{{ e.id }}', '{{ e.nombre }}')" title="Análisis predictivo con IA">
+              <i class="bi bi-cpu"></i>
+            </button>
+          </div>
+        </td>
         <td class="text-end">
           <div class="btn-group">
+            <a href="/equipos/detalle/{{ e.id }}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+              <i class="bi bi-eye"></i>
+            </a>
             <button class="btn btn-sm btn-outline-sena" data-bs-toggle="modal" data-bs-target="#modalEditarEquipo" 
                     data-equipo='{{ e|tojson }}'>Editar</button>
             <button class="btn btn-sm btn-sena" data-bs-toggle="modal" data-bs-target="#modalReservarEquipo" 
@@ -597,5 +611,316 @@
       visionMsg.className='alert alert-danger small'; visionMsg.textContent='Error consultando visión: '+e.message;
     }
   });
+</script>
+
+<!-- Modal: Análisis Predictivo -->
+<div class="modal fade" id="modalAnalisisPredictivo" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-cpu me-2"></i>Análisis Predictivo de Mantenimiento
+        </h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="analisisContent">
+          <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Analizando...</span>
+            </div>
+            <p class="mt-2">Analizando equipo con IA...</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnProgramarMantenimiento" style="display: none;">
+          <i class="bi bi-calendar-check me-2"></i>Programar Mantenimiento
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sistema de Predicción de Mantenimientos
+let prediccionesCache = {};
+
+// Cargar predicciones para todos los equipos visibles
+function cargarPrediccionesVisibles() {
+  const indicadores = document.querySelectorAll('.prediction-indicator');
+  
+  indicadores.forEach(indicador => {
+    const equipoId = indicador.dataset.equipoId;
+    if (equipoId && !prediccionesCache[equipoId]) {
+      cargarPrediccionEquipo(equipoId, indicador);
+    }
+  });
+}
+
+// Cargar predicción para un equipo específico
+async function cargarPrediccionEquipo(equipoId, elementoIndicador) {
+  try {
+    const response = await fetch(`/api/maintenance/predict/${equipoId}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      const prediccion = data.prediccion;
+      prediccionesCache[equipoId] = prediccion;
+      
+      // Actualizar indicador visual
+      actualizarIndicadorPrediccion(elementoIndicador, prediccion);
+    } else {
+      // Mostrar indicador de datos insuficientes
+      elementoIndicador.innerHTML = '<span class="badge bg-light text-dark" title="Datos insuficientes">❓</span>';
+    }
+  } catch (error) {
+    console.error('Error cargando predicción:', error);
+    elementoIndicador.innerHTML = '<span class="badge bg-secondary" title="Error">⚠️</span>';
+  }
+}
+
+// Actualizar indicador visual de predicción
+function actualizarIndicadorPrediccion(elemento, prediccion) {
+  const riesgo = prediccion.riesgo;
+  const dias = prediccion.dias_hasta_mantenimiento;
+  const confianza = prediccion.confianza;
+  
+  let badgeClass = 'bg-secondary';
+  let icono = '📊';
+  let titulo = `Próximo mantenimiento: ${prediccion.fecha_predicha}\nConfianza: ${Math.round(confianza * 100)}%\nDías: ${dias}`;
+  
+  if (riesgo === 'critico') {
+    badgeClass = 'bg-danger';
+    icono = '🚨';
+  } else if (riesgo === 'alto') {
+    badgeClass = 'bg-warning';
+    icono = '⚠️';
+  } else if (riesgo === 'medio') {
+    badgeClass = 'bg-info';
+    icono = '📅';
+  } else if (riesgo === 'bajo') {
+    badgeClass = 'bg-success';
+    icono = '✅';
+  }
+  
+  elemento.innerHTML = `<span class="badge ${badgeClass}" title="${titulo}">${icono} ${dias}d</span>`;
+}
+
+// Analizar equipo completo
+async function analizarEquipo(equipoId, equipoNombre) {
+  const modal = new bootstrap.Modal(document.getElementById('modalAnalisisPredictivo'));
+  const content = document.getElementById('analisisContent');
+  
+  // Mostrar modal con loading
+  modal.show();
+  content.innerHTML = `
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Analizando...</span>
+      </div>
+      <p class="mt-2">Analizando <strong>${equipoNombre}</strong> con IA...</p>
+    </div>
+  `;
+  
+  try {
+    // Obtener predicción
+    const prediccionResponse = await fetch(`/api/maintenance/predict/${equipoId}`);
+    const prediccionData = await prediccionResponse.json();
+    
+    // Obtener análisis completo
+    const analisisResponse = await fetch(`/api/maintenance/analyze/${equipoId}`);
+    const analisisData = await analisisResponse.json();
+    
+    if (prediccionData.success || analisisData.success) {
+      mostrarAnalisisCompleto(prediccionData, analisisData, equipoNombre);
+    } else {
+      content.innerHTML = `
+        <div class="alert alert-warning">
+          <h5><i class="bi bi-exclamation-triangle me-2"></i>Datos Insuficientes</h5>
+          <p>No hay suficientes datos históricos para realizar un análisis predictivo completo.</p>
+          <p class="mb-0">Se requiere un mínimo de 3 mantenimientos registrados para generar predicciones precisas.</p>
+        </div>
+      `;
+    }
+    
+  } catch (error) {
+    console.error('Error analizando equipo:', error);
+    content.innerHTML = `
+      <div class="alert alert-danger">
+        <h5><i class="bi bi-x-circle me-2"></i>Error de Análisis</h5>
+        <p>No se pudo completar el análisis del equipo. Por favor, intente nuevamente.</p>
+        <p class="mb-0">Error: ${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+// Mostrar análisis completo en el modal
+function mostrarAnalisisCompleto(prediccionData, analisisData, equipoNombre) {
+  const content = document.getElementById('analisisContent');
+  const btnProgramar = document.getElementById('btnProgramarMantenimiento');
+  
+  let html = `
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card border-primary mb-3">
+          <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Predicción de Mantenimiento</h6>
+          </div>
+          <div class="card-body">
+  `;
+  
+  if (prediccionData.success) {
+    const p = prediccionData.prediccion;
+    const riesgoClass = p.riesgo === 'critico' ? 'danger' : p.riesgo === 'alto' ? 'warning' : p.riesgo === 'medio' ? 'info' : 'success';
+    
+    html += `
+      <div class="mb-3">
+        <label class="form-label fw-bold">Próximo Mantenimiento</label>
+        <div class="h5 text-primary">${p.fecha_predicha}</div>
+        <small class="text-muted">En ${p.dias_hasta_mantenimiento} días</small>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">Nivel de Riesgo</label>
+        <div><span class="badge bg-${riesgoClass} text-uppercase fs-6">${p.riesgo}</span></div>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">Confianza del Modelo</label>
+        <div class="progress" style="height: 20px;">
+          <div class="progress-bar bg-${riesgoClass}" style="width: ${p.confianza * 100}%">
+            ${Math.round(p.confianza * 100)}%
+          </div>
+        </div>
+      </div>
+      
+      ${p.factores.length > 0 ? `
+      <div class="mb-3">
+        <label class="form-label fw-bold">Factores de Riesgo</label>
+        <ul class="list-unstyled">
+          ${p.factores.map(f => `<li><i class="bi bi-dot text-warning"></i> ${f}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+    `;
+  } else {
+    html += `
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        ${prediccionData.message}
+      </div>
+    `;
+  }
+  
+  html += `
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card border-info mb-3">
+          <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Análisis de Rendimiento</h6>
+          </div>
+          <div class="card-body">
+  `;
+  
+  if (analisisData.success) {
+    const a = analisisData.analisis;
+    
+    html += `
+      <div class="mb-3">
+        <label class="form-label fw-bold">MTBF (Mean Time Between Failures)</label>
+        <div class="h5">${a.mtbf} días</div>
+        <small class="text-muted">Tiempo promedio entre fallas</small>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">MTTR (Mean Time To Repair)</label>
+        <div class="h5">${a.mttr} días</div>
+        <small class="text-muted">Tiempo promedio de reparación</small>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">Disponibilidad</label>
+        <div class="h5 text-success">${a.disponibilidad}%</div>
+        <small class="text-muted">Porcentaje de tiempo operativo</small>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">Tendencia de Fallas</label>
+        <div><span class="badge bg-${a.tendencia_fallas === 'empeorando' ? 'danger' : a.tendencia_fallas === 'mejorando' ? 'success' : 'secondary'}">${a.tendencia_fallas}</span></div>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label fw-bold">Frecuencia de Mantenimiento</label>
+        <div>${a.frecuencia_mantenimiento} días</div>
+        <small class="text-muted">Intervalo promedio</small>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        ${analisisData.message}
+      </div>
+    `;
+  }
+  
+  html += `
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Agregar recomendaciones si existen
+  if (prediccionData.success && prediccionData.prediccion.recomendaciones.length > 0) {
+    html += `
+      <div class="card border-warning mb-3">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Recomendaciones</h6>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0">
+            ${prediccionData.prediccion.recomendaciones.map(r => `<li><i class="bi bi-check-circle text-success me-2"></i> ${r}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+  
+  content.innerHTML = html;
+  
+  // Mostrar botón de programar mantenimiento si hay predicción
+  if (prediccionData.success) {
+    btnProgramar.style.display = 'block';
+    btnProgramar.onclick = () => {
+      // Aquí se puede redirigir a la página de programación de mantenimientos
+      alert('Función de programación de mantenimiento en desarrollo...');
+    };
+  } else {
+    btnProgramar.style.display = 'none';
+  }
+}
+
+// Cargar predicciones cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+  // Esperar un momento antes de cargar predicciones para no bloquear la carga inicial
+  setTimeout(cargarPrediccionesVisibles, 1000);
+});
+
+// Recargar predicciones cuando se filtra la tabla
+document.addEventListener('DOMNodeInserted', function(e) {
+  if (e.target.classList && e.target.classList.contains('prediction-indicator')) {
+    const equipoId = e.target.dataset.equipoId;
+    if (equipoId && !prediccionesCache[equipoId]) {
+      setTimeout(() => cargarPrediccionEquipo(equipoId, e.target), 500);
+    }
+  }
+});
 </script>
 {% endblock %}

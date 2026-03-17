@@ -2,17 +2,47 @@
 {% set title = 'Registrar Items (Visión)' %}
 {% block content %}
 
-<!-- Header -->
-<div class="registro-header">
-  <h3 class="mb-2"><i class="bi bi-camera-video me-2"></i>Registrar Objetos para IA Visual</h3>
-  <p class="mb-0 opacity-75">Captura imágenes desde múltiples ángulos para entrenar el sistema de reconocimiento</p>
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('entrenamiento_visual') }}"><i class="bi bi-robot me-1"></i>IA Visual</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Registrar Objetos</li>
+    </ol>
+</nav>
+
+<!-- Header Premium -->
+<div class="card border-0 shadow-sm mb-4 module-header">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="header-icon-circle">
+                        <i class="bi bi-camera-video-fill"></i>
+                    </div>
+                    <div>
+                        <h1 class="h3 mb-2 fw-bold">Registrar Objetos para IA Visual</h1>
+                        <p class="mb-0 text-muted">
+                            <i class="bi bi-images me-2"></i>Captura 6 vistas desde diferentes ángulos para entrenar el sistema de reconocimiento
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <span class="badge bg-info text-white px-3 py-2">
+                    <i class="bi bi-camera-fill me-2"></i>6 Vistas Requeridas
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4">
   <div class="col-12 col-lg-7">
-    <div class="card card-registro">
-      <div class="card-header card-filter-header border-bottom border-2">
-        <h5 class="mb-0"><i class="bi bi-plus-circle-fill me-2 text-success"></i>Nuevo Registro</h5>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0 fw-bold text-sena-primary">
+          <i class="bi bi-plus-circle-fill me-2"></i>Nuevo Registro
+        </h5>
       </div>
       <div class="card-body p-4">
         <!-- Selector de tipo -->
@@ -64,12 +94,21 @@
       </div>
     </div>
 
-    <div class="card mt-3">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-camera me-2"></i>Capturar o subir imagen</span>
-        <div>
-          <button class="btn btn-outline-sena btn-sm" id="btnAbrirCam" title="Activar cámara"><i class="bi bi-camera-video"></i> Activar Cámara</button>
-          <input type="file" id="fileImagen" accept="image/*" class="form-control form-control-sm d-inline-block w-auto">
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-light border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold text-sena-primary">
+            <i class="bi bi-camera-fill me-2"></i>Capturar o Subir Imagen
+          </h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" id="btnAbrirCam" title="Activar cámara">
+              <i class="bi bi-camera-video-fill me-1"></i>Activar Cámara
+            </button>
+            <label class="btn btn-outline-primary btn-sm mb-0" for="fileImagen">
+              <i class="bi bi-upload me-1"></i>Subir
+            </label>
+            <input type="file" id="fileImagen" accept="image/*" class="d-none">
+          </div>
         </div>
       </div>
       <div class="alert alert-info mx-3 mt-3 mb-0">
@@ -126,73 +165,161 @@
     </div>
   </div>
   <div class="col-12 col-lg-5">
-    <div class="card">
-      <div class="card-header fw-semibold"><i class="bi bi-collection me-2"></i>Registros existentes</div>
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-light border-0">
+        <h5 class="mb-0 fw-bold text-sena-primary">
+          <i class="bi bi-collection-fill me-2"></i>Registros Existentes
+        </h5>
+      </div>
       <div class="card-body">
-        <div class="input-group mb-2" style="max-width: 360px;">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input id="buscarObj" class="form-control" placeholder="Buscar por nombre/categoría">
+        <div class="input-group mb-3">
+          <span class="input-group-text bg-white">
+            <i class="bi bi-search"></i>
+          </span>
+          <input id="buscarObj" class="form-control" placeholder="Buscar por nombre o categoría...">
         </div>
-        <ul id="listaObjetos" class="list-group small"></ul>
+        <ul id="listaObjetos" class="list-group"></ul>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+/**
+ * Registro de Objetos para IA Visual
+ * Sistema de captura de imágenes con múltiples vistas
+ */
 (() => {
-  const token = localStorage.getItem('jwt');
-  function needAuth(){ 
-    // Ya no es necesario JWT, usamos sesión web
-    return true;
+  'use strict';
+  
+  // ========================================
+  // CONFIGURACIÓN Y UTILIDADES
+  // ========================================
+  
+  /**
+   * Helper para mostrar mensajes al usuario
+   */
+  function mostrarMensaje(texto, tipo = 'info', duracion = 3000) {
+    if (typeof flash === 'function') {
+      flash(texto, tipo, duracion);
+    } else {
+      alert(texto);
+    }
   }
-  async function api(url, opts={}){
-    const t = localStorage.getItem('jwt');
-    // Agregar JWT si existe, pero no es obligatorio (usamos sesión web)
-    opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{}, t? {'Authorization':'Bearer '+t}: {});
+  
+  /**
+   * Helper para API con manejo de sesión
+   */
+  async function api(url, opts = {}) {
+    const token = localStorage.getItem('jwt');
+    opts.headers = Object.assign(
+      {'Content-Type': 'application/json'}, 
+      opts.headers || {}, 
+      token ? {'Authorization': 'Bearer ' + token} : {}
+    );
+    
     const res = await fetch(url, opts);
-    await ApiAuth.ensureAuthOrPrompt(res);
+    
+    // Verificar autenticación si ApiAuth está disponible
+    if (typeof ApiAuth !== 'undefined' && ApiAuth.ensureAuthOrPrompt) {
+      await ApiAuth.ensureAuthOrPrompt(res);
+    }
+    
     return res;
   }
 
-  // Crear objeto (unificado con imagen si está disponible)
-  document.getElementById('btnCrearObjeto').addEventListener('click', async ()=>{
-    try{
-      needAuth();
+  // ========================================
+  // VARIABLES GLOBALES
+  // ========================================
+  
+  const video = document.getElementById('objCam');
+  const imgPrev = document.getElementById('objPreview');
+  const canvas = document.getElementById('objCanvas');
+  let stream = null;
+  let currentDataUrl = null;
+  let currentObjetoId = null;
+  const vistasRequeridas = ['frontal', 'posterior', 'superior', 'inferior', 'lateral_derecha', 'lateral_izquierda'];
+  const vistasGuardadas = new Set();
+  
+  // ========================================
+  // CREAR OBJETO
+  // ========================================
+  
+  /**
+   * Crear nuevo objeto con o sin imagen
+   */
+  document.getElementById('btnCrearObjeto').addEventListener('click', async () => {
+    try {
       const nombre = document.getElementById('objNombre').value.trim();
       const categoria = document.getElementById('objCategoria').value.trim();
       const descripcion = document.getElementById('objDescripcion').value.trim();
       const vista = document.getElementById('imgVista').value;
       const notas = document.getElementById('imgNotas').value;
-      if(!nombre){ alert('Ingrese un nombre'); return; }
+      
+      // Validación
+      if (!nombre) {
+        mostrarMensaje('⚠️ Por favor ingrese un nombre para el objeto', 'warning');
+        return;
+      }
+      
       // Si hay imagen capturada/seleccionada y vista, crear y subir en un paso
-      if(currentDataUrl && vista){
-        const res = await api('/api/objetos/crear_con_imagen', {method:'POST', body: JSON.stringify({nombre, categoria, descripcion, image_base64: currentDataUrl, vista, notas, fuente: stream? 'camera':'upload'})});
+      if (currentDataUrl && vista) {
+        const res = await api('/api/objetos/crear_con_imagen', {
+          method: 'POST',
+          body: JSON.stringify({
+            nombre,
+            categoria,
+            descripcion,
+            image_base64: currentDataUrl,
+            vista,
+            notas,
+            fuente: stream ? 'camera' : 'upload'
+          })
+        });
+        
         const data = await res.json();
-        if(res.ok){
-          currentObjetoId = data.id; vistasGuardadas.add(vista); refreshChecklist();
-          alert('Objeto e imagen guardados'); cargarObjetos();
+        
+        if (res.ok) {
+          currentObjetoId = data.id;
+          vistasGuardadas.add(vista);
+          refreshChecklist();
+          mostrarMensaje('✅ Objeto e imagen guardados exitosamente', 'success');
+          cargarObjetos();
         } else {
-          alert(data?.message || 'Error en registro unificado');
+          mostrarMensaje(`❌ ${data?.message || 'Error en registro unificado'}`, 'danger');
         }
         return;
       }
+      
       // Fallback: crear solo el objeto
-      const res = await api('/api/objetos',{method:'POST', body: JSON.stringify({nombre, categoria, descripcion})});
+      const res = await api('/api/objetos', {
+        method: 'POST',
+        body: JSON.stringify({nombre, categoria, descripcion})
+      });
+      
       const data = await res.json();
-      if(res.ok){ currentObjetoId = data.id; alert('Objeto creado'); cargarObjetos(); }
-      else{ alert(data?.message || 'Error creando objeto'); }
-    }catch(e){ console.warn(e); }
+      
+      if (res.ok) {
+        currentObjetoId = data.id;
+        mostrarMensaje('✅ Objeto creado correctamente', 'success');
+        cargarObjetos();
+      } else {
+        mostrarMensaje(`❌ ${data?.message || 'Error creando objeto'}`, 'danger');
+      }
+    } catch(e) {
+      console.error('[ERROR] Crear objeto:', e);
+      mostrarMensaje('❌ Error inesperado al crear objeto', 'danger');
+    }
   });
-
-  // Cámara
-  const video = document.getElementById('objCam');
-  const imgPrev = document.getElementById('objPreview');
-  const canvas = document.getElementById('objCanvas');
-  let stream = null; let currentDataUrl = null; let currentObjetoId = null;
-  const vistasRequeridas = ['frontal','posterior','superior','inferior','lateral_derecha','lateral_izquierda'];
-  const vistasGuardadas = new Set();
-  function refreshChecklist(){
+  
+  // ========================================
+  // FUNCIONES DE UTILIDAD
+  // ========================================
+  
+  /**
+   * Actualizar checklist de vistas guardadas
+   */
+  function refreshChecklist() {
     document.querySelectorAll('#checkVistas li').forEach(li=>{
       const v = li.getAttribute('data-v');
       li.textContent = (vistasGuardadas.has(v)? '✔ ':'□ ') + li.textContent.replace(/^✔ |^□ /,'');
@@ -200,9 +327,15 @@
     });
   }
 
-  document.getElementById('btnAbrirCam').addEventListener('click', async ()=>{
-    try{ 
-
+  // ========================================
+  // MANEJO DE CÁMARA
+  // ========================================
+  
+  /**
+   * Activar cámara del dispositivo
+   */
+  document.getElementById('btnAbrirCam').addEventListener('click', async () => {
+    try {
       // Solicitar permisos de cámara con configuración específica
       const constraints = {
         video: {
@@ -212,8 +345,8 @@
         },
         audio: false
       };
+      
       stream = await navigator.mediaDevices.getUserMedia(constraints);
-
       video.srcObject = stream;
       video.play();
       
@@ -226,25 +359,36 @@
       // Resetear botón capturar
       document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Capturar';
       
-      console.log('✓ Cámara activada correctamente');
-    } catch(err) { 
-      console.error('Error al acceder a la cámara:', err);
-      let mensaje = 'No se pudo acceder a la cámara. ';
-      if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      mostrarMensaje('📷 Cámara activada correctamente', 'success', 2000);
+      console.log('[CAMERA] Cámara activada correctamente');
+      
+    } catch(err) {
+      console.error('[ERROR] Acceso a cámara:', err);
+      
+      let mensaje = '📷 No se pudo acceder a la cámara. ';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         mensaje += 'Por favor, permite el acceso a la cámara en la configuración de tu navegador.';
-      } else if(err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         mensaje += 'No se encontró ninguna cámara conectada.';
-      } else if(err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         mensaje += 'La cámara está siendo usada por otra aplicación.';
       } else {
         mensaje += err.message || 'Error desconocido.';
       }
-      alert(mensaje);
+      
+      mostrarMensaje(mensaje, 'danger', 5000);
     }
   });
 
-  document.getElementById('btnCapturar').addEventListener('click', ()=>{
-    if(!video.videoWidth){ alert('Activa la cámara primero o selecciona una imagen'); return; }
+  /**
+   * Capturar foto desde la cámara
+   */
+  document.getElementById('btnCapturar').addEventListener('click', () => {
+    if (!video.videoWidth) {
+      mostrarMensaje('⚠️ Activa la cámara primero o selecciona una imagen', 'warning');
+      return;
+    }
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0,canvas.width,canvas.height);
     currentDataUrl = canvas.toDataURL('image/jpeg',0.92);
@@ -276,44 +420,88 @@
     reader.readAsDataURL(f);
   });
 
-  // Guardar imagen
-  document.getElementById('btnGuardarImagen').addEventListener('click', async ()=>{
-    try{
-      needAuth();
+  // ========================================
+  // GUARDAR IMAGEN
+  // ========================================
+  
+  /**
+   * Guardar imagen capturada/cargada
+   */
+  document.getElementById('btnGuardarImagen').addEventListener('click', async () => {
+    try {
       const nombre = document.getElementById('objNombre').value.trim();
       const categoria = document.getElementById('objCategoria').value.trim();
-      if(!nombre){ alert('Primero complete nombre del objeto'); return; }
-      if(!currentDataUrl){ alert('Capture o seleccione una imagen'); return; }
+      
+      // Validaciones
+      if (!nombre) {
+        mostrarMensaje('⚠️ Primero complete el nombre del objeto', 'warning');
+        return;
+      }
+      
+      if (!currentDataUrl) {
+        mostrarMensaje('⚠️ Capture o seleccione una imagen primero', 'warning');
+        return;
+      }
+      
       // Asegurar que el objeto exista/obtener id
       let id = currentObjetoId;
-      if(!id){
-        const resCreate = await api('/api/objetos',{method:'POST', body: JSON.stringify({nombre, categoria, descripcion: document.getElementById('objDescripcion').value})});
+      
+      if (!id) {
+        const resCreate = await api('/api/objetos', {
+          method: 'POST',
+          body: JSON.stringify({
+            nombre,
+            categoria,
+            descripcion: document.getElementById('objDescripcion').value
+          })
+        });
+        
         const dataCreate = await resCreate.json();
-        if(!resCreate.ok){ 
-          if(dataCreate?.duplicado || dataCreate?.existe) {
+        
+        if (!resCreate.ok) {
+          if (dataCreate?.duplicado || dataCreate?.existe) {
             const usar = confirm(`${dataCreate.message}\n\n¿Desea usar el objeto existente para agregar la imagen?`);
-            if(usar && dataCreate.id) {
+            if (usar && dataCreate.id) {
               id = dataCreate.id;
               currentObjetoId = id;
             } else {
               return;
             }
           } else {
-            alert(dataCreate?.message||'Error creando objeto'); 
-            return; 
+            mostrarMensaje(`❌ ${dataCreate?.message || 'Error creando objeto'}`, 'danger');
+            return;
           }
         } else {
           id = dataCreate.id;
         }
       }
+      
       const notas = document.getElementById('imgNotas').value;
       const vista = document.getElementById('imgVista').value;
-      if(!vista){ alert('Seleccione la vista de la imagen'); return; }
-      const carpeta = document.getElementById('objNombre').value.trim(); // usar nombre como carpeta base
+      
+      if (!vista) {
+        mostrarMensaje('⚠️ Seleccione la vista de la imagen', 'warning');
+        return;
+      }
+      
+      const carpeta = document.getElementById('objNombre').value.trim();
       const tipoRegistro = document.querySelector('input[name="tipoRegistro"]:checked').value;
-      const res = await api(`/api/objetos/${id}/imagenes`,{method:'POST', body: JSON.stringify({image_base64: currentDataUrl, notas, carpeta, fuente: stream? 'camera':'upload', tipo_registro: tipoRegistro, vista})});
+      
+      const res = await api(`/api/objetos/${id}/imagenes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          image_base64: currentDataUrl,
+          notas,
+          carpeta,
+          fuente: stream ? 'camera' : 'upload',
+          tipo_registro: tipoRegistro,
+          vista
+        })
+      });
+      
       const data = await res.json();
-      if(res.ok){ 
+      
+      if (res.ok) {
         vistasGuardadas.add(vista);
         refreshChecklist();
         
@@ -326,28 +514,40 @@
         document.getElementById('fileImagen').value = '';
         
         // Si hay cámara activa, mostrar video nuevamente
-        if(stream && stream.active) {
+        if (stream && stream.active) {
           video.classList.remove('d-none');
           document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Capturar';
         }
         
-        const faltan = vistasRequeridas.filter(v=>!vistasGuardadas.has(v));
-        if(faltan.length===0){
-          alert('✅ Se completaron las 6 vistas obligatorias. Objeto listo para entrenamiento IA.');
+        const faltan = vistasRequeridas.filter(v => !vistasGuardadas.has(v));
+        
+        if (faltan.length === 0) {
+          mostrarMensaje('✅ ¡Completado! Se guardaron las 6 vistas obligatorias. Objeto listo para entrenamiento de IA.', 'success', 5000);
         } else {
-          alert(`✅ Imagen guardada exitosamente.\n\n📸 Faltan ${faltan.length} vistas: ${faltan.join(', ')}\n\nSelecciona la siguiente vista y captura.`);
+          mostrarMensaje(`✅ Imagen guardada exitosamente<br><br>📸 Faltan ${faltan.length} vistas: <strong>${faltan.join(', ')}</strong><br><br>Selecciona la siguiente vista y captura.`, 'success', 4000);
         }
-        cargarObjetos(); 
+        
+        cargarObjetos();
+      } else {
+        mostrarMensaje(`❌ ${data?.message || 'Error guardando imagen'}`, 'danger');
       }
-      else{ alert(data?.message || 'Error guardando imagen'); }
-    }catch(e){ console.warn(e); }
+      
+    } catch(e) {
+      console.error('[ERROR] Guardar imagen:', e);
+      mostrarMensaje('❌ Error inesperado al guardar imagen', 'danger');
+    }
   });
 
-  // Listado
-  async function cargarObjetos(q=''){
-    try{
-      needAuth();
-      const res = await api('/api/objetos'+(q? `?q=${encodeURIComponent(q)}`:''));
+  // ========================================
+  // LISTADO DE OBJETOS
+  // ========================================
+  
+  /**
+   * Cargar listado de objetos registrados
+   */
+  async function cargarObjetos(q = '') {
+    try {
+      const res = await api('/api/objetos' + (q ? `?q=${encodeURIComponent(q)}` : ''));
       const data = await res.json();
       const ul = document.getElementById('listaObjetos');
       ul.innerHTML = '';
@@ -430,10 +630,10 @@
 
       const res = await api(`/api/objetos/${objetoId}`);
 
-      if(!res.ok){
+      if (!res.ok) {
         const errorText = await res.text();
         console.error('[ERROR] Error en respuesta:', errorText);
-        alert('Error al cargar objeto: ' + errorText);
+        mostrarMensaje('❌ Error al cargar objeto: ' + errorText, 'danger');
         return;
       }
       
@@ -506,13 +706,32 @@
       modal.addEventListener('hidden.bs.modal', () => {
         modal.remove();
       });
-    }catch(e){
-      console.error(e);
-      alert('Error cargando detalles del objeto');
+    } catch(e) {
+      console.error('[ERROR] Ver detalles objeto:', e);
+      mostrarMensaje('❌ Error cargando detalles del objeto', 'danger');
     }
   }
   
+  // ========================================
+  // INICIALIZACIÓN
+  // ========================================
+  
+  // Event delegation para botón retry cámara (desde modal de permisos)
+  document.addEventListener('click', function(e) {
+    const btnRetry = e.target.closest('.btn-retry-camara');
+    if (btnRetry) {
+      const btnAbrirCam = document.getElementById('btnAbrirCam');
+      if (btnAbrirCam) {
+        btnAbrirCam.click();
+      }
+    }
+  });
+  
+  // Cargar listado al iniciar
   cargarObjetos();
+  
+  // Log de inicialización
+  console.log('[OBJETOS REGISTRAR] Módulo inicializado correctamente');
 })();
 </script>
 
@@ -638,7 +857,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('btnAbrirCam').click()">
+        <button type="button" class="btn btn-primary btn-retry-camara" data-bs-dismiss="modal">
           <i class="bi bi-camera-video me-2"></i>Intentar Activar Cámara
         </button>
       </div>

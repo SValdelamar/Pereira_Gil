@@ -121,45 +121,63 @@
                     <i class="bi bi-clock-history me-1"></i>Pendiente
                   </span>
                 {% elif sol.estado == 'aprobada' %}
-                  <span class="badge bg-success">
-                    <i class="bi bi-check-circle me-1"></i>Aprobada
-                  </span>
-                  {% if sol.fecha_respuesta %}
-                  <br><small class="text-muted">{{ sol.fecha_respuesta.strftime('%d/%m/%Y') }}</small>
-                  {% endif %}
+                  <div>
+                    <span class="badge bg-success">
+                      <i class="bi bi-check-circle me-1"></i>Aprobada
+                    </span>
+                    {% if sol.fecha_respuesta %}
+                    <div><small class="text-muted">{{ sol.fecha_respuesta.strftime('%d/%m/%Y') }}</small></div>
+                    {% endif %}
+                  </div>
                 {% else %}
-                  <span class="badge bg-danger">
-                    <i class="bi bi-x-circle me-1"></i>Rechazada
-                  </span>
-                  {% if sol.fecha_respuesta %}
-                  <br><small class="text-muted">{{ sol.fecha_respuesta.strftime('%d/%m/%Y') }}</small>
-                  {% endif %}
+                  <div>
+                    <span class="badge bg-danger">
+                      <i class="bi bi-x-circle me-1"></i>Rechazada
+                    </span>
+                    {% if sol.fecha_respuesta %}
+                    <div><small class="text-muted">{{ sol.fecha_respuesta.strftime('%d/%m/%Y') }}</small></div>
+                    {% endif %}
+                  </div>
                 {% endif %}
               </td>
               
               <td class="text-center">
                 {% if sol.estado == 'pendiente' %}
                   <!-- Botón Aprobar -->
-                  <button class="btn btn-sm btn-success me-1" 
+                  <button class="btn btn-sm btn-success me-1 btn-aprobar-solicitud" 
                           data-bs-toggle="modal" 
                           data-bs-target="#modalAprobar"
-                          onclick="setearSolicitud({{ sol.id }}, '{{ sol.usuario_id }}', '{{ sol.nombre }}', {{ sol.nivel_solicitado }}, '{{ roles_nombres[sol.nivel_solicitado] }}')">
+                          data-solicitud-id="{{ sol.id }}"
+                          data-usuario-id="{{ sol.usuario_id }}"
+                          data-usuario-nombre="{{ sol.nombre }}"
+                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                          data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}">
                     <i class="bi bi-check-circle"></i>
                   </button>
                   
                   <!-- Botón Rechazar -->
-                  <button class="btn btn-sm btn-danger" 
+                  <button class="btn btn-sm btn-danger btn-rechazar-solicitud" 
                           data-bs-toggle="modal" 
                           data-bs-target="#modalRechazar"
-                          onclick="setearSolicitud({{ sol.id }}, '{{ sol.usuario_id }}', '{{ sol.nombre }}', {{ sol.nivel_solicitado }}, '{{ roles_nombres[sol.nivel_solicitado] }}')">
+                          data-solicitud-id="{{ sol.id }}"
+                          data-usuario-id="{{ sol.usuario_id }}"
+                          data-usuario-nombre="{{ sol.nombre }}"
+                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                          data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}">
                     <i class="bi bi-x-circle"></i>
                   </button>
                 {% else %}
                   <!-- Ver detalles -->
-                  <button class="btn btn-sm btn-outline-secondary" 
+                  <button class="btn btn-sm btn-outline-secondary btn-ver-detalles-solicitud" 
                           data-bs-toggle="modal" 
                           data-bs-target="#modalDetalles"
-                          onclick="mostrarDetalles('{{ sol.usuario_id }}', '{{ sol.nombre }}', {{ sol.nivel_actual }}, {{ sol.nivel_solicitado }}, '{{ sol.estado }}', '{{ sol.admin_revisor or "N/A" }}', '{{ sol.comentario_admin or "" }}')">
+                          data-usuario-id="{{ sol.usuario_id }}"
+                          data-usuario-nombre="{{ sol.nombre }}"
+                          data-nivel-actual="{{ sol.nivel_actual }}"
+                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                          data-estado="{{ sol.estado }}"
+                          data-admin-revisor="{{ sol.admin_revisor or 'N/A' }}"
+                          data-comentario-admin="{{ sol.comentario_admin or '' }}">
                     <i class="bi bi-eye"></i>
                   </button>
                 {% endif %}
@@ -383,6 +401,47 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   filtroEstado.addEventListener('change', aplicarFiltros);
+  
+  // Event delegation para botones de solicitudes
+  document.addEventListener('click', function(e) {
+    // Botón aprobar solicitud
+    const btnAprobar = e.target.closest('.btn-aprobar-solicitud');
+    if (btnAprobar) {
+      const id = btnAprobar.dataset.solicitudId;
+      const usuarioId = btnAprobar.dataset.usuarioId;
+      const nombre = btnAprobar.dataset.usuarioNombre;
+      const nivel = btnAprobar.dataset.nivelSolicitado;
+      const nombreNivel = btnAprobar.dataset.rolNombre;
+      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel);
+      return;
+    }
+    
+    // Botón rechazar solicitud
+    const btnRechazar = e.target.closest('.btn-rechazar-solicitud');
+    if (btnRechazar) {
+      const id = btnRechazar.dataset.solicitudId;
+      const usuarioId = btnRechazar.dataset.usuarioId;
+      const nombre = btnRechazar.dataset.usuarioNombre;
+      const nivel = btnRechazar.dataset.nivelSolicitado;
+      const nombreNivel = btnRechazar.dataset.rolNombre;
+      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel);
+      return;
+    }
+    
+    // Botón ver detalles
+    const btnDetalles = e.target.closest('.btn-ver-detalles-solicitud');
+    if (btnDetalles) {
+      const usuarioId = btnDetalles.dataset.usuarioId;
+      const nombre = btnDetalles.dataset.usuarioNombre;
+      const nivelActual = btnDetalles.dataset.nivelActual;
+      const nivelSolicitado = btnDetalles.dataset.nivelSolicitado;
+      const estado = btnDetalles.dataset.estado;
+      const admin = btnDetalles.dataset.adminRevisor;
+      const comentario = btnDetalles.dataset.comentarioAdmin;
+      mostrarDetalles(usuarioId, nombre, nivelActual, nivelSolicitado, estado, admin, comentario);
+      return;
+    }
+  });
   buscarUsuario.addEventListener('input', aplicarFiltros);
   filtroNivel.addEventListener('change', aplicarFiltros);
   

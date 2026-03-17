@@ -68,13 +68,27 @@
   </div>
 </div>
 
+<!-- Consejos de Precisión -->
+<div class="alert alert-info border-0 shadow-sm mb-4">
+  <div class="d-flex align-items-start">
+    <i class="bi bi-lightbulb-fill fs-4 me-3 text-warning"></i>
+    <div>
+      <h6 class="fw-bold mb-2"><i class="bi bi-graph-up-arrow me-1"></i>Mejora la Precisión del Reconocimiento</h6>
+      <ul class="mb-0 small">
+        <li><strong>Captura 3-5 imágenes por ángulo</strong> del mismo equipo (diferentes iluminaciones)</li>
+        <li>Usa <strong>buena iluminación</strong> sin reflejos ni sombras fuertes</li>
+        <li>Mantén el <strong>objeto centrado</strong> y ocupa el 70-80% del encuadre</li>
+        <li>Evita fondos muy similares entre diferentes equipos</li>
+        <li><strong>Limpia el lente</strong> de la cámara antes de capturar</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <!-- Sección de Reconocimiento -->
 <div class="row g-4">
   <div class="col-md-6">
     <div class="card border-0 shadow-sm">
-      <div class="card-header border-0 bg-sena-primary">
-        <h5 class="mb-0 text-white fw-bold"><i class="bi bi-search me-2"></i>Probar Reconocimiento</h5>
-      </div>
       <div class="card-body p-4">
         <div class="mb-3">
           <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
@@ -89,6 +103,15 @@
             <i class="bi bi-eye me-1"></i>Reconocer
           </button>
         </div>
+        
+        <!-- Tips rápidos -->
+        <div class="alert alert-light border mb-3">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>Tip:</strong> Enfoca el objeto completo, mantén la cámara estable y usa buena luz.
+          </small>
+        </div>
+        
         <div id="resultadoReconocimiento" class="alert alert-light d-none">
           <!-- Resultado del reconocimiento -->
         </div>
@@ -98,9 +121,6 @@
   
   <div class="col-md-6">
     <div class="card border-0 shadow-sm">
-      <div class="card-header border-0 bg-sena-primary">
-        <h5 class="mb-0 text-white fw-bold"><i class="bi bi-info-circle me-2"></i>Detalles del Item</h5>
-      </div>
       <div class="card-body p-4">
         <div id="detallesItem" class="text-center text-muted">
           <i class="bi bi-camera display-1 mb-3"></i>
@@ -151,6 +171,14 @@
             <div class="mb-3">
               <label class="form-label fw-semibold label-sena"><i class="bi bi-chat-text me-1"></i>Descripción</label>
               <input id="descripcionEntrenamiento" class="form-control" placeholder="Ej: Vista frontal con buena iluminación">
+            </div>
+            
+            <!-- Recordatorio de precisión -->
+            <div class="alert alert-success border-0 p-2">
+              <small>
+                <i class="bi bi-check-circle-fill me-1"></i>
+                <strong>Recuerda:</strong> Captura 3-5 fotos del mismo ángulo con diferentes iluminaciones para mejor precisión.
+              </small>
             </div>
           </div>
           
@@ -330,58 +358,219 @@ async function loadStats() {
 function mostrarDetalles(details) {
   if (!details) return;
   
+  // Debug: Mostrar datos recibidos en consola
+  console.log('📊 Detalles recibidos:', details);
+  
   const detallesDiv = document.getElementById('detallesItem');
   
-  if (details.tipo_item === 'equipo') {
-    let especificacionesHtml = '';
-    if (details.especificaciones && Object.keys(details.especificaciones).length > 0) {
-      especificacionesHtml = '<tr><td colspan="2"><strong>Especificaciones:</strong><ul class="mb-0 mt-1">';
-      for (const [key, value] of Object.entries(details.especificaciones)) {
-        especificacionesHtml += `<li><small>${key}: ${value}</small></li>`;
+  // Helper para obtener valor con fallbacks
+  const getValue = (obj, ...keys) => {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+        return obj[key];
       }
-      especificacionesHtml += '</ul></td></tr>';
+    }
+    return null;
+  };
+  
+  if (details.tipo_item === 'equipo' || details.item_type === 'equipo') {
+    // Extraer datos con múltiples fallbacks
+    const id = getValue(details, 'id', 'equipo_id') || 'N/A';
+    const codigo = getValue(details, 'codigo', 'equipo_id', 'id');
+    const nombre = getValue(details, 'nombre', 'name') || 'Sin nombre';
+    const tipo = getValue(details, 'tipo', 'categoria', 'category', 'type') || 'Sin clasificar';
+    const estado = getValue(details, 'estado', 'status') || 'disponible';
+    const descripcion = getValue(details, 'descripcion', 'description');
+    const laboratorio = getValue(details, 'laboratorio_nombre', 'laboratorio', 'lab_name') || 'No especificado';
+    const labUbicacion = getValue(details, 'laboratorio_ubicacion', 'lab_ubicacion');
+    const ubicacion = getValue(details, 'ubicacion', 'ubicacion_especifica', 'location') || 'No especificada';
+    const fechaRegistro = getValue(details, 'fecha_registro', 'created_at', 'fecha_creacion');
+    const especificaciones = details.especificaciones || details.specs || {};
+    
+    let especificacionesHtml = '';
+    if (Object.keys(especificaciones).length > 0) {
+      especificacionesHtml = `
+        <div class="mt-3 p-3 bg-light rounded">
+          <h6 class="mb-2"><i class="bi bi-list-check me-1"></i>Especificaciones Técnicas</h6>
+          <ul class="mb-0 list-unstyled">
+      `;
+      for (const [key, value] of Object.entries(especificaciones)) {
+        especificacionesHtml += `<li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>${key}:</strong> ${value}</li>`;
+      }
+      especificacionesHtml += '</ul></div>';
     }
     
-    // Debug: ver qué datos llegan
-
     detallesDiv.innerHTML = `
       <div class="text-start">
-        <h6 class="text-primary mb-3"><i class="bi bi-gear me-2"></i>Equipo Reconocido</h6>
-        <table class="table table-sm table-bordered">
-          <tr><td><strong>ID:</strong></td><td><code>${details.id}</code></td></tr>
-          ${details.equipo_id ? `<tr><td><strong>Código:</strong></td><td><code>${details.equipo_id}</code></td></tr>` : ''}
-          <tr><td><strong>Nombre:</strong></td><td>${details.nombre}</td></tr>
-          <tr><td><strong>Tipo:</strong></td><td><span class="badge bg-info">${details.tipo || details.categoria}</span></td></tr>
-          <tr><td><strong>Estado:</strong></td><td>
-            <span class="badge bg-${details.estado === 'disponible' ? 'success' : 'warning'}">${details.estado}</span>
-          </td></tr>
-          ${details.descripcion ? `<tr><td><strong>Descripción:</strong></td><td>${details.descripcion}</td></tr>` : ''}
-          <tr><td><strong>Laboratorio:</strong></td><td><i class="bi bi-building me-1"></i>${details.laboratorio_nombre || 'No especificado'}${details.laboratorio_ubicacion ? ` <small class="text-muted">(${details.laboratorio_ubicacion})</small>` : ''}</td></tr>
-          <tr><td><strong>Ubicación Específica:</strong></td><td><i class="bi bi-geo-alt me-1"></i>${details.ubicacion || 'No especificada'}</td></tr>
-          ${details.fecha_registro ? `<tr><td><strong>Fecha Registro:</strong></td><td><small>${details.fecha_registro}</small></td></tr>` : ''}
-          ${especificacionesHtml}
-        </table>
-        ${details.from_cache ? '<small class="text-muted"><i class="bi bi-info-circle"></i> Datos del entrenamiento</small>' : '<small class="text-success"><i class="bi bi-check-circle"></i> Datos actualizados de la BD</small>'}
+        <div class="d-flex align-items-center mb-3">
+          <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+            <i class="bi bi-gear-fill text-primary fs-3"></i>
+          </div>
+          <div>
+            <h5 class="mb-1 fw-bold text-primary">Equipo Reconocido</h5>
+            <small class="text-muted">Información detallada del equipo</small>
+          </div>
+        </div>
+        
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="p-3 bg-light rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-hash"></i> ID</small>
+              <strong class="text-dark">${id}</strong>
+            </div>
+          </div>
+          ${codigo ? `
+          <div class="col-6">
+            <div class="p-3 bg-light rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-upc-scan"></i> Código</small>
+              <code class="text-dark fw-bold">${codigo}</code>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-tag-fill"></i> Nombre</small>
+          <h6 class="mb-0 text-dark">${nombre}</h6>
+        </div>
+        
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="p-3 bg-light rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-diagram-3"></i> Tipo</small>
+              <span class="badge bg-info fs-6">${tipo}</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-light rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-wifi"></i> Estado</small>
+              <span class="badge bg-${estado === 'disponible' ? 'success' : 'warning'} fs-6">${estado}</span>
+            </div>
+          </div>
+        </div>
+        
+        ${descripcion ? `
+        <div class="mb-3 p-3 bg-light rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-file-text"></i> Descripción</small>
+          <p class="mb-0 text-dark">${descripcion}</p>
+        </div>
+        ` : ''}
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-building"></i> Laboratorio</small>
+          <strong class="text-dark">${laboratorio}</strong>
+          ${labUbicacion ? `<small class="text-muted d-block">${labUbicacion}</small>` : ''}
+        </div>
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-geo-alt-fill"></i> Ubicación Específica</small>
+          <strong class="text-dark">${ubicacion}</strong>
+        </div>
+        
+        ${fechaRegistro ? `
+        <div class="mb-3 p-3 bg-light rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-calendar-check"></i> Fecha de Registro</small>
+          <small class="text-dark fw-bold">${fechaRegistro}</small>
+        </div>
+        ` : ''}
+        
+        ${especificacionesHtml}
+        
+        <div class="mt-3 text-center">
+          ${details.from_cache ? 
+            '<span class="badge bg-secondary"><i class="bi bi-info-circle me-1"></i>Datos del entrenamiento</span>' : 
+            '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Datos actualizados de la BD</span>'}
+        </div>
       </div>
     `;
   } else {
-    // Debug: ver qué datos llegan
+    // ITEM DE INVENTARIO
+    const id = getValue(details, 'id', 'item_id') || 'N/A';
+    const nombre = getValue(details, 'nombre', 'name') || 'Sin nombre';
+    const categoria = getValue(details, 'categoria', 'category', 'tipo') || 'Sin categoría';
+    const descripcion = getValue(details, 'descripcion', 'description');
+    const cantidadActual = getValue(details, 'cantidad_actual', 'cantidad', 'stock') || 0;
+    const cantidadMinima = getValue(details, 'cantidad_minima', 'min_stock');
+    const unidad = getValue(details, 'unidad', 'unit') || '';
+    const laboratorio = getValue(details, 'laboratorio_nombre', 'laboratorio', 'lab_name') || 'No especificado';
+    const labUbicacion = getValue(details, 'laboratorio_ubicacion', 'lab_ubicacion');
+    const ubicacion = getValue(details, 'ubicacion', 'ubicacion_especifica', 'location') || 'No especificada';
+    const fechaRegistro = getValue(details, 'fecha_registro', 'created_at', 'fecha_creacion');
 
     detallesDiv.innerHTML = `
       <div class="text-start">
-        <h6 class="text-success mb-3"><i class="bi bi-box me-2"></i>Item de Inventario</h6>
-        <table class="table table-sm table-bordered">
-          <tr><td><strong>ID:</strong></td><td><code>${details.id}</code></td></tr>
-          <tr><td><strong>Nombre:</strong></td><td>${details.nombre}</td></tr>
-          <tr><td><strong>Categoría:</strong></td><td><span class="badge bg-secondary">${details.categoria}</span></td></tr>
-          ${details.descripcion ? `<tr><td><strong>Descripción:</strong></td><td>${details.descripcion}</td></tr>` : ''}
-          <tr><td><strong>Cantidad:</strong></td><td>${details.cantidad_actual || details.cantidad || 0} ${details.unidad || ''}</td></tr>
-          ${details.cantidad_minima ? `<tr><td><strong>Mínimo:</strong></td><td>${details.cantidad_minima} ${details.unidad || ''}</td></tr>` : ''}
-          <tr><td><strong>Laboratorio:</strong></td><td><i class="bi bi-building me-1"></i>${details.laboratorio_nombre || 'No especificado'}${details.laboratorio_ubicacion ? ` <small class="text-muted">(${details.laboratorio_ubicacion})</small>` : ''}</td></tr>
-          <tr><td><strong>Ubicación Específica:</strong></td><td><i class="bi bi-geo-alt me-1"></i>${details.ubicacion || 'No especificada'}</td></tr>
-          ${details.fecha_registro ? `<tr><td><strong>Fecha Registro:</strong></td><td><small>${details.fecha_registro}</small></td></tr>` : ''}
-        </table>
-        ${details.from_cache ? '<small class="text-muted"><i class="bi bi-info-circle"></i> Datos del entrenamiento</small>' : '<small class="text-success"><i class="bi bi-check-circle"></i> Datos actualizados de la BD</small>'}
+        <div class="d-flex align-items-center mb-3">
+          <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+            <i class="bi bi-box-seam-fill text-success fs-3"></i>
+          </div>
+          <div>
+            <h5 class="mb-1 fw-bold text-success">Item de Inventario</h5>
+            <small class="text-muted">Información detallada del item</small>
+          </div>
+        </div>
+        
+        <div class="mb-3 p-3 bg-light rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-hash"></i> ID</small>
+          <code class="text-dark fw-bold">${id}</code>
+        </div>
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-tag-fill"></i> Nombre</small>
+          <h6 class="mb-0 text-dark">${nombre}</h6>
+        </div>
+        
+        <div class="mb-3 p-3 bg-light rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-bookmark"></i> Categoría</small>
+          <span class="badge bg-secondary fs-6">${categoria}</span>
+        </div>
+        
+        ${descripcion ? `
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-file-text"></i> Descripción</small>
+          <p class="mb-0 text-dark">${descripcion}</p>
+        </div>
+        ` : ''}
+        
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="p-3 bg-light rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-boxes"></i> Cantidad Actual</small>
+              <strong class="text-dark fs-5">${cantidadActual} ${unidad}</strong>
+            </div>
+          </div>
+          ${cantidadMinima ? `
+          <div class="col-6">
+            <div class="p-3 bg-warning bg-opacity-10 rounded">
+              <small class="text-muted d-block mb-1"><i class="bi bi-exclamation-triangle"></i> Mínimo</small>
+              <strong class="text-warning fs-5">${cantidadMinima} ${unidad}</strong>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-building"></i> Laboratorio</small>
+          <strong class="text-dark">${laboratorio}</strong>
+          ${labUbicacion ? `<small class="text-muted d-block">${labUbicacion}</small>` : ''}
+        </div>
+        
+        <div class="mb-3 p-3 border rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-geo-alt-fill"></i> Ubicación Específica</small>
+          <strong class="text-dark">${ubicacion}</strong>
+        </div>
+        
+        ${fechaRegistro ? `
+        <div class="mb-3 p-3 bg-light rounded">
+          <small class="text-muted d-block mb-1"><i class="bi bi-calendar-check"></i> Fecha de Registro</small>
+          <small class="text-dark fw-bold">${fechaRegistro}</small>
+        </div>
+        ` : ''}
+        
+        <div class="mt-3 text-center">
+          ${details.from_cache ? 
+            '<span class="badge bg-secondary"><i class="bi bi-info-circle me-1"></i>Datos del entrenamiento</span>' : 
+            '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Datos actualizados de la BD</span>'}
+        </div>
       </div>
     `;
   }

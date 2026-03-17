@@ -77,10 +77,7 @@
         <!-- Tab Equipos -->
         <div class="tab-pane fade show active" id="equipos" role="tabpanel">
             <div class="card border-0 shadow-sm">
-                <div class="card-header border-0 bg-sena-primary">
-                    <h6 class="mb-0 text-white fw-bold"><i class="bi bi-cpu me-2"></i>Lista de Equipos</h6>
-                </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -112,10 +109,7 @@
         <!-- Tab Items -->
         <div class="tab-pane fade" id="items" role="tabpanel">
             <div class="card border-0 shadow-sm">
-                <div class="card-header border-0 bg-sena-primary">
-                    <h6 class="mb-0 text-white fw-bold"><i class="bi bi-box-seam me-2"></i>Lista de Items</h6>
-                </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -238,7 +232,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarEdicion()">
+                <button type="button" class="btn btn-primary" id="btnGuardarEdicion">
                     <i class="bi bi-save me-2"></i>Guardar Cambios
                 </button>
             </div>
@@ -265,7 +259,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="capturarYReemplazar()">
+                <button type="button" class="btn btn-primary" id="btnCapturarYReemplazar">
                     <i class="bi bi-camera-fill me-2"></i>Capturar
                 </button>
             </div>
@@ -279,6 +273,57 @@ let registros = [];
 // Cargar registros al iniciar
 document.addEventListener('DOMContentLoaded', () => {
     cargarRegistros();
+    
+    // Event listener para botón guardar edición
+    const btnGuardarEdicion = document.getElementById('btnGuardarEdicion');
+    if (btnGuardarEdicion) {
+        btnGuardarEdicion.addEventListener('click', guardarEdicion);
+    }
+    
+    // Event listener para botón capturar y reemplazar
+    const btnCapturarYReemplazar = document.getElementById('btnCapturarYReemplazar');
+    if (btnCapturarYReemplazar) {
+        btnCapturarYReemplazar.addEventListener('click', capturarYReemplazar);
+    }
+    
+    // Event delegation para botones de acción en tablas
+    document.addEventListener('click', function(e) {
+        // Botón ver detalles
+        const btnView = e.target.closest('.btn-action-view');
+        if (btnView) {
+            const id = btnView.dataset.id;
+            const tipo = btnView.dataset.tipo;
+            verDetalles(id, tipo);
+            return;
+        }
+        
+        // Botón editar
+        const btnEdit = e.target.closest('.btn-action-edit');
+        if (btnEdit) {
+            const id = btnEdit.dataset.id;
+            const tipo = btnEdit.dataset.tipo;
+            editarRegistro(id, tipo);
+            return;
+        }
+        
+        // Botón eliminar
+        const btnDelete = e.target.closest('.btn-action-delete');
+        if (btnDelete) {
+            const id = btnDelete.dataset.id;
+            const tipo = btnDelete.dataset.tipo;
+            eliminarRegistro(id, tipo);
+            return;
+        }
+        
+        // Imagen ampliable
+        const imgAmpliable = e.target.closest('.img-ampliable');
+        if (imgAmpliable) {
+            const src = imgAmpliable.dataset.imagenSrc;
+            const titulo = imgAmpliable.dataset.imagenTitulo;
+            ampliarImagen(src, titulo);
+            return;
+        }
+    });
 });
 
 // Cargar registros desde el servidor
@@ -341,13 +386,13 @@ function renderTablaEquipos(equipos) {
                 }
             </td>
             <td>
-                <button class="btn btn-sm btn-action-view" onclick="verDetalles('${eq.id}', 'equipo')">
+                <button class="btn btn-sm btn-action-view" data-id="${eq.id}" data-tipo="equipo">
                     <i class="bi bi-eye"></i>
                 </button>
-                <button class="btn btn-sm btn-action-edit" onclick="editarRegistro('${eq.id}', 'equipo')">
+                <button class="btn btn-sm btn-action-edit" data-id="${eq.id}" data-tipo="equipo">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-action-delete" onclick="eliminarRegistro('${eq.id}', 'equipo')">
+                <button class="btn btn-sm btn-action-delete" data-id="${eq.id}" data-tipo="equipo">
                     <i class="bi bi-trash"></i>
                 </button>
             </td>
@@ -383,13 +428,13 @@ function renderTablaItems(items) {
                 }
             </td>
             <td>
-                <button class="btn btn-sm btn-action-view" onclick="verDetalles('${item.id}', 'item')">
+                <button class="btn btn-sm btn-action-view" data-id="${item.id}" data-tipo="item">
                     <i class="bi bi-eye"></i>
                 </button>
-                <button class="btn btn-sm btn-action-edit" onclick="editarRegistro('${item.id}', 'item')">
+                <button class="btn btn-sm btn-action-edit" data-id="${item.id}" data-tipo="item">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-action-delete" onclick="eliminarRegistro('${item.id}', 'item')">
+                <button class="btn btn-sm btn-action-delete" data-id="${item.id}" data-tipo="item">
                     <i class="bi bi-trash"></i>
                 </button>
             </td>
@@ -429,9 +474,11 @@ function mostrarModalDetalles(registro) {
                     <div class="col-6 col-md-4">
                         <div class="card">
                             <img src="/imagenes_objeto/${foto.id}" 
-                                 class="card-img-top img-thumbnail-detail" 
+                                 class="card-img-top img-thumbnail-detail img-ampliable" 
                                  alt="${foto.vista}"
-                                 onclick="ampliarImagen('/imagenes_objeto/${foto.id}', '${foto.vista}')"
+                                 data-imagen-src="/imagenes_objeto/${foto.id}"
+                                 data-imagen-titulo="${foto.vista}"
+                                 style="cursor: pointer;"
                                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ESin imagen%3C/text%3E%3C/svg%3E'">
                             <div class="card-body p-2 text-center">
                                 <small class="text-muted">${foto.vista}</small>
@@ -711,7 +758,7 @@ function cargarImagenesEdicion(fotos, objetoId) {
             ${fotos.map(foto => `
                 <div class="col-6 col-md-4">
                     <div class="card image-grid-card">
-                        <img src="/imagenes_objeto/${foto.id}" 
+                        <img src="/imagenes_objeto/${foto.id}?v=${Date.now()}" 
                              class="card-img-top" 
                              alt="${foto.vista}"
                              onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ESin imagen%3C/text%3E%3C/svg%3E'">
