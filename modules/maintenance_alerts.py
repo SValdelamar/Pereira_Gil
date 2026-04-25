@@ -83,6 +83,9 @@ class MaintenanceAlertManager:
         self.config = configuracion or ConfiguracionAlerta()
         self.alertas_cache = {}
         
+        # Asegurar que la tabla de alertas exista
+        self._crear_tabla_alertas_si_no_existe()
+        
         logger.info("🔔 Sistema de Alertas de Mantenimiento inicializado")
     
     def generar_alertas_automaticas(self) -> List[Alerta]:
@@ -143,19 +146,37 @@ class MaintenanceAlertManager:
             
             # Construir consulta
             lab_ids = [str(lab['id']) for lab in laboratorios]
-            query = """
-                SELECT id, tipo, titulo, mensaje, equipo_id, equipo_nombre,
-                       laboratorio_id, laboratorio_nombre, fecha_alerta,
-                       fecha_mantenimiento, riesgo, prioridad, canales,
-                       destinatarios, leida, fecha_lectura
-                FROM alertas_mantenimiento
-                WHERE laboratorio_id IN ({})
-                ORDER BY prioridad ASC, fecha_alerta DESC
-            """.format(','.join(['%s'] * len(lab_ids)))
             
-            params = lab_ids
+            # Validación adicional: si no hay lab_ids, retornar vacío
+            if not lab_ids:
+                return []
+            
+            # Construir placeholders para IN clause
+            placeholders = ','.join(['%s'] * len(lab_ids))
+            
+            # Construir consulta base
             if solo_no_leidas:
-                query += " AND leida = FALSE"
+                query = f"""
+                    SELECT id, tipo, titulo, mensaje, equipo_id, equipo_nombre,
+                           laboratorio_id, laboratorio_nombre, fecha_alerta,
+                           fecha_mantenimiento, riesgo, prioridad, canales,
+                           destinatarios, leida, fecha_lectura
+                    FROM alertas_mantenimiento
+                    WHERE laboratorio_id IN ({placeholders}) AND leida = FALSE
+                    ORDER BY prioridad ASC, fecha_alerta DESC
+                """
+                params = lab_ids
+            else:
+                query = f"""
+                    SELECT id, tipo, titulo, mensaje, equipo_id, equipo_nombre,
+                           laboratorio_id, laboratorio_nombre, fecha_alerta,
+                           fecha_mantenimiento, riesgo, prioridad, canales,
+                           destinatarios, leida, fecha_lectura
+                    FROM alertas_mantenimiento
+                    WHERE laboratorio_id IN ({placeholders})
+                    ORDER BY prioridad ASC, fecha_alerta DESC
+                """
+                params = lab_ids
             
             result = self.db_manager.execute_query(query, params)
             
@@ -682,8 +703,60 @@ class MaintenanceAlertManager:
             logger.error(f"Error guardando alertas: {e}")
             return False
     
+    def _crear_tabla_alertas_si_no_existe(self):
+        """Verificar y crear tabla alertas_mantenimiento si no existe"""
+        try:
+            # Verificar si la tabla existe
+            check_query = """
+                SELECT COUNT(*) as table_exists 
+                FROM information_schema.tables 
+                WHERE table_schema = DATABASE() 
+                AND table_name = 'alertas_mantenimiento'
+            """
+            result = self.db_manager.execute_query(check_query)
+            
+            if result and result[0]['table_exists'] > 0:
+                logger.info("✅ Tabla alertas_mantenimiento ya existe")
+                return
+            
+            # Crear tabla si no existe
+            logger.info("🔧 Creando tabla alertas_mantenimiento...")
+            create_query = """
+                CREATE TABLE alertas_mantenimiento (
+                    id VARCHAR(100) PRIMARY KEY,
+                    tipo ENUM('mantenimiento_proximo', 'mantenimiento_vencido', 'equipo_critico', 
+                             'calibracion_vencida', 'tendencia_fallas', 'uso_excesivo') NOT NULL,
+                    titulo VARCHAR(255) NOT NULL,
+                    mensaje TEXT NOT NULL,
+                    equipo_id VARCHAR(50) NOT NULL,
+                    equipo_nombre VARCHAR(100) NOT NULL,
+                    laboratorio_id INT NOT NULL,
+                    laboratorio_nombre VARCHAR(100) NOT NULL,
+                    fecha_alerta DATETIME NOT NULL,
+                    fecha_mantenimiento DATETIME NOT NULL,
+                    riesgo ENUM('bajo', 'medio', 'alto', 'critico') NOT NULL,
+                    prioridad INT NOT NULL,
+                    canales JSON NOT NULL,
+                    destinatarios JSON NOT NULL,
+                    leida BOOLEAN DEFAULT FALSE,
+                    fecha_lectura DATETIME NULL,
+                    
+                    INDEX idx_fecha_alerta (fecha_alerta),
+                    INDEX idx_prioridad (prioridad),
+                    INDEX idx_laboratorio_id (laboratorio_id),
+                    INDEX idx_leida (leida),
+                    INDEX idx_equipo_id (equipo_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+            self.db_manager.execute_query(create_query)
+            logger.info("✅ Tabla alertas_mantenimiento creada exitosamente")
+            
+        except Exception as e:
+            logger.error(f"❌ Error creando tabla alertas_mantenimiento: {e}")
+            # No lanzar excepción para permitir continuar con el sistema
+    
     def _crear_tabla_alertas(self):
-        """Crear tabla de alertas si no existe"""
+        """Crear tabla de alertas si no existe (método legacy)"""
         try:
             query = """
                 CREATE TABLE IF NOT EXISTS alertas_mantenimiento (

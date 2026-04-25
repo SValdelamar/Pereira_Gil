@@ -1,991 +1,197 @@
 {% extends 'base.html' %}
 {% set title = 'Buscador Global' %}
 
-{% set puede_ajustar_stock = false %}
-{% if user and (user.get('user_level', 0) == 6 or (user.get('user_level', 0) == 5 and user.get('a_cargo_inventario', false))) %}
-  {% set puede_ajustar_stock = true %}
-{% endif %}
-
 {% block content %}
+<div class="ui-page-container">
 
-<!-- Header -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-  <div class="card-body p-4">
-    <h4 class="mb-1 text-white fw-bold"><i class="bi bi-search me-2"></i>Buscador Global de Inventario</h4>
-    <p class="mb-0 text-white opacity-90">Busca equipos y items • Haz clic en "Ver Detalle" para gestionar</p>
-  </div>
-</div>
-
-<!-- Filtros de Búsqueda -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body p-4">
-    <div class="d-flex align-items-center mb-3">
-      <i class="bi bi-funnel me-2 filter-section-title"></i>
-      <h6 class="mb-0 fw-semibold filter-section-title">Filtros de Búsqueda</h6>
-    </div>
-    <div class="row g-3">
-      <div class="col-md-5">
-        <label class="filter-label">Búsqueda</label>
-        <div class="input-group">
-          <span class="input-group-text input-group-icon"><i class="bi bi-search"></i></span>
-          <input id="filtroBusqueda" type="text" class="form-control" placeholder="Buscar por nombre, tipo, categoría..." autofocus>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <label class="filter-label">Tipo</label>
-        <select id="filtroTipo" class="form-select">
-          <option value="">Todos (Equipos e Items)</option>
-          <option value="equipo">Solo Equipos</option>
-          <option value="item">Solo Items</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="filter-label">Laboratorio</label>
-        <select id="filtroLaboratorio" class="form-select">
-          <option value="">Todos</option>
-          {% for lab in laboratorios %}
-          <option value="{{ lab.id }}">{{ lab.nombre }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="filter-label">Exportar</label>
-        <select class="form-select" id="selectExport">
-          <option value="">Seleccionar...</option>
-          <option value="excel">Excel (.xls)</option>
-          <option value="pdf">PDF</option>
-          <option value="csv">CSV</option>
-        </select>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Estadísticas -->
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100 stat-box-success">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <div class="icon-circle">
-              <i class="bi bi-search fs-3 text-white"></i>
-            </div>
-          </div>
-          <div>
-            <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px; font-weight: 600;">Total Resultados</div>
-            <div class="fs-2 fw-bold text-dark" id="totalResultados">{{ (equipos|length) + (inventario|length) }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100 stat-box-primary">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <div class="icon-circle">
-              <i class="bi bi-cpu fs-3 text-white"></i>
-            </div>
-          </div>
-          <div>
-            <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px; font-weight: 600;">Equipos</div>
-            <div class="fs-2 fw-bold text-dark" id="totalEquipos">{{ equipos|length }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100 stat-box-success">
-      <div class="card-body p-3">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <div class="icon-circle">
-              <i class="bi bi-box-seam fs-3 text-white"></i>
-            </div>
-          </div>
-          <div>
-            <div class="small text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px; font-weight: 600;">Items</div>
-            <div class="fs-2 fw-bold text-dark" id="totalItems">{{ inventario|length }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Tabla de Resultados -->
-<div class="card border-0 shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tablaResultados">
-        <thead class="bg-light-gradient">
-          <tr class="text-sena-primary" style="font-weight: 600;">
-            <th>Tipo</th>
-            <th>Nombre</th>
-            <th>Categoría/Tipo</th>
-            <th><i class="bi bi-building me-1"></i>Laboratorio</th>
-            <th>Ubicación</th>
-            <th>Estado/Cantidad</th>
-            <th>Información Adicional</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-    <tbody>
-      <!-- EQUIPOS -->
-      {% for e in equipos %}
-      <tr data-tipo="equipo"
-          data-nombre="{{ e.nombre|lower }}" 
-          data-cat="{{ e.tipo|lower }}" 
-          data-estado="{{ e.estado }}"
-          data-lab="{{ e.laboratorio_id }}"
-          data-ubicacion="{{ (e.ubicacion or '')|lower }}">
-        <td>
-          <span class="badge bg-info">
-            <i class="bi bi-cpu"></i> EQUIPO
-          </span>
-        </td>
-        <td>
-          <div class="fw-semibold">{{ e.nombre }}</div>
-          <small class="text-muted">ID: {{ e.id }}</small>
-        </td>
-        <td>
-          <span class="badge bg-light text-dark">{{ e.tipo }}</span>
-        </td>
-        <td>
-          <span class="badge badge-disponible">
-            <i class="bi bi-building"></i> {{ e.laboratorio_nombre }}
-          </span>
-        </td>
-        <td>
-          <i class="bi bi-geo-alt text-muted"></i>
-          {{ e.ubicacion or 'No especificada' }}
-        </td>
-        <td>
-          {% set badge = 'success' if e.estado=='disponible' else ('info' if e.estado=='en_uso' else ('warning' if e.estado=='mantenimiento' else 'danger')) %}
-          <span class="badge bg-{{ badge }}">
-            {{ e.estado.replace('_', ' ')|upper }}
-          </span>
-        </td>
-        <td>
-          <small class="text-muted">
-            {% if e.calibracion %}
-              📅 Cal: {{ e.calibracion }}
-            {% else %}
-              <span class="text-muted opacity-50">-</span>
-            {% endif %}
-            {% if e.mantenimiento %}
-              <br>🔧 Mant: {{ e.mantenimiento }}
-            {% endif %}
-          </small>
-        </td>
-        <td>
-          <div class="btn-group" role="group">
-            <button class="btn btn-sm btn-sena" disabled title="Función no disponible">
-              <i class="bi bi-calendar-check"></i> Reservar
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="verDetallesEquipo('{{ e.id }}')">
-              <i class="bi bi-eye"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-      
-      <!-- ITEMS DE INVENTARIO -->
-      {% for i in items %}
-      <tr data-tipo="item"
-          data-nombre="{{ i.nombre|lower }}" 
-          data-cat="{{ i.categoria|lower }}" 
-          data-estado="{{ i.stock_status }}"
-          data-lab="{{ i.laboratorio_id }}"
-          data-ubicacion="{{ (i.ubicacion or '')|lower }}">
-        <td>
-          <span class="badge bg-success">
-            <i class="bi bi-box-seam"></i> ITEM
-          </span>
-        </td>
-        <td>
-          <div class="fw-semibold">{{ i.nombre }}</div>
-          <small class="text-muted">ID: {{ i.id }}</small>
-        </td>
-        <td>
-          <span class="badge bg-light text-dark">{{ i.categoria }}</span>
-        </td>
-        <td>
-          <span class="badge" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: white;">
-            <i class="bi bi-building"></i> {{ i.laboratorio_nombre }}
-          </span>
-        </td>
-        <td>
-          <i class="bi bi-geo-alt text-muted"></i>
-          {{ i.ubicacion or 'No especificada' }}
-        </td>
-        <td>
-          <div class="d-flex align-items-center gap-2">
-            <span class="fw-semibold">{{ i.cantidad_actual }} / {{ i.cantidad_minima }}</span>
-            {% set badge = 'danger' if i.stock_status=='critico' else ('warning' if i.stock_status=='bajo' else 'success') %}
-            <span class="badge bg-{{ badge }}">{{ i.stock_status|upper }}</span>
-          </div>
-        </td>
-        <td>
-          <small class="text-muted">
-            {% if i.unidad %}{{ i.unidad }}{% endif %}
-            {% if i.proveedor %} • 🏢 {{ i.proveedor }}{% endif %}
-            {% if i.vencimiento %}<br>📅 Vence: {{ i.vencimiento }}{% endif %}
-            {% if not i.unidad and not i.proveedor and not i.vencimiento %}
-              <span class="text-muted opacity-50">-</span>
-            {% endif %}
-          </small>
-        </td>
-        <td>
-          <div class="btn-group" role="group">
-            <a href="/inventario/detalle/{{ i.id }}" class="btn btn-sm btn-sena">
-              <i class="bi bi-eye"></i> Ver Detalle
-            </a>
-            <button class="btn btn-sm btn-outline-secondary" 
-                    onclick="verHistorialItem('{{ i.id }}')">
-              <i class="bi bi-clock-history"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-      
-      {% if not equipos and not items %}
-      <tr>
-        <td colspan="9" class="text-center text-muted py-4">
-          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-          No se encontraron resultados
-        </td>
-      </tr>
-      {% endif %}
-    </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de Entrega a Instructores de Química -->
-<div class="modal fade" id="modalEntrega" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-sena text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-people-fill me-2"></i>
-          Entrega a Instructores de Química
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="card bg-light">
-              <div class="card-body">
-                <h6 class="card-title text-sena-primary">
-                  <i class="bi bi-info-circle me-2"></i>Información del Item
-                </h6>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Item</label>
-                  <input type="text" id="itemNombre" class="form-control" readonly>
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white text-sena p-3 me-4 shadow-sm d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                        <i class="bi bi-search fs-1"></i>
+                    </div>
+                    <div>
+                        <h1 class="module-header-title">Buscador Global</h1>
+                        <p class="module-header-description">Consulta en tiempo real equipos e items consumibles en todos los ambientes</p>
+                    </div>
                 </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Stock Disponible</label>
-                  <div class="input-group">
-                    <input type="number" id="stockDisponible" class="form-control" readonly>
-                    <span class="input-group-text" id="unidadStock"></span>
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Estado del Stock</label>
-                  <div id="estadoStock" class="badge fs-6"></div>
-                </div>
-              </div>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card">
-              <div class="card-body">
-                <h6 class="card-title text-sena-primary">
-                  <i class="bi bi-person-badge me-2"></i>Detalles de Entrega
-                </h6>
-                <form id="formEntrega">
-                  <input type="hidden" id="itemId">
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Instructor de Química *</label>
-                    <select id="instructorQuimica" class="form-select" required>
-                      <option value="">Selecciona un instructor...</option>
-                    </select>
-                    <div class="form-text">Selecciona entre instructores con y sin inventario</div>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Cantidad a Entregar *</label>
-                    <input type="number" id="cantidadEntrega" class="form-control" 
-                           min="1" required>
-                    <div class="form-text">Cantidad máxima: <span id="maxCantidad">0</span></div>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Motivo de Uso *</label>
-                    <textarea id="motivoUso" class="form-control" rows="3" required
-                              placeholder="Describe el motivo de uso de los materiales...&#10;Ej: Práctica de titulación ácido-base para el grupo 2102"></textarea>
-                    <div class="form-text">Especifica claramente el propósito y contexto del uso</div>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Grupo/Clase</label>
-                    <input type="text" id="grupoClase" class="form-control" 
-                           placeholder="Ej: 1101, 2102, Grupo A">
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Observaciones</label>
-                    <textarea id="observacionesEntrega" class="form-control" rows="2"
-                              placeholder="Notas adicionales sobre la entrega..."></textarea>
-                  </div>
-                </form>
-              </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="alert alert-info py-2 px-3 mb-0 small shadow-none border-0 text-white" style="background: rgba(255,255,255,0.15);">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    Sincronización centralizada activa
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-x-circle me-2"></i>Cancelar
-        </button>
-        <button type="button" class="btn btn-sena" onclick="procesarEntrega()">
-          <i class="bi bi-check-circle me-2"></i>Confirmar Entrega
-        </button>
-      </div>
     </div>
-  </div>
-</div>
 
-<!-- Modal de Ajuste de Stock -->
-<div class="modal fade" id="modalAjuste" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-arrow-left-right me-2"></i>
-          Ajuste de Stock
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-warning">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          <strong>Atención:</strong> Esta acción modificará el stock actual del item. Todos los ajustes quedan registrados en el historial.
+    <!-- 2. Filtros Inteligentes (CMD) -->
+    <div class="ui-filter-card">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label class="ui-label">Término de Búsqueda</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input id="filtroBusqueda" type="text" class="ui-input ps-0" placeholder="Ej: Microscopio, Tubo, Estuche..." autofocus>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Categoría de Activo</label>
+                <select id="filtroTipo" class="ui-input">
+                    <option value="">Todo el Inventario</option>
+                    <option value="equipo">Solo Equipos</option>
+                    <option value="item">Solo Items Consumibles</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="ui-label">Ubicación / Laboratorio</label>
+                <select id="filtroLaboratorio" class="ui-input">
+                    <option value="">Todos los Ambientes</option>
+                    {% for lab in laboratorios %}
+                    <option value="{{ lab.id }}">{{ lab.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Widgets de Estadísticas (CMD) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="ui-stat-widget border-bottom border-4 border-primary">
+                <div class="stat-label">Total Coincidencias</div>
+                <div class="stat-value text-primary" id="totalResultados">{{ (equipos|length) + (inventario|length) }}</div>
+                <div class="small text-muted mt-1">Registros encontrados</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="ui-stat-widget border-bottom border-4 border-info">
+                <div class="stat-label">Equipos Técnicos</div>
+                <div class="stat-value text-info">{{ equipos|length }}</div>
+                <div class="small text-muted mt-1">Activos fijos monitoreados</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="ui-stat-widget border-bottom border-4 border-warning">
+                <div class="stat-label">Ítems e Insumos</div>
+                <div class="stat-value text-warning">{{ inventario|length }}</div>
+                <div class="small text-muted mt-1">Consumibles en stock</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Resultados de Búsqueda (CMD) -->
+    <div class="ui-data-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title"><i class="bi bi-table text-primary me-2"></i> Resultados Consolidados</h5>
+            <span class="badge badge-primary">SISTEMA GIL</span>
         </div>
         
-        <div class="row">
-          <div class="col-md-6">
-            <div class="card bg-light">
-              <div class="card-body">
-                <h6 class="card-title text-sena-primary">
-                  <i class="bi bi-info-circle me-2"></i>Información del Item
-                </h6>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Item</label>
-                  <input type="text" id="ajusteItemNombre" class="form-control" readonly>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Stock Actual</label>
-                  <div class="input-group">
-                    <input type="number" id="ajusteStockActual" class="form-control" readonly>
-                    <span class="input-group-text" id="ajusteUnidadStock"></span>
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Diferencia</label>
-                  <div class="input-group">
-                    <span class="input-group-text" id="ajusteSigno">+</span>
-                    <input type="number" id="ajusteDiferencia" class="form-control" readonly>
-                    <span class="input-group-text" id="ajusteTipo"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card">
-              <div class="card-body">
-                <h6 class="card-title text-sena-primary">
-                  <i class="bi bi-gear me-2"></i>Configuración del Ajuste
-                </h6>
-                <form id="formAjuste">
-                  <input type="hidden" id="ajusteItemId">
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Nuevo Stock *</label>
-                    <input type="number" id="ajusteNuevoStock" class="form-control" 
-                           min="0" required>
-                    <div class="form-text">Ingresa la nueva cantidad de stock</div>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Motivo del Ajuste *</label>
-                    <select class="form-select" id="ajusteMotivo" required>
-                      <option value="">Selecciona un motivo...</option>
-                      <option value="entrada_compra">Entrada por compra</option>
-                      <option value="entrada_donacion">Entrada por donación</option>
-                      <option value="entrada_devolucion">Entrada por devolución</option>
-                      <option value="entrada_ajuste">Entrada por ajuste de inventario</option>
-                      <option value="salida_perdida">Salida por pérdida</option>
-                      <option value="salida_danio">Salida por daño</option>
-                      <option value="salida_vencimiento">Salida por vencimiento</option>
-                      <option value="salida_ajuste">Salida por ajuste de inventario</option>
-                      <option value="otro">Otro (especificar)</option>
-                    </select>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label fw-semibold">Observaciones</label>
-                    <textarea id="ajusteObservaciones" class="form-control" rows="3"
-                              placeholder="Describe los detalles del ajuste..."></textarea>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-x-circle me-2"></i>Cancelar
-        </button>
-        <button type="button" class="btn btn-warning" onclick="procesarAjuste()">
-          <i class="bi bi-check-circle me-2"></i>Confirmar Ajuste
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal de Historial de Entregas -->
-<div class="modal fade" id="modalHistorial" tabindex="-1">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-sena text-white">
-        <h5 class="modal-title">
-          <i class="bi bi-clock-history me-2"></i>
-          Historial de Entregas
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
+{% if inventario|length == 0 %}
+        <div class="alert alert-warning m-3">
+            <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmado: No hay items consumibles</h6>
+            <p class="mb-2">El buscador global no encuentra items. Si laboratorios muestra números diferentes, podrían ser datos de ejemplo.</p>
+        </div>
+        {% endif %}
         <div class="table-responsive">
-          <table class="table table-hover" id="tablaHistorial">
-            <thead class="bg-light">
-              <tr>
-                <th>Fecha/Hora</th>
-                <th>Item</th>
-                <th>Cantidad</th>
-                <th>Entregado por</th>
-                <th>Motivo</th>
-                <th>Laboratorio</th>
-                <th>Observaciones</th>
-              </tr>
-            </thead>
-            <tbody id="cuerpoHistorial">
-              <!-- Se llenará con JavaScript -->
-            </tbody>
-          </table>
+            <table class="ui-table-premium" id="tablaBusqueda">
+                <thead>
+                    <tr>
+                        <th style="width: 350px;">Nombre del Recurso</th>
+                        <th>Tipo</th>
+                        <th>Laboratorio</th>
+                        <th>Disponibilidad / Stock</th>
+                        <th class="text-end">Operaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {# Equipos #}
+                    {% for e in equipos %}
+                    <tr class="item-fila" data-tipo="equipo" data-lab="{{ e.laboratorio_id }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-blue-soft p-2 me-3 text-primary"><i class="bi bi-cpu fs-5"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ e.nombre }}</div>
+                                    <code class="smaller text-muted">ID: {{ e.id }}</code>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">EQUIPO</span></td>
+                        <td><div class="small fw-bold text-primary"><i class="bi bi-building me-1"></i>{{ e.laboratorio_nombre }}</div></td>
+                        <td>
+                            {% set b_color = 'sena' if e.estado=='disponible' else ('primary' if e.estado=='en_uso' else 'danger') %}
+                            <span class="badge bg-{{ b_color }}-soft text-{{ b_color }} fw-bold">{{ e.estado|upper }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="/equipos/detalle/{{ e.id }}" class="ui-btn-action ui-btn-action-outline btn-sm">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {# Items #}
+                    
+                    {% for i in inventario %}
+                    <tr class="item-fila" data-tipo="item" data-lab="{{ i.laboratorio_id }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-orange-soft p-2 me-3 text-warning"><i class="bi bi-box-seam fs-5"></i></div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ i.nombre }}</div>
+                                    <small class="text-muted">{{ i.categoria or 'S/C' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">ITEM</span></td>
+                        <td><div class="small fw-bold text-primary"><i class="bi bi-building me-1"></i>{{ i.laboratorio_nombre }}</div></td>
+                        <td>
+                            {% set s_color = 'sena' if i.cantidad_actual > i.cantidad_minima else 'danger' %}
+                            <span class="badge bg-{{ s_color }}-soft text-{{ s_color }} fw-bold">{{ i.cantidad_actual }} {{ i.unidad }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="/inventario/item/{{ i.id }}" class="ui-btn-action ui-btn-action-outline btn-sm">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-x-circle me-2"></i>Cerrar
-        </button>
-      </div>
     </div>
-  </div>
 </div>
 
 <script>
-  const busquedaFilter = document.getElementById('filtroBusqueda');
-  const tipoFilter = document.getElementById('filtroTipo');
-  const labFilter = document.getElementById('filtroLaboratorio');
-  const tbody = document.querySelector('#tablaResultados tbody');
-  const totalBadge = document.getElementById('totalResultados');
-  const equiposBadge = document.getElementById('totalEquipos');
-  const itemsBadge = document.getElementById('totalItems');
-  
-  function filtrar(){
-    const t = (busquedaFilter.value || '').toLowerCase();
-    const tipo = tipoFilter.value;
-    const lab = labFilter.value;
-    
-    let visibleCount = 0;
-    let visibleEquipos = 0;
-    let visibleItems = 0;
-    
-    [...tbody.rows].forEach(r=>{
-      // Buscar en nombre, categoría y ubicación
-      const okTxt = r.dataset.nombre.includes(t) || 
-                    r.dataset.cat.includes(t) || 
-                    r.dataset.ubicacion.includes(t);
-      const okTipo = !tipo || r.dataset.tipo === tipo;
-      const okLab = !lab || r.dataset.lab === lab;
-      
-      const visible = okTxt && okTipo && okLab;
-      r.classList.toggle('d-none', !visible);
-      
-      if (visible) {
-        visibleCount++;
-        if (r.dataset.tipo === 'equipo') visibleEquipos++;
-        else visibleItems++;
-      }
-    });
-    
-    // Actualizar contadores
-    totalBadge.textContent = visibleCount;
-    equiposBadge.textContent = visibleEquipos;
-    itemsBadge.textContent = visibleItems;
-  }
-  
-  busquedaFilter.addEventListener('input', filtrar);
-  tipoFilter.addEventListener('change', filtrar);
-  labFilter.addEventListener('change', filtrar);
+    const busqueda = document.getElementById('filtroBusqueda');
+    const tipo = document.getElementById('filtroTipo');
+    const lab = document.getElementById('filtroLaboratorio');
 
-  // Función para mostrar modal de entrega a instructor de química
-  function mostrarModalEntrega(itemId, itemNombre, stockActual, unidad) {
-    // Limpiar y establecer valores básicos
-    document.getElementById('itemId').value = itemId;
-    document.getElementById('itemNombre').value = itemNombre;
-    document.getElementById('stockDisponible').value = stockActual;
-    document.getElementById('unidadStock').textContent = unidad || 'unidades';
-    document.getElementById('maxCantidad').textContent = stockActual;
-    document.getElementById('cantidadEntrega').max = stockActual;
-    document.getElementById('cantidadEntrega').value = '';
-    document.getElementById('motivoUso').value = '';
-    document.getElementById('grupoClase').value = '';
-    document.getElementById('observacionesEntrega').value = '';
-    
-    // Cargar instructores de química
-    cargarInstructoresQuimica();
-    
-    // Verificar disponibilidad y estado
-    fetch(`/api/inventario/disponible/${itemId}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const item = data.item;
-          const estadoBadge = document.getElementById('estadoStock');
-          
-          // Configurar badge de estado
-          estadoBadge.textContent = item.stock_status.toUpperCase();
-          estadoBadge.className = 'badge fs-6';
-          
-          switch(item.stock_status) {
-            case 'critico':
-              estadoBadge.classList.add('bg-danger');
-              break;
-            case 'bajo':
-              estadoBadge.classList.add('bg-warning');
-              break;
-            default:
-              estadoBadge.classList.add('bg-success');
-          }
-          
-          // Deshabilitar si no hay stock
-          if (item.cantidad_actual <= 0) {
-            document.getElementById('cantidadEntrega').disabled = true;
-            document.querySelector('#modalEntrega .btn-sena').disabled = true;
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Error verificando disponibilidad:', error);
-      });
-    
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('modalEntrega'));
-    modal.show();
-  }
-  
-  // Función para cargar instructores de química
-  function cargarInstructoresQuimica() {
-    fetch('/api/instructores-quimica')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const select = document.getElementById('instructorQuimica');
-          select.innerHTML = '<option value="">Selecciona un instructor...</option>';
-          
-          // Agrupar instructores por rol
-          const instructoresConInventario = data.instructores.filter(i => i.nivel_acceso === 5);
-          const instructoresSinInventario = data.instructores.filter(i => i.nivel_acceso === 4);
-          
-          // Agregar instructores con inventario primero
-          if (instructoresConInventario.length > 0) {
-            const optgroup1 = document.createElement('optgroup');
-            optgroup1.label = '📦 Instructores con Inventario';
-            
-            instructoresConInventario.forEach(instructor => {
-              const option = document.createElement('option');
-              option.value = instructor.id;
-              option.textContent = `${instructor.nombre} - ${instructor.especialidad || 'Química'}`;
-              optgroup1.appendChild(option);
-            });
-            
-            select.appendChild(optgroup1);
-          }
-          
-          // Agregar instructores sin inventario después
-          if (instructoresSinInventario.length > 0) {
-            const optgroup2 = document.createElement('optgroup');
-            optgroup2.label = '👨‍🏫 Instructores sin Inventario';
-            
-            instructoresSinInventario.forEach(instructor => {
-              const option = document.createElement('option');
-              option.value = instructor.id;
-              option.textContent = `${instructor.nombre} - ${instructor.especialidad || 'Química'}`;
-              optgroup2.appendChild(option);
-            });
-            
-            select.appendChild(optgroup2);
-          }
-          
-        } else {
-          console.error('Error cargando instructores:', data.message);
-        }
-      })
-      .catch(error => {
-        console.error('Error cargando instructores:', error);
-      });
-  }
-  
-  // Función para procesar entrega a instructor de química
-  function procesarEntrega() {
-    const itemId = document.getElementById('itemId').value;
-    const cantidad = parseInt(document.getElementById('cantidadEntrega').value);
-    const instructorId = document.getElementById('instructorQuimica').value;
-    const instructorNombre = document.getElementById('instructorQuimica').options[document.getElementById('instructorQuimica').selectedIndex]?.text || '';
-    const motivoUso = document.getElementById('motivoUso').value.trim();
-    const grupo = document.getElementById('grupoClase').value.trim();
-    const observaciones = document.getElementById('observacionesEntrega').value.trim();
-    
-    // Validaciones
-    if (!cantidad || cantidad <= 0) {
-      alert('Por favor ingrese una cantidad válida');
-      return;
-    }
-    
-    if (!instructorId) {
-      alert('Por favor seleccione un instructor de química');
-      return;
-    }
-    
-    if (!motivoUso) {
-      alert('Por favor describa el motivo de uso');
-      return;
-    }
-    
-    // Confirmar entrega
-    const itemNombre = document.getElementById('itemNombre').value;
-    const confirmMessage = `¿Confirmar entrega de ${cantidad} ${itemNombre} al instructor ${instructorNombre}?\n\nMotivo: ${motivoUso}${grupo ? '\nGrupo: ' + grupo : ''}`;
-    
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-    
-    // Enviar solicitud
-    fetch('/inventario/entregar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        item_id: itemId,
-        cantidad: cantidad,
-        instructor_id: instructorId,
-        instructor_nombre: instructorNombre,
-        motivo_uso: motivoUso,
-        grupo: grupo,
-        observaciones: observaciones
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
+    function ejecutarFiltro() {
+        const query = busqueda.value.toLowerCase().trim();
+        const tVal = tipo.value;
+        const lVal = lab.value;
+
+        let visibleCount = 0;
         
-        // Cerrar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalEntrega'));
-        modal.hide();
+        document.querySelectorAll('.item-fila').forEach(tr => {
+            const matchTxt = tr.innerText.toLowerCase().includes(query);
+            const matchTipo = !tVal || tr.dataset.tipo === tVal;
+            const matchLab = !lVal || tr.dataset.lab === lVal;
+
+            const isVisible = matchTxt && matchTipo && matchLab;
+            tr.classList.toggle('d-none', !isVisible);
+            if(isVisible) visibleCount++;
+        });
         
-        // Recargar página para actualizar stock
-        setTimeout(() => {
-          location.reload();
-        }, 1000);
-      } else {
-        alert('Error: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Error en entrega:', error);
-      alert('Error al procesar la entrega. Intente nuevamente.');
-    });
-  }
-</script>
+        document.getElementById('totalResultados').textContent = visibleCount;
+    }
 
-<script>
-  
-  // Función para mostrar modal de ajuste de stock
-  function mostrarModalAjuste(itemId, itemNombre, stockActual, unidad) {
-    document.getElementById('ajusteItemId').value = itemId;
-    document.getElementById('ajusteItemNombre').value = itemNombre;
-    document.getElementById('ajusteStockActual').value = stockActual;
-    document.getElementById('ajusteUnidadStock').textContent = unidad || 'unidades';
-    document.getElementById('ajusteNuevoStock').value = stockActual;
-    document.getElementById('ajusteMotivo').value = '';
-    document.getElementById('ajusteObservaciones').value = '';
+    [busqueda, tipo, lab].forEach(el => el.addEventListener('input', ejecutarFiltro));
     
-    // Actualizar diferencia en tiempo real
-    actualizarDiferenciaAjuste();
-    
-    // Mostrar modal
-    const modalAjuste = new bootstrap.Modal(document.getElementById('modalAjuste'));
-    modalAjuste.show();
-  }
-  
-  // Función para actualizar la diferencia del ajuste
-  function actualizarDiferenciaAjuste() {
-    const stockActual = parseInt(document.getElementById('ajusteStockActual').value) || 0;
-    const nuevoStock = parseInt(document.getElementById('ajusteNuevoStock').value) || 0;
-    const diferencia = nuevoStock - stockActual;
-    
-    const signoElement = document.getElementById('ajusteSigno');
-    const diferenciaElement = document.getElementById('ajusteDiferencia');
-    const tipoElement = document.getElementById('ajusteTipo');
-    
-    if (diferencia > 0) {
-      signoElement.textContent = '+';
-      signoElement.className = 'input-group-text bg-success text-white';
-      tipoElement.textContent = 'Entrada';
-      tipoElement.className = 'input-group-text bg-success text-white';
-    } else if (diferencia < 0) {
-      signoElement.textContent = '-';
-      signoElement.className = 'input-group-text bg-danger text-white';
-      tipoElement.textContent = 'Salida';
-      tipoElement.className = 'input-group-text bg-danger text-white';
-    } else {
-      signoElement.textContent = '±';
-      signoElement.className = 'input-group-text bg-secondary text-white';
-      tipoElement.textContent = 'Sin cambio';
-      tipoElement.className = 'input-group-text bg-secondary text-white';
-    }
-    
-    diferenciaElement.value = Math.abs(diferencia);
-  }
-  
-  // Función para procesar ajuste de stock
-  function procesarAjuste() {
-    const itemId = document.getElementById('ajusteItemId').value;
-    const nuevoStock = document.getElementById('ajusteNuevoStock').value;
-    const motivo = document.getElementById('ajusteMotivo').value;
-    const observaciones = document.getElementById('ajusteObservaciones').value;
-    
-    // Validaciones
-    if (!nuevoStock || nuevoStock < 0) {
-      alert('Por favor, ingresa una cantidad válida (mayor o igual a 0)');
-      return;
-    }
-    
-    if (!motivo) {
-      alert('Por favor, selecciona un motivo para el ajuste');
-      return;
-    }
-    
-    const confirmMessage = `¿Confirmar ajuste de stock?\n\nItem: ${document.getElementById('ajusteItemNombre').value}\nStock actual: ${document.getElementById('ajusteStockActual').value}\nNuevo stock: ${nuevoStock}\nDiferencia: ${document.getElementById('ajusteDiferencia').value} ${document.getElementById('ajusteTipo').textContent.toLowerCase()}\nMotivo: ${motivo}`;
-    
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-    
-    // Enviar solicitud
-    fetch('/api/inventario/ajustar-stock', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        item_id: itemId,
-        nueva_cantidad: parseInt(nuevoStock),
-        motivo: motivo,
-        observaciones: observaciones
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        
-        // Cerrar modal
-        const modalAjuste = bootstrap.Modal.getInstance(document.getElementById('modalAjuste'));
-        modalAjuste.hide();
-        
-        // Recargar página para actualizar stock
-        setTimeout(() => {
-          location.reload();
-        }, 1000);
-      } else {
-        alert('Error: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Error en ajuste:', error);
-      alert('Error al procesar el ajuste. Intente nuevamente.');
-    });
-  }
-  
-  // Event listener para actualizar diferencia en tiempo real
-  document.getElementById('ajusteNuevoStock')?.addEventListener('input', actualizarDiferenciaAjuste);
-  
-  // Función para ver historial de un item
-  let lastHistorialCall = 0; // Control de cache para historial
-  const HISTORIAL_COOLDOWN = 10000; // 10 segundos entre llamadas
-  
-  function verHistorialItem(itemId) {
-    // Control de cooldown para evitar llamadas repetitivas
-    const now = Date.now();
-    if (now - lastHistorialCall < HISTORIAL_COOLDOWN) {
-      console.log('⏸️ Historial en cooldown, esperando...');
-      return;
-    }
-    
-    console.log('🔄 Cargando historial para item:', itemId);
-    lastHistorialCall = now; // Marcar tiempo de esta llamada
-    
-    fetch('/api/inventario/historial-entregas')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const tbody = document.getElementById('cuerpoHistorial');
-          tbody.innerHTML = '';
-          
-          // Filtrar entregas de este item
-          const entregasItem = data.entregas.filter(e => e.item_nombre && e.item_nombre.includes(itemId));
-          
-          if (entregasItem.length === 0) {
-            tbody.innerHTML = `
-              <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                  No hay entregas registradas para este item
-                </td>
-              </tr>
-            `;
-          } else {
-            entregasItem.forEach(entrega => {
-              const row = `
-                <tr>
-                  <td>${new Date(entrega.fecha_movimiento).toLocaleString()}</td>
-                  <td><strong>${entrega.item_nombre}</strong></td>
-                  <td>${entrega.cantidad}</td>
-                  <td>${entrega.usuario_entrega}</td>
-                  <td>${entrega.motivo}</td>
-                  <td>${entrega.laboratorio_nombre || '-'}</td>
-                  <td>${entrega.observaciones || '-'}</td>
-                </tr>
-              `;
-              tbody.innerHTML += row;
-            });
-          }
-          
-          // Mostrar modal
-          const modal = new bootstrap.Modal(document.getElementById('modalHistorial'));
-          modal.show();
-        }
-      })
-      .catch(error => {
-        console.error('Error cargando historial:', error);
-        alert('Error al cargar el historial de entregas');
-      });
-  }
-  
-  // Control del select de exportación
-  const selectExport = document.getElementById('selectExport');
-  
-  selectExport.addEventListener('change', (e) => {
-    const formato = e.target.value;
-    if (!formato) return;
-    
-    if (formato === 'excel') {
-      exportarExcel();
-    } else if (formato === 'pdf') {
-      exportarPDF();
-    } else if (formato === 'csv') {
-      exportarCSV();
-    }
-    
-    // Resetear el select
-    e.target.value = '';
-  });
-
-  // Función para obtener datos de la tabla
-  function obtenerDatosTabla() {
-    const rows = [['Tipo','Nombre','ID','Categoria/Tipo','Laboratorio','Ubicacion','Estado/Cantidad','Info Adicional']];
-    [...tbody.rows].forEach(r=>{
-      if(r.classList.contains('d-none')) return;
-      const c=(sel)=>r.querySelector(sel)?.innerText.trim().replace(/\n/g, ' ')||'';
-      rows.push([
-        c('td:nth-child(1)'),
-        c('td:nth-child(2)').split('\n')[0],
-        r.querySelector('td:nth-child(2) small')?.innerText.replace('ID: ','') || '',
-        c('td:nth-child(3)'),
-        c('td:nth-child(4)'),
-        c('td:nth-child(5)'),
-        c('td:nth-child(6)'),
-        c('td:nth-child(7)')
-      ]);
-    });
-    return rows;
-  }
-
-  // Exportar Excel
-  function exportarExcel() {
-    const rows = obtenerDatosTabla();
-    
-    // Crear HTML para Excel
-    let html = '<table><thead><tr>';
-    rows[0].forEach(h => html += `<th style="background:#2D6A4F;color:white;font-weight:bold;padding:8px;border:1px solid #ddd;">${h}</th>`);
-    html += '</tr></thead><tbody>';
-    
-    for(let i=1; i<rows.length; i++){
-      html += '<tr>';
-      rows[i].forEach(c => html += `<td style="padding:6px;border:1px solid #ddd;">${c}</td>`);
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-    
-    const blob = new Blob([html], {type: 'application/vnd.ms-excel'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `inventario_${new Date().toISOString().split('T')[0]}.xls`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // Exportar PDF
-  function exportarPDF() {
-    window.print();
-  }
-
-  // Exportar CSV
-  function exportarCSV() {
-    const rows = obtenerDatosTabla();
-    const csv = rows.map(a=>a.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); 
-    a.href=url; 
-    a.download=`busqueda_global_${new Date().toISOString().split('T')[0]}.csv`; 
-    a.click(); 
-    URL.revokeObjectURL(url);
-  }
-  
-  // Función para ver detalles de equipo
-  function verDetallesEquipo(equipoId) {
-    alert(`Ver detalles del equipo: ${equipoId}\n\nFunción en desarrollo.`);
-  }
 </script>
 {% endblock %}
+

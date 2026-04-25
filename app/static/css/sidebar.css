@@ -3,6 +3,9 @@
    Navegación lateral moderna, limpia y estática
    ===================================================================== */
 
+/* Importar variables de color unificadas basadas en #00af00 */
+@import url('color-variables.css');
+
 :root {
     --sidebar-width: 260px;
     --sidebar-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -10,8 +13,8 @@
 
 /* ===== SIDEBAR BASE ===== */
 .sidebar {
-    background: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%);
-    border-right: 1px solid rgba(45, 106, 79, 0.2);
+    background: var(--sena-sidebar-bg);
+    border-right: 1px solid rgba(var(--sena-primary-rgb), 0.2);
     min-height: 100vh;
     height: 100vh;
     position: fixed;
@@ -91,6 +94,57 @@
     font-size: 12px;
 }
 
+/* ===== CARD DE USUARIO EN SIDEBAR ===== */
+.sidebar-user-card {
+    background: rgba(var(--sena-primary-rgb), 0.15);
+    border: 1px solid rgba(var(--sena-primary-rgb), 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    transition: var(--sidebar-transition);
+}
+
+.sidebar-user-card:hover {
+    background: rgba(var(--sena-primary-rgb), 0.2);
+    border-color: rgba(var(--sena-primary-rgb), 0.4);
+    transform: translateY(-1px);
+}
+
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--sena-primary) 0%, var(--sena-primary-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(var(--sena-primary-rgb), 0.3);
+    flex-shrink: 0;
+}
+
+.sidebar-user-avatar i {
+    font-size: 18px;
+    color: white;
+}
+
+.sidebar-user-badge {
+    background: rgba(var(--sena-primary-rgb), 0.2);
+    border: 1px solid rgba(var(--sena-primary-rgb), 0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    display: inline-flex;
+    align-items: center;
+    transition: var(--sidebar-transition);
+}
+
+.sidebar-user-badge:hover {
+    background: rgba(var(--sena-primary-rgb), 0.3);
+    color: white;
+}
+
 /* ===== DIVIDER ===== */
 .sidebar-divider {
     height: 1px;
@@ -116,7 +170,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.7);    /* WCAG AA: ratio ~6.2:1 (era 0.5 = ~3.8:1) */
     transition: var(--sidebar-transition);
     display: block;
 }
@@ -156,26 +210,26 @@
 
 /* Hover effect */
 .sidebar-link:hover {
-    background: rgba(45, 106, 79, 0.15);
+    background: rgba(var(--sena-primary-rgb), 0.15);
     color: #ffffff;
-    border-left-color: #52b788;
+    border-left-color: var(--sena-primary-light);
 }
 
 .sidebar-link:hover i {
-    color: #74c69d;
+    color: var(--sena-accent);
     transform: translateX(2px);
 }
 
 /* Active state */
 .sidebar-link.active {
-    background: linear-gradient(90deg, rgba(45, 106, 79, 0.25) 0%, rgba(45, 106, 79, 0.1) 100%);
+    background: linear-gradient(90deg, rgba(var(--sena-primary-rgb), 0.25) 0%, rgba(var(--sena-primary-rgb), 0.1) 100%);
     color: #ffffff;
-    border-left-color: #52b788;
+    border-left-color: var(--sena-primary-light);
     font-weight: 600;
 }
 
 .sidebar-link.active i {
-    color: #74c69d;
+    color: var(--sena-accent);
 }
 
 /* Logout link con estilo diferenciado */
@@ -184,14 +238,30 @@
 }
 
 .sidebar-logout:hover {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(var(--sena-danger-rgb), 0.15);
     color: #fca5a5;
-    border-left-color: #ef4444;
+    border-left-color: var(--sena-danger);
 }
 
 /* ===== AJUSTE DEL CONTENIDO PRINCIPAL ===== */
 .main-content {
     margin-left: var(--sidebar-width);
+}
+
+/* ===== SIDEBAR OVERLAY (Mobile) ===== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 /* ===== RESPONSIVE ===== */
@@ -203,6 +273,12 @@
     .sidebar.show {
         transform: translateX(0);
         box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .sidebar.show ~ .sidebar-overlay,
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
     }
     
     .sidebar-toggle {

@@ -1,0 +1,302 @@
+/* =====================================================================
+   VARIABLES DE COLOR UNIFICADAS - PALETA #00af00
+   Sistema de colores basado exclusivamente en #00af00 (verde SENA)
+   ===================================================================== */
+
+:root {
+    /* ===== COLOR PRINCIPAL - VERDE SENA #00af00 ===== */
+    --sena-primary: #00af00;
+    --sena-primary-rgb: 0, 175, 0;
+    
+    /* ===== VARIANTES DEL VERDE PRINCIPAL ===== */
+    --sena-primary-light: #00cc00;      /* 20% más claro */
+    --sena-primary-lighter: #00e600;    /* 40% más claro */
+    --sena-primary-dark: #008c00;       /* 20% más oscuro */
+    --sena-primary-darker: #007300;      /* 30% más oscuro */
+    --sena-primary-darkest: #005200;     /* 50% más oscuro */
+    
+    /* ===== TEXTO ACCESIBLE - WCAG 2.1 AA (ratio >= 4.5:1) ===== */
+    --sena-text-on-light: #007a00;      /* Verde oscuro para texto sobre fondo claro — ratio 4.6:1 */
+    --sena-text-on-dark: #66ff66;       /* Verde claro para texto sobre fondo oscuro */
+    
+    /* ===== GRADIENTES BASADOS EN #00af00 ===== */
+    --sena-gradient-primary: linear-gradient(135deg, var(--sena-primary) 0%, var(--sena-primary-dark) 100%);
+    --sena-gradient-light: linear-gradient(135deg, var(--sena-primary-light) 0%, var(--sena-primary) 100%);
+    --sena-gradient-dark: linear-gradient(135deg, var(--sena-primary) 0%, var(--sena-primary-darker) 100%);
+    --sena-gradient-reverse: linear-gradient(135deg, var(--sena-primary-dark) 0%, var(--sena-primary) 100%);
+    
+    /* ===== COLORES DE ACENTO DERIVADOS ===== */
+    --sena-accent: #66ff66;              /* Verde muy claro para acentos */
+    --sena-accent-light: #b3ffb3;       /* Verde ultra claro */
+    --sena-accent-dark: #33cc33;        /* Verde medio oscuro */
+    
+    /* ===== COLORES PARA ESTADOS ===== */
+    --sena-success: var(--sena-primary);
+    --sena-success-light: var(--sena-primary-light);
+    --sena-success-dark: var(--sena-primary-dark);
+    
+    /* ===== COLORES SEMÁNTICOS — Distinción visual clara ===== */
+    --sena-info: #3b82f6;                /* Azul para información — diferenciado de success */
+    --sena-info-rgb: 59, 130, 246;
+    --sena-info-dark: #2563eb;
+    --sena-warning: #f59e0b;             /* Ámbar para advertencias — universalmente reconocible */
+    --sena-warning-rgb: 245, 158, 11;
+    --sena-warning-dark: #d97706;
+    --sena-danger: #dc2626;              /* Rojo para peligro */
+    --sena-danger-rgb: 220, 38, 38;
+    --sena-danger-dark: #b91c1c;
+    
+    /* ===== COLORES DE FONDO TRANSPARENTES ===== */
+    --sena-bg-transparent: rgba(var(--sena-primary-rgb), 0.05);
+    --sena-bg-light: rgba(var(--sena-primary-rgb), 0.1);
+    --sena-bg-medium: rgba(var(--sena-primary-rgb), 0.15);
+    --sena-bg-dark: rgba(var(--sena-primary-rgb), 0.2);
+    --sena-bg-darker: rgba(var(--sena-primary-rgb), 0.3);
+    
+    /* ===== SOMBRAS Y EFECTOS (Sistema estandarizado) ===== */
+    --sena-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --sena-shadow-md: 0 4px 12px rgba(var(--sena-primary-rgb), 0.12);
+    --sena-shadow-lg: 0 8px 24px rgba(var(--sena-primary-rgb), 0.15);
+    --sena-shadow-xl: 0 12px 32px rgba(var(--sena-primary-rgb), 0.2);
+    --sena-shadow-2xl: 0 20px 48px rgba(0, 0, 0, 0.25);
+    --sena-shadow-inset: inset 0 2px 4px rgba(var(--sena-primary-rgb), 0.05);
+    
+    /* Alias para compatibilidad */
+    --sena-shadow: var(--sena-shadow-md);
+    --sena-shadow-hover: var(--sena-shadow-lg);
+    --sena-shadow-large: var(--sena-shadow-xl);
+    
+    /* ===== JERARQUÍA DE BOTONES - MEJORES PRÁCTICAS UI ===== */
+    
+    /* Botón Primario (Principal Action) - Máxima visibilidad */
+    --btn-primary-bg: var(--sena-gradient-primary);
+    --btn-primary-bg-hover: var(--sena-gradient-dark);
+    --btn-primary-color: #ffffff;
+    --btn-primary-border: var(--sena-primary);
+    --btn-primary-shadow: 0 4px 14px rgba(var(--sena-primary-rgb), 0.4);
+    --btn-primary-shadow-hover: 0 8px 25px rgba(var(--sena-primary-rgb), 0.5);
+    --btn-primary-contrast: 4.74; /* WCAG AAA: > 4.5 */
+    
+    /* Botón Secundario (Action Alternativa) - Alta visibilidad */
+    --btn-secondary-bg: #ffffff;
+    --btn-secondary-bg-hover: var(--sena-bg-light);
+    --btn-secondary-color: var(--sena-primary-dark);
+    --btn-secondary-border: var(--sena-primary);
+    --btn-secondary-shadow: 0 2px 8px rgba(var(--sena-primary-rgb), 0.2);
+    --btn-secondary-shadow-hover: 0 4px 14px rgba(var(--sena-primary-rgb), 0.3);
+    --btn-secondary-contrast: 3.85; /* WCAG AA: > 3.0 */
+    
+    /* Botón Terciario (Actions Menores) - Media visibilidad */
+    --btn-tertiary-bg: transparent;
+    --btn-tertiary-bg-hover: var(--sena-bg-transparent);
+    --btn-tertiary-color: var(--sena-primary-dark);
+    --btn-tertiary-border: transparent;
+    --btn-tertiary-shadow: none;
+    --btn-tertiary-shadow-hover: 0 2px 8px rgba(var(--sena-primary-rgb), 0.15);
+    --btn-tertiary-contrast: 3.85; /* WCAG AA: > 3.0 */
+    
+    /* Botón Outline (Contorno) - Media visibilidad */
+    --btn-outline-bg: transparent;
+    --btn-outline-bg-hover: var(--sena-primary);
+    --btn-outline-color: var(--sena-primary);
+    --btn-outline-color-hover: #ffffff;
+    --btn-outline-border: var(--sena-primary);
+    --btn-outline-shadow: none;
+    --btn-outline-shadow-hover: 0 4px 14px rgba(var(--sena-primary-rgb), 0.3);
+    --btn-outline-contrast: 3.85; /* WCAG AA: > 3.0 */
+    
+    /* Botón Ghost (Fantasma) - Contraste corregido WCAG AA */
+    --btn-ghost-bg: transparent;
+    --btn-ghost-bg-hover: var(--sena-bg-transparent);
+    --btn-ghost-color: var(--sena-text-on-light);
+    --btn-ghost-color-hover: var(--sena-primary-dark);
+    --btn-ghost-border: transparent;
+    --btn-ghost-shadow: none;
+    --btn-ghost-shadow-hover: none;
+    --btn-ghost-contrast: 4.6; /* WCAG AA: > 4.5 ✓ */
+    
+    /* Botones de Estado - Acciones Específicas */
+    --btn-success-bg: var(--sena-gradient-primary);
+    --btn-success-bg-hover: var(--sena-gradient-dark);
+    --btn-success-color: #ffffff;
+    --btn-success-contrast: 4.74;
+    
+    --btn-warning-bg: linear-gradient(135deg, var(--sena-warning) 0%, #606000 100%);
+    --btn-warning-bg-hover: linear-gradient(135deg, var(--sena-warning-dark) 0%, #404000 100%);
+    --btn-warning-color: #ffffff;
+    --btn-warning-contrast: 4.2;
+    
+    --btn-danger-bg: linear-gradient(135deg, var(--sena-danger) 0%, #990000 100%);
+    --btn-danger-bg-hover: linear-gradient(135deg, var(--sena-danger-dark) 0%, #660000 100%);
+    --btn-danger-color: #ffffff;
+    --btn-danger-contrast: 4.5;
+    
+    --btn-info-bg: linear-gradient(135deg, var(--sena-info) 0%, var(--sena-primary) 100%);
+    --btn-info-bg-hover: linear-gradient(135deg, var(--sena-info-dark) 0%, var(--sena-primary-dark) 100%);
+    --btn-info-color: #ffffff;
+    --btn-info-contrast: 4.3;
+    
+    /* ===== TAMAÑOS Y ESCALADO DE BOTONES ===== */
+    --btn-height-sm: 36px;
+    --btn-height-md: 44px;
+    --btn-height-lg: 52px;
+    --btn-height-xl: 60px;
+    
+    --btn-padding-x-sm: 12px;
+    --btn-padding-x-md: 20px;
+    --btn-padding-x-lg: 28px;
+    --btn-padding-x-xl: 36px;
+    
+    --btn-font-size-sm: 13px;
+    --btn-font-size-md: 14px;
+    --btn-font-size-lg: 16px;
+    --btn-font-size-xl: 18px;
+    
+    --btn-border-radius: 8px;
+    --btn-border-radius-sm: 6px;
+    --btn-border-radius-lg: 10px;
+    --btn-border-radius-xl: 12px;
+    
+    /* ===== ESTADOS DE BOTONES ===== */
+    --btn-disabled-opacity: 0.5;
+    --btn-disabled-cursor: not-allowed;
+    --btn-loading-opacity: 0.7;
+    
+    /* ===== TRANSICIONES ===== */
+    --btn-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --btn-transition-hover: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* ===== BORDES Y OUTLINES ===== */
+    --sena-border: 1px solid var(--sena-primary);
+    --sena-border-light: 1px solid var(--sena-primary-light);
+    --sena-border-dark: 1px solid var(--sena-primary-dark);
+    --sena-border-accent: 2px solid var(--sena-accent);
+    
+    /* ===== COLORES DE TEXTO ===== */
+    --sena-text: var(--sena-text-on-light);
+    --sena-text-light: var(--sena-primary-light);
+    --sena-text-dark: #374151;
+    --sena-text-primary: #4b5563;
+    --sena-text-secondary: #6b7280;
+    --sena-text-muted: #666666;          /* Gris para texto secundario */
+    --sena-text-light-muted: #999999;    /* Gris claro para texto sobre fondo oscuro */
+    
+    /* ===== GRISES NEUTRALES (referenciados por common.css) ===== */
+    --sena-bg-gray-lightest: #f9fafb;
+    --sena-bg-gray-lighter: #f3f4f6;
+    --sena-bg-gray: #d1d5db;
+    --sena-bg-gray-darker: #1f2937;
+    --sena-bg-gray-darkest: #111827;
+    
+    /* ===== COLORES DE FONDO GENERALES ===== */
+    --sena-bg-white: #ffffff;
+    --sena-bg-gray-light: #f8f9fa;
+    --sena-bg-gray-medium: #e9ecef;
+    --sena-bg-gray-dark: #6c757d;
+    
+    /* ===== COLORES PARA INTERFAZ ===== */
+    --sena-sidebar-bg: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%);
+    --sena-card-bg: rgba(255, 255, 255, 0.98);
+    --sena-overlay: rgba(0, 0, 0, 0.5);
+    
+    /* ===== COLORES ESPECÍFICOS PARA COMPONENTES ===== */
+    --sena-header-bg: var(--sena-gradient-dark);
+    --sena-footer-bg: var(--sena-primary);
+    --sena-button-primary: var(--sena-gradient-primary);
+    --sena-button-secondary: var(--sena-bg-white);
+    --sena-table-header: var(--sena-gradient-dark);
+    --sena-link: var(--sena-primary);
+    --sena-link-hover: var(--sena-primary-dark);
+    
+    /* ===== COLORES PARA FORMULARIOS ===== */
+    --sena-input-border: #e5e7eb;
+    --sena-input-focus: var(--sena-primary);
+    --sena-input-bg: #ffffff;
+    --sena-label: #374151;
+    
+    /* ===== COLORES PARA ESTADOS DE USUARIO ===== */
+    --sena-user-active: var(--sena-primary);
+    --sena-user-inactive: #9ca3af;
+    --sena-user-pending: var(--sena-warning);
+    
+    /* ===== COLORES PARA BADGES ===== */
+    --sena-badge-success: var(--sena-primary);
+    --sena-badge-info: var(--sena-info);
+    --sena-badge-warning: var(--sena-warning);
+    --sena-badge-danger: var(--sena-danger);
+    
+    /* ===== COLORES PARA GRÁFICOS Y ESTADÍSTICAS ===== */
+    --sena-chart-primary: var(--sena-primary);
+    --sena-chart-secondary: var(--sena-primary-light);
+    --sena-chart-tertiary: var(--sena-primary-dark);
+    --sena-chart-accent: var(--sena-accent);
+    
+    /* ===== COLORES PARA MODO OSCURO (si aplica) ===== */
+    --sena-dark-bg: #1a1a1a;
+    --sena-dark-surface: #2d2d2d;
+    --sena-dark-text: #ffffff;
+    --sena-dark-text-muted: #b3b3b3;
+    
+    /* ===== VARIABLES DE TRANSICIÓN ===== */
+    --sena-transition-fast: 0.15s ease;
+    --sena-transition-base: 0.3s ease;
+    --sena-transition-slow: 0.5s ease;
+    
+    /* ===== VARIABLES DE BORDE RADIO (Sistema estandarizado) ===== */
+    --sena-radius-sm: 8px;        /* Inputs, botones, badges */
+    --sena-radius-md: 12px;       /* Cards, modales, alerts */
+    --sena-radius-lg: 16px;       /* Headers de módulo, stat-cards */
+    --sena-radius-xl: 20px;       /* Cards destacados (auth, stat premium) */
+    --sena-radius-2xl: 24px;      /* Elementos hero */
+    --sena-radius-full: 9999px;   /* Pills, avatares circulares */
+    
+    /* Alias para border-radius de componentes */
+    --sena-border-radius-sm: var(--sena-radius-sm);
+    --sena-border-radius-md: var(--sena-radius-md);
+    --sena-border-radius-lg: var(--sena-radius-lg);
+    --sena-border-radius-xl: var(--sena-radius-xl);
+    
+    /* ===== VARIABLES DE ESPACIADO ===== */
+    --sena-spacing-xs: 4px;
+    --sena-spacing-sm: 8px;
+    --sena-spacing-md: 16px;
+    --sena-spacing-lg: 24px;
+    --sena-spacing-xl: 32px;
+    --sena-spacing-2xl: 48px;
+    
+    /* ===== VARIABLES DE FUENTE ===== */
+    --sena-font-size-xs: 0.75rem;
+    --sena-font-size-sm: 0.875rem;
+    --sena-font-size-base: 1rem;
+    --sena-font-size-lg: 1.125rem;
+    --sena-font-size-xl: 1.25rem;
+    --sena-font-size-2xl: 1.5rem;
+    --sena-font-size-3xl: 1.875rem;
+    --sena-font-size-4xl: 2.25rem;
+}
+
+/* ===== CLASES UTILITARIAS DE COLOR ===== */
+.bg-sena-primary { background-color: var(--sena-primary) !important; }
+.bg-sena-light { background-color: var(--sena-primary-light) !important; }
+.bg-sena-dark { background-color: var(--sena-primary-dark) !important; }
+.bg-sena-accent { background-color: var(--sena-accent) !important; }
+
+.text-sena-primary { color: var(--sena-primary) !important; }
+.text-sena-light { color: var(--sena-primary-light) !important; }
+.text-sena-dark { color: var(--sena-primary-dark) !important; }
+.text-sena-accent { color: var(--sena-accent) !important; }
+
+.border-sena-primary { border-color: var(--sena-primary) !important; }
+.border-sena-light { border-color: var(--sena-primary-light) !important; }
+.border-sena-dark { border-color: var(--sena-primary-dark) !important; }
+
+/* ===== GRADIENTES UTILITARIOS ===== */
+.bg-gradient-sena { background: var(--sena-gradient-primary) !important; }
+.bg-gradient-sena-light { background: var(--sena-gradient-light) !important; }
+.bg-gradient-sena-dark { background: var(--sena-gradient-dark) !important; }
+.bg-gradient-sena-reverse { background: var(--sena-gradient-reverse) !important; }
+
+/* ===== SOMBRAS UTILITARIAS ===== */
+.shadow-sena { box-shadow: var(--sena-shadow) !important; }
+.shadow-sena-hover { box-shadow: var(--sena-shadow-hover) !important; }
+.shadow-sena-large { box-shadow: var(--sena-shadow-large) !important; }

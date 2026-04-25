@@ -70,6 +70,33 @@ class SecurityValidator:
             if len(ubicacion) > SecurityValidator.MAX_STRING_LENGTH:
                 return False, 'La ubicación es demasiado larga', {}
             
+            # 6.1 VALIDAR SERIAL (puede ser vacío)
+            serial_raw = data.get('serial', '')
+            serial = str(serial_raw).strip() if serial_raw is not None else ''
+            if len(serial) > SecurityValidator.MAX_STRING_LENGTH:
+                return False, 'El serial es demasiado largo', {}
+
+            # 6.2 VALIDAR PLACA (puede ser vacía)
+            placa_raw = data.get('placa', '')
+            placa = str(placa_raw).strip() if placa_raw is not None else ''
+            if len(placa) > SecurityValidator.MAX_STRING_LENGTH:
+                return False, 'La placa es demasiado larga', {}
+
+            # 6.3 VALIDAR LOTE (solo para items, puede ser vacío)
+            lote_raw = data.get('lote', '')
+            lote = str(lote_raw).strip() if lote_raw is not None else ''
+            if len(lote) > SecurityValidator.MAX_STRING_LENGTH:
+                return False, 'El lote es demasiado largo', {}
+
+            # 6.4 VALIDAR FECHA VENCIMIENTO (solo para items, puede ser vacía)
+            fecha_venc = data.get('fecha_vencimiento')
+            if fecha_venc:
+                # Validar formato YYYY-MM-DD
+                if not re.match(r'^\d{4}-\d{2}-\d{2}$', str(fecha_venc)):
+                    return False, 'Formato de fecha de vencimiento inválido (debe ser YYYY-MM-DD)', {}
+            else:
+                fecha_venc = None
+            
             # 7. VALIDAR ESTADO (solo para equipos)
             estado_raw = data.get('estado', 'disponible')
             estado = str(estado_raw).strip() if estado_raw is not None else 'disponible'
@@ -119,6 +146,11 @@ class SecurityValidator:
                 'descripcion': descripcion,
                 'laboratorio_id': laboratorio_id,
                 'ubicacion': ubicacion,
+                'serial': serial,
+                'placa': placa,
+                'lote': lote,
+                'fecha_vencimiento': fecha_venc,
+                'unidad': str(data.get('unidad', 'unidades')).strip()[:50],
                 'estado': estado if tipo_registro == 'equipo' else None,
                 'cantidad': cantidad if tipo_registro == 'item' else None,
                 'fotos': fotos

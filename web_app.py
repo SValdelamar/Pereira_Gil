@@ -2,7 +2,8 @@
 # Sistema Web + API REST - Centro Minero SENA
 # Interfaz Web Moderna + API RESTful Completa (Flask)
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory, make_response, flash
+from app.utils.data_validator import DataValidator
 from flask_restful import Api, Resource, reqparse
 from flask_jwt_extended import JWTManager, create_access_token, verify_jwt_in_request, get_jwt_identity
 from flask_cors import CORS
@@ -19,9 +20,12 @@ import re
 import json
 import secrets
 from functools import wraps
+import pytz  # Para manejo de zonas horarias
 from app.utils.report_generator import report_generator
 from app.utils.notificaciones import NotificacionesManager
 from app.utils.security_validators import SecurityValidator, create_error_response, create_success_response
+from app.utils.inventory_validator import InventoryPermissionsValidator
+from app.utils.laboratory_sync_service import LaboratorySyncService
 from app.utils.permissions import (
     permissions_manager,
     require_permission,
@@ -42,6 +46,21 @@ from app.utils.permissions import (
 )
 
 # =====================================================================
+# CONFIGURACIÓN DE ZONA HORARIA COLOMBIA
+# =====================================================================
+
+# Configurar zona horaria de Colombia (UTC-5)
+TIMEZONE_COLOMBIA = pytz.timezone('America/Bogota')
+
+def get_colombia_datetime():
+    """Obtener fecha y hora actual en zona horaria colombiana"""
+    return datetime.now(TIMEZONE_COLOMBIA)
+
+def get_colombia_datetime_string():
+    """Obtener fecha y hora actual en formato string para MySQL"""
+    return get_colombia_datetime().strftime('%Y-%m-%d %H:%M:%S')
+
+# =====================================================================
 # CONFIGURACIÓN DE LA APLICACIÓN WEB
 # =====================================================================
 
@@ -52,6 +71,22 @@ load_dotenv()  # Busca automáticamente .env en el directorio raíz
 app = Flask(__name__, 
             template_folder='app/templates',
             static_folder='app/static')
+
+# Funciones globales para templates (después de crear app)
+@app.template_global('colombia_now')
+def colombia_now():
+    """Fecha y hora actual en Colombia para templates"""
+    return get_colombia_datetime()
+
+@app.template_global('colombia_now_string')
+def colombia_now_string():
+    """Fecha y hora actual en Colombia como string para templates"""
+    return get_colombia_datetime_string()
+
+@app.template_global('current_timestamp')
+def current_timestamp():
+    """Timestamp actual para forzar recarga (usando zona horaria colombiana)"""
+    return int(get_colombia_datetime().timestamp())
 
 # =====================================================================
 # CONTEXT PROCESSOR - Permisos disponibles en todas las plantillas
@@ -119,11 +154,6 @@ def cache_bust_filter(url_or_filename):
             return f"{url_or_filename}?v={timestamp}"
         return f"?v={timestamp}"
 
-@app.template_global('current_timestamp')
-def current_timestamp():
-    """Timestamp actual para forzar recarga"""
-    return int(datetime.now().timestamp())
-
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(16))
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', secrets.token_hex(32))
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
@@ -176,6 +206,9 @@ class DatabaseManager:
 
 
 db_manager = DatabaseManager()
+
+# Instancia global del validador unificado de inventario
+inventory_validator = InventoryPermissionsValidator(db_manager, permissions_manager)
 notificaciones_manager = NotificacionesManager(db_manager)
 
 # =====================================================================
@@ -229,9 +262,9 @@ def log_security_event(user_id, action, detail, ip, success):
         
         log_query = """
             INSERT INTO logs_seguridad (usuario_id, accion, detalle, ip_origen, exitoso, fecha)
-            VALUES (%s, %s, %s, %s, %s, NOW())
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(log_query, (user_id, action, detail, ip, success))
+        cursor.execute(log_query, (user_id, action, detail, ip, success, get_colombia_datetime_string()))
         
         conn.commit()
         cursor.close()
@@ -424,12 +457,21 @@ def registro():
                 flash(f'Cuenta creada como Aprendiz. Tu solicitud de nivel {get_rol_nombre(solicitud_nivel_superior)} será revisada por un administrador.', 'info')
                 # Guardar solicitud de cambio de nivel
                 try:
+                    # Capturar laboratorio_id si el usuario solicitó instructor de inventario
+                    laboratorio_solicitado = None
+                    if nivel_solicitado == NIVEL_INSTRUCTOR_INVENTARIO:
+                        laboratorio_solicitado = campos_extra.get('laboratorio_id')
+                        print(f"Usuario solicitó instructor de inventario con laboratorio_id: {laboratorio_solicitado}")
+                    
                     solicitud_query = """
-                        INSERT INTO solicitudes_nivel (usuario_id, nivel_solicitado, nivel_actual, estado, fecha_solicitud)
-                        VALUES (%s, %s, %s, 'pendiente', NOW())
+                        INSERT INTO solicitudes_nivel 
+                        (usuario_id, nivel_solicitado, nivel_actual, estado, fecha_solicitud, laboratorio_solicitado)
+                        VALUES (%s, %s, %s, 'pendiente', %s, %s)
                     """
-                    db_manager.execute_query(solicitud_query, (user_id, solicitud_nivel_superior, nivel_acceso))
-                except:
+                    db_manager.execute_query(solicitud_query, (user_id, nivel_solicitado, nivel_acceso, get_colombia_datetime_string(), laboratorio_solicitado))
+                    print(f"Solicitud creada con laboratorio_solicitado: {laboratorio_solicitado}")
+                except Exception as e:
+                    print(f"Error guardando solicitud: {e}")
                     pass  # Tabla puede no existir
             else:
                 flash(f'Cuenta creada exitosamente. Bienvenido {nombre}!', 'success')
@@ -724,7 +766,7 @@ def recuperar_contrasena():
             # Generar código de 6 dígitos
             import random
             codigo = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-            expiry = datetime.now() + timedelta(minutes=15)  # Código válido por 15 minutos
+            expiry = get_colombia_datetime() + timedelta(minutes=15)  # Código válido por 15 minutos
             
             # Debug: Mostrar código generado
             print(f"[DEBUG] Código generado para {user['id']}: '{codigo}' (len: {len(codigo)})")
@@ -1003,7 +1045,7 @@ def verificar_codigo(user_id):
     
     # Verificar expiración
     expiry = datetime.fromisoformat(code_data['expiry'])
-    if datetime.now() > expiry:
+    if get_colombia_datetime() > expiry:
         session.pop(f'reset_code_{user_id}', None)
         flash('El código ha expirado. Solicita uno nuevo.', 'error')
         return redirect(url_for('recuperar_contrasena'))
@@ -1134,7 +1176,7 @@ def backup():
         
         if action == 'create':
             # Crear backup
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = get_colombia_datetime().strftime('%Y%m%d_%H%M%S')
             backup_file = backup_dir / f'backup_{timestamp}.sql'
             
             try:
@@ -1260,6 +1302,12 @@ def download_backup(filename):
         return redirect(url_for('backup'))
 
 
+# Instancia global del validador
+inventory_validator = InventoryPermissionsValidator(db_manager, permissions_manager)
+
+# Instancia global del servicio de sincronización
+lab_sync_service = LaboratorySyncService(db_manager)
+
 @app.route('/dashboard')
 @require_login
 def dashboard():
@@ -1281,7 +1329,14 @@ def dashboard():
         
     except Exception as e:
         print(f"[ERROR] Error cargando configuración de módulos: {e}")
-        # Fallback: mostrar módulos básicos
+        # Fallback:
+        # Importar el validador unificado de inventario
+        from app.utils.inventory_validator import InventoryPermissionsValidator
+
+        # Instancia global del validador
+        inventory_validator = InventoryPermissionsValidator(db_manager, permissions_manager)
+
+        # Importar módulos básicos
         modulos_disponibles = []
         acciones_rapidas = []
         estadisticas_visibles = ['equipos_activos', 'total_laboratorios']
@@ -1373,25 +1428,31 @@ def laboratorios():
     query = """
         SELECT 
             l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes,
-            l.responsable, l.estado,
+            l.estado,
             COUNT(DISTINCT e.id) as total_equipos,
             COUNT(DISTINCT i.id) as total_items,
-            COUNT(DISTINCT CASE WHEN i.cantidad_actual <= i.cantidad_minima THEN i.id END) as items_criticos
+            COUNT(DISTINCT CASE WHEN i.cantidad_actual <= i.cantidad_minima THEN i.id END) as items_criticos,
+            (SELECT u.nombre FROM usuarios u 
+             WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+             LIMIT 1) as responsable_nombre,
+            (SELECT u.id FROM usuarios u 
+             WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+             LIMIT 1) as responsable_id
         FROM laboratorios l
         LEFT JOIN equipos e ON l.id = e.laboratorio_id
         LEFT JOIN inventario i ON l.id = i.laboratorio_id
-        GROUP BY l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes, l.responsable, l.estado
+        GROUP BY l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes, l.estado
         ORDER BY l.tipo, l.codigo
     """
     laboratorios_list = db_manager.execute_query(query)
     
     # Obtener lista de instructores para el formulario
     query_instructores = """
-        SELECT id, nombre, especialidad, programa_formacion
+        SELECT id, nombre, especialidad, programa_formacion, laboratorio_id
         FROM usuarios
-        WHERE tipo = 'instructor' 
-        AND activo = 1
-        AND nivel_acceso >= 3
+        WHERE a_cargo_inventario = TRUE 
+        AND activo = TRUE
+        AND nivel_acceso = 5
         ORDER BY nombre
     """
     instructores_list = db_manager.execute_query(query_instructores) or []
@@ -1458,6 +1519,45 @@ def laboratorio_detalle(laboratorio_id):
 # =====================================================================
 # CRUD LABORATORIOS - Solo Administradores (Nivel 6+)
 # =====================================================================
+
+@app.route('/api/laboratorios', methods=['GET'])
+@require_login
+def listar_laboratorios():
+    """Listar todos los laboratorios - API para consumo frontend"""
+    try:
+        query = """
+            SELECT 
+                l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes,
+                l.estado,
+                COUNT(DISTINCT e.id) as total_equipos,
+                COUNT(DISTINCT i.id) as total_items,
+                COUNT(DISTINCT CASE WHEN i.cantidad_actual <= i.cantidad_minima THEN i.id END) as items_criticos,
+                (SELECT u.nombre FROM usuarios u 
+                 WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+                 LIMIT 1) as responsable_nombre,
+                (SELECT u.id FROM usuarios u 
+                 WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+                 LIMIT 1) as responsable_id
+            FROM laboratorios l
+            LEFT JOIN equipos e ON l.id = e.laboratorio_id
+            LEFT JOIN inventario i ON l.id = i.laboratorio_id
+            GROUP BY l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes, l.estado
+            ORDER BY l.tipo, l.codigo
+        """
+        laboratorios_list = db_manager.execute_query(query)
+        
+        return jsonify({
+            'success': True,
+            'data': laboratorios_list
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] listar_laboratorios: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al listar laboratorios: {str(e)}'
+        }), 500
+
 
 @app.route('/api/laboratorios', methods=['POST'])
 @require_login
@@ -1553,8 +1653,8 @@ def actualizar_laboratorio(lab_id):
                 'message': 'Laboratorio no encontrado'
             }), 404
         
-        # Validar campos requeridos
-        campos_requeridos = ['codigo', 'nombre', 'tipo']
+        # Validar campos requeridos (código no se requiere en edición)
+        campos_requeridos = ['nombre']
         for campo in campos_requeridos:
             if not data.get(campo):
                 return jsonify({
@@ -1562,8 +1662,8 @@ def actualizar_laboratorio(lab_id):
                     'message': f'El campo {campo} es requerido'
                 }), 400
         
-        # Si cambia el código, verificar que no exista otro con ese código
-        if data['codigo'] != lab_actual[0]['codigo']:
+        # Si se envía código y cambia, verificar que no exista otro con ese código
+        if 'codigo' in data and data['codigo'] != lab_actual[0]['codigo']:
             query_check_codigo = "SELECT id FROM laboratorios WHERE codigo = %s AND id != %s"
             existe = db_manager.execute_query(query_check_codigo, (data['codigo'], lab_id))
             if existe:
@@ -1572,27 +1672,31 @@ def actualizar_laboratorio(lab_id):
                     'message': f'Ya existe otro laboratorio con el código {data["codigo"]}'
                 }), 400
         
-        # Preparar datos
-        codigo = data['codigo'].strip()
-        nombre = data['nombre'].strip()
-        tipo = data['tipo']
-        ubicacion = data.get('ubicacion', '').strip()
-        capacidad = data.get('capacidad_estudiantes', 0) or 0
-        area = data.get('area_m2', 0) or 0
+        # Preparar datos con validación centralizada
+        codigo = DataValidator.sanitize_field(data, 'codigo', lab_actual[0]['codigo'])
+        nombre = DataValidator.sanitize_field(data, 'nombre')
+        tipo = data.get('tipo', lab_actual[0].get('tipo', 'laboratorio'))  # Usar valor existente o default
+        ubicacion = DataValidator.sanitize_field(data, 'ubicacion')
+        capacidad = DataValidator.safe_int(data.get('capacidad_estudiantes'))
+        area = DataValidator.safe_float(data.get('area_m2'))
         responsable_id = data.get('responsable_id') or None
-        equipamiento = data.get('equipamiento_especializado', '').strip()
-        normas = data.get('normas_seguridad', '').strip()
+        equipamiento = DataValidator.sanitize_field(data, 'equipamiento_especializado')
+        normas = DataValidator.sanitize_field(data, 'normas_seguridad')
         estado = data.get('estado', 'activo')
         
-        # Obtener nombre del responsable si se proporciona ID
-        responsable_nombre = None
-        if responsable_id:
-            query_resp = "SELECT nombre FROM usuarios WHERE id = %s"
-            result_resp = db_manager.execute_query(query_resp, (responsable_id,))
-            if result_resp:
-                responsable_nombre = result_resp[0]['nombre']
+        # Usar el servicio de sincronización para manejar la asignación de instructor
+        if responsable_id is not None:
+            sync_result = lab_sync_service.sincronizar_instructor_laboratorio(lab_id, responsable_id)
+            
+            if not sync_result['success']:
+                return jsonify({
+                    'success': False,
+                    'message': sync_result['message']
+                }), 400
+            
+            print(f"✅ Sincronización completada: {sync_result['message']}")
         
-        # Actualizar laboratorio
+        # Actualizar datos del laboratorio (excluyendo responsable_id que se maneja por separado)
         query = """
             UPDATE laboratorios SET
                 codigo = %s,
@@ -1601,7 +1705,6 @@ def actualizar_laboratorio(lab_id):
                 ubicacion = %s,
                 capacidad_estudiantes = %s,
                 area_m2 = %s,
-                responsable = %s,
                 equipamiento_especializado = %s,
                 normas_seguridad = %s,
                 estado = %s,
@@ -1609,7 +1712,7 @@ def actualizar_laboratorio(lab_id):
             WHERE id = %s
         """
         params = (codigo, nombre, tipo, ubicacion, capacidad, area, 
-                 responsable_nombre, equipamiento, normas, estado, lab_id)
+                 equipamiento, normas, estado, lab_id)
         db_manager.execute_query(query, params)
         
         # Registrar en logs
@@ -1622,7 +1725,8 @@ def actualizar_laboratorio(lab_id):
         
         return jsonify({
             'success': True,
-            'message': f'Laboratorio {codigo} actualizado exitosamente'
+            'message': f'Laboratorio {codigo} actualizado exitosamente',
+            'sync_details': sync_result if responsable_id is not None else None
         }), 200
         
     except Exception as e:
@@ -1698,31 +1802,48 @@ def eliminar_laboratorio(lab_id):
 def obtener_laboratorio(lab_id):
     """Obtener detalles de un laboratorio para edición"""
     try:
+        # Validación de entrada
+        if not isinstance(lab_id, int) or lab_id <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'ID de laboratorio inválido'
+            }), 400
+        
+        # Validar rango razonable para ID
+        if lab_id > 999999:
+            return jsonify({
+                'success': False,
+                'error': 'ID de laboratorio fuera de rango permitido'
+            }), 400
+        
         query = """
-            SELECT id, codigo, nombre, tipo, ubicacion, capacidad_estudiantes,
-                   area_m2, responsable, equipamiento_especializado, 
-                   normas_seguridad, estado
-            FROM laboratorios
-            WHERE id = %s
+            SELECT l.id, l.codigo, l.nombre, l.tipo, l.ubicacion,
+                   l.responsable_id, l.estado,
+                   l.fecha_creacion, l.fecha_actualizacion
+            FROM laboratorios l
+            WHERE l.id = %s
         """
+        
         laboratorio = db_manager.execute_query(query, (lab_id,))
         
         if not laboratorio:
             return jsonify({
                 'success': False,
-                'message': 'Laboratorio no encontrado'
+                'error': 'Laboratorio no encontrado'
             }), 404
         
         return jsonify({
             'success': True,
-            'data': laboratorio[0]
+            'laboratorio': laboratorio[0]
         }), 200
         
     except Exception as e:
-        print(f"[ERROR] obtener_laboratorio: {str(e)}")
+        # Log de seguridad para errores inesperados
+        app.logger.error(f"Error en obtener_laboratorio para ID {lab_id}: {str(e)}")
+        
         return jsonify({
             'success': False,
-            'message': f'Error al obtener laboratorio: {str(e)}'
+            'error': 'Error interno del servidor'
         }), 500
 
 
@@ -1867,15 +1988,77 @@ def inventario():
     equipos = db_manager.execute_query(query_equipos) or []
     items = db_manager.execute_query(query_items) or []
     
+    
     # Obtener laboratorios para filtros
     query_labs = "SELECT id, nombre FROM laboratorios ORDER BY nombre"
     laboratorios = db_manager.execute_query(query_labs) or []
     
     return render_template('modules/inventario.html', 
                          equipos=equipos, 
-                         items=items, 
+                         items=items,
+                         inventario=items, 
                          laboratorios=laboratorios,
                          user=session)
+
+
+# Helper reutilizable para validación de permisos de inventario
+def validar_permisos_inventario_item(user_id, item_laboratorio_id, accion="gestionar inventario"):
+    """
+    Validar permisos de inventario de forma robusta y reutilizable
+    
+    Args:
+        user_id: ID del usuario actual
+        item_laboratorio_id: ID del laboratorio del item
+        accion: Descripción de la acción para mensajes
+        
+    Returns:
+        dict: Estructura completa de permisos para el template
+    """
+    permisos_inventario = {
+        'puede_ajustar': False,
+        'puede_entregar': False,
+        'puede_eliminar': False,
+        'es_responsable': False,
+        'es_admin': False,
+        'mensaje_error': None,
+        'detalles_permiso': {}
+    }
+    
+    try:
+        # 1. Validar que el item tenga laboratorio asignado
+        if not item_laboratorio_id:
+            permisos_inventario['mensaje_error'] = 'Este item no tiene laboratorio asignado. Contacte al administrador.'
+            return permisos_inventario
+        
+        # 2. Usar el validador unificado para permisos de gestión
+        validacion_permiso = inventory_validator.validar_permiso_inventario(
+            user_id=user_id,
+            item_laboratorio_id=item_laboratorio_id,
+            accion=accion
+        )
+        
+        # 3. Establecer permisos basados en la validación
+        permisos_inventario['puede_ajustar'] = validacion_permiso['autorizado']
+        permisos_inventario['puede_entregar'] = validacion_permiso['autorizado']
+        permisos_inventario['puede_eliminar'] = validacion_permiso['autorizado'] and validacion_permiso['user_level'] == 6
+        permisos_inventario['es_responsable'] = validacion_permiso['es_instructor']
+        permisos_inventario['es_admin'] = validacion_permiso['user_level'] == 6
+        permisos_inventario['detalles_permiso'] = {
+            'user_level': validacion_permiso['user_level'],
+            'lab_instructor': validacion_permiso['lab_instructor'],
+            'lab_item': item_laboratorio_id
+        }
+        
+        # 4. Mensaje informativo si no tiene permisos
+        if not validacion_permiso['autorizado'] and not permisos_inventario['mensaje_error']:
+            permisos_inventario['mensaje_error'] = validacion_permiso['mensaje']
+    
+    except Exception as e:
+        # 5. Manejo de errores en validación
+        print(f"[ERROR] Validando permisos inventario: {str(e)}")
+        permisos_inventario['mensaje_error'] = 'Error al validar permisos. Contacte al administrador.'
+    
+    return permisos_inventario
 
 
 @app.route('/inventario/detalle/<item_id>')
@@ -1912,9 +2095,16 @@ def detalle_inventario(item_id):
             'item'
         )
         
+        # Validar permisos del usuario para este item usando el helper reutilizable
+        user_id = session.get('user_id')
+        item_laboratorio_id = item['laboratorio_id']
+        
+        permisos = validar_permisos_inventario_item(user_id, item_laboratorio_id, "gestionar inventario")
+        
         return render_template('modules/inventario_detalle.html', 
                              item=item, 
                              foto_frontal=foto_frontal,
+                             permisos=permisos,
                              user=session)
         
     except Exception as e:
@@ -2029,9 +2219,9 @@ def api_ajustar_stock():
         cursor = conn.cursor()
         
         try:
-            # Verificar que el item existe
+            # Validar que el item existe y tiene laboratorio
             query_item = """
-                SELECT id, nombre, categoria, cantidad_actual, laboratorio_id
+                SELECT id, nombre, cantidad_actual, laboratorio_id
                 FROM inventario 
                 WHERE id = %s
             """
@@ -2044,32 +2234,38 @@ def api_ajustar_stock():
                     'message': 'Item no encontrado'
                 }), 404
             
-            item_id_db, nombre, categoria, cantidad_actual, laboratorio_id = item_actual
+            # Validar que el item existe y tiene laboratorio asignado
+            item_validacion = inventory_validator.validar_item_con_laboratorio(item_id)
+            if not item_validacion['valido']:
+                return jsonify({
+                    'success': False,
+                    'message': item_validacion['mensaje']
+                }), 404 if 'no encontrado' in item_validacion['mensaje'] else 400
             
-            # Validación de permisos por laboratorio
+            item_actual = item_validacion['item']
+            item_id_db = item_actual['id']
+            nombre = item_actual['nombre']
+            categoria = item_actual.get('categoria', '')
+            cantidad_actual = item_actual['cantidad_actual']
+            laboratorio_id = item_actual['laboratorio_id']
+            
+            # Validación de permisos unificada
             user_id = session.get('user_id')
-            user_level = permissions_manager.get_nivel_usuario(user_id)
+            validacion_permiso = inventory_validator.validar_permiso_inventario(
+                user_id=user_id,
+                item_laboratorio_id=laboratorio_id,
+                accion="ajustar stock"
+            )
             
-            # Administradores pueden gestionar todos los laboratorios
-            if user_level != 6:  # Si no es administrador
-                # Verificar si es instructor a cargo de inventario de ESTE laboratorio
-                es_instructor, lab_instructor = permissions_manager.es_instructor_con_inventario(user_id)
-                
-                if not es_instructor:
-                    return jsonify({
-                        'success': False,
-                        'message': 'Solo instructores a cargo de inventario pueden ajustar stock'
-                    }), 403
-                
-                # Validar que el laboratorio del item coincida con el del instructor
-                if laboratorio_id != lab_instructor:
-                    return jsonify({
-                        'success': False,
-                        'message': f'No tienes autorización para ajustar stock de este laboratorio. Tu laboratorio: {lab_instructor}, Laboratorio del item: {laboratorio_id}'
-                    }), 403
+            if not validacion_permiso['autorizado']:
+                return jsonify({
+                    'success': False,
+                    'message': validacion_permiso['mensaje']
+                }), 403
             
-            # Calcular diferencia
-            diferencia = nueva_cantidad - cantidad_actual
+            # Calcular nueva cantidad - los ajustes siempre suman al stock actual
+            nueva_cantidad_final = cantidad_actual + nueva_cantidad
+            diferencia = nueva_cantidad  # Siempre positiva porque es una entrada
             
             # Si no hay cambios, retornar éxito
             if diferencia == 0:
@@ -2078,7 +2274,7 @@ def api_ajustar_stock():
                     'message': 'No hay cambios en el stock',
                     'data': {
                         'cantidad_anterior': cantidad_actual,
-                        'cantidad_nueva': nueva_cantidad,
+                        'cantidad_nueva': nueva_cantidad_final,
                         'diferencia': 0
                     }
                 })
@@ -2092,45 +2288,57 @@ def api_ajustar_stock():
                 SET cantidad_actual = %s
                 WHERE id = %s
             """
-            cursor.execute(query_update, (nueva_cantidad, item_id))
+            cursor.execute(query_update, (nueva_cantidad_final, item_id))
             
-            # Registrar movimiento en auditoría (conservando máxima información)
-            tipo_movimiento = 'ajuste_entrada' if diferencia > 0 else 'ajuste_salida'
+            # Registrar movimiento en auditoría (usando solo columnas existentes)
+            tipo_movimiento = 'entrada'  # 🆕 Todos los ajustes de stock son 'entrada'
+            print(f"🚀 INICIANDO REGISTRO DE AJUSTE DE STOCK")
+            print(f"📦 Datos: item_id={item_id}, stock_actual={cantidad_actual}, cantidad_agregar={nueva_cantidad}")
+            print(f"📦 Stock final={nueva_cantidad_final} (siempre suma)")
+            print(f"📦 Diferencia: {diferencia}, tipo_movimiento={tipo_movimiento}")
+            print(f"📦 Motivo: {motivo}")
+            print(f"📦 Usuario: {session.get('user_id')}")
+            
             try:
-                # Intentar insertar con todas las columnas posibles
+                # Usar solo las columnas que realmente existen
                 query_movimiento = """
                     INSERT INTO movimientos_inventario 
-                    (inventario_id, tipo_movimiento, cantidad, referencia, observaciones, 
-                     usuario_id, laboratorio_id, fecha_movimiento)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                    (inventario_id, usuario_id, tipo_movimiento, cantidad, observaciones)
+                    VALUES (%s, %s, %s, %s, %s)
                 """
-                cursor.execute(query_movimiento, (
+                
+                # Construir observaciones con toda la información del ajuste
+                detalles_ajuste = []
+                detalles_ajuste.append(f"Tipo: Ajuste de stock")
+                detalles_ajuste.append(f"Motivo: {motivo}")
+                detalles_ajuste.append(f"Stock anterior: {cantidad_actual}")
+                detalles_ajuste.append(f"Cantidad agregada: {nueva_cantidad}")
+                detalles_ajuste.append(f"Stock nuevo: {nueva_cantidad_final}")
+                if observaciones:
+                    detalles_ajuste.append(f"Observaciones: {observaciones}")
+                
+                observaciones_completas = " | ".join(detalles_ajuste)
+                
+                params = (
                     item_id,
+                    session.get('user_id'),
                     tipo_movimiento,
                     abs(diferencia),
-                    f"Ajuste de stock: {motivo}",
-                    f"Stock anterior: {cantidad_actual}, Nuevo: {nueva_cantidad}. {observaciones}",
-                    session.get('user_id'),
-                    laboratorio_id
-                ))
-                print(f"✅ Movimiento registrado con todos los detalles")
+                    observaciones_completas
+                )
+                
+                print(f"🔍 Query INSERT de ajuste:")
+                print(f"📋 Query: {query_movimiento}")
+                print(f"📋 Parámetros: {params}")
+                
+                cursor.execute(query_movimiento, params)
+                print(f"✅ Movimiento de ajuste registrado correctamente")
                 
             except Exception as e:
-                # Si falla por columnas, intentar versión mínima
-                print(f"⚠️ Error con consulta completa: {e}")
-                try:
-                    query_minimo = """
-                        INSERT INTO movimientos_inventario 
-                        (tipo_movimiento, cantidad, fecha_movimiento)
-                        VALUES (%s, %s, NOW())
-                    """
-                    cursor.execute(query_minimo, (tipo_movimiento, abs(diferencia)))
-                    print(f"✅ Movimiento registrado en versión mínima")
-                    
-                except Exception as e2:
-                    # Si todo falla, continuar con el ajuste de stock
-                    print(f"⚠️ No se pudo registrar movimiento: {e2}")
-                    print(f"📦 Ajuste de stock continuará sin auditoría")
+                print(f"❌ Error registrando movimiento de ajuste: {e}")
+                import traceback
+                print(f"🔍 Stack trace: {traceback.format_exc()}")
+                # Continuar con el ajuste pero registrar el error
             
             # Confirmar transacción
             cursor.execute("COMMIT")
@@ -2236,7 +2444,6 @@ def api_obtener_stock():
 
 @app.route('/inventario/entregar', methods=['GET', 'POST'])
 @require_login
-@require_instructor_inventario
 def entregar_consumible():
     """Entrega de consumibles con control de stock"""
     
@@ -2274,78 +2481,97 @@ def entregar_consumible():
             return jsonify({'success': False, 'message': 'Item y cantidad son requeridos'}), 400
         
         # Verificar stock disponible
-        query_stock = "SELECT cantidad_actual, nombre FROM inventario WHERE id = %s"
-        item = db_manager.execute_query(query_stock, (item_id,))
+        query_stock = "SELECT cantidad_actual, nombre, laboratorio_id FROM inventario WHERE id = %s"
+        result = db_manager.execute_query(query_stock, (item_id,))
         
-        if not item:
+        if not result:
             return jsonify({'success': False, 'message': 'Item no encontrado'}), 404
         
-        stock_actual = item[0]['cantidad_actual']
-        item_nombre = item[0]['nombre']
-        
-        if stock_actual < cantidad:
+        # Validar que el item existe y tiene laboratorio asignado
+        item_validacion = inventory_validator.validar_item_con_laboratorio(item_id)
+        if not item_validacion['valido']:
             return jsonify({
-                'success': False, 
-                'message': f'Stock insuficiente. Disponible: {stock_actual}, Solicitado: {cantidad}'
-            }), 400
+                'success': False,
+                'message': item_validacion['mensaje']
+            }), 404 if 'no encontrado' in item_validacion['mensaje'] else 400
         
-        # Construir motivo descriptivo
-        if motivo_uso:
-            motivo = f"Entrega: {motivo_uso}"
-            if instructor_nombre:
-                motivo += f" - Instructor: {instructor_nombre}"
-            if grupo:
-                motivo += f" - Grupo: {grupo}"
-        elif recibido_por and clase:
-            # Compatibilidad con formato antiguo
-            motivo = f"Entrega para {clase}"
-            if recibido_por:
-                motivo += f" - Recibido por: {recibido_por}"
-        else:
-            motivo = "Entrega de consumibles"
+        item_actual = item_validacion['item']
+        stock_actual = item_actual['cantidad_actual']
+        item_nombre = item_actual['nombre']
+        item_laboratorio_id = item_actual['laboratorio_id']
         
-        # Registrar movimiento de salida (con fallbacks)
+        # Validación de permisos unificada
+        user_id = session.get('user_id')
+        validacion_permiso = inventory_validator.validar_permiso_inventario(
+            user_id=user_id,
+            item_laboratorio_id=item_laboratorio_id,
+            accion="realizar entregas"
+        )
+        
+        if not validacion_permiso['autorizado']:
+            return jsonify({
+                'success': False,
+                'message': validacion_permiso['mensaje']
+            }), 403
+        
+        # Registrar movimiento de salida (con información completa)
+        print(f"🚀 INICIANDO REGISTRO DE ENTREGA")
+        print(f"📦 Datos: item_id={item_id}, cantidad={cantidad}, user_id={session['user_id']}")
+        print(f"📦 Stock actual: {stock_actual}")
+        print(f"📦 Motivo: {motivo_uso or motivo}")
+        print(f"📦 Instructor: {instructor_nombre}")
+        print(f"📦 Grupo: {grupo}")
+        print(f"📦 Recibido por: {recibido_por}")
+        
         try:
-            # Intentar con inventario_id (columna correcta)
+            # Usar solo las columnas que realmente existen en la tabla
             query_movimiento = """
                 INSERT INTO movimientos_inventario 
-                (inventario_id, usuario_id, tipo_movimiento, cantidad,
-                 cantidad_anterior, cantidad_nueva, motivo, observaciones)
-                VALUES (%s, %s, 'salida', %s, %s, %s, %s, %s)
+                (inventario_id, usuario_id, tipo_movimiento, cantidad, observaciones)
+                VALUES (%s, %s, 'salida', %s, %s)
             """
             
-            db_manager.execute_query(query_movimiento, (
+            # Construir observaciones con toda la información de la entrega
+            detalles_entrega = []
+            if motivo_uso or motivo:
+                detalles_entrega.append(f"Motivo: {motivo_uso or motivo}")
+            if instructor_nombre:
+                detalles_entrega.append(f"Instructor: {instructor_nombre}")
+            if grupo:
+                detalles_entrega.append(f"Grupo: {grupo}")
+            if recibido_por:
+                detalles_entrega.append(f"Recibido por: {recibido_por}")
+            if observaciones:
+                detalles_entrega.append(f"Observaciones: {observaciones}")
+            
+            observaciones_completas = " | ".join(detalles_entrega) if detalles_entrega else "Entrega sin detalles"
+            
+            params = (
                 item_id, session['user_id'], cantidad,
-                stock_actual, stock_actual - cantidad,
-                motivo, observaciones
-            ))
-            print("✅ Movimiento registrado con inventario_id")
+                observaciones_completas
+            )
+            
+            print(f"🔍 Query INSERT con información completa:")
+            print(f"📋 Query: {query_movimiento}")
+            print(f"📋 Parámetros: {params}")
+            
+            result = db_manager.execute_query(query_movimiento, params)
+            print(f"✅ Movimiento registrado. Resultado: {result}")
             
         except Exception as e:
-            # Fallback: intentar con item_id
-            try:
-                query_movimiento_alt = """
-                    INSERT INTO movimientos_inventario 
-                    (item_id, usuario_id, tipo_movimiento, cantidad,
-                     cantidad_anterior, cantidad_nueva, motivo, observaciones)
-                    VALUES (%s, %s, 'salida', %s, %s, %s, %s, %s)
-                """
-                
-                db_manager.execute_query(query_movimiento_alt, (
-                    item_id, session['user_id'], cantidad,
-                    stock_actual, stock_actual - cantidad,
-                    motivo, observaciones
-                ))
-                print("✅ Movimiento registrado con item_id (fallback)")
-                
-            except Exception as e2:
-                # Si todo falla, continuar con el ajuste de stock
-                print(f"⚠️ No se pudo registrar movimiento: {e2}")
-                print(f"📦 Entrega continuará sin auditoría")
+            print(f"❌ ERROR CRÍTICO registrando movimiento: {str(e)}")
+            print(f"📦 Entrega continuará sin auditoría")
+            # Continuar con la entrega pero registrar el error
+            import traceback
+            print(f"🔍 Stack trace completo: {traceback.format_exc()}")
         
         # Actualizar stock
+        print(f"🔄 Actualizando stock de {stock_actual} a {stock_actual - cantidad}")
         query_update = "UPDATE inventario SET cantidad_actual = %s WHERE id = %s"
-        db_manager.execute_query(query_update, (stock_actual - cantidad, item_id))
+        update_result = db_manager.execute_query(query_update, (stock_actual - cantidad, item_id))
+        print(f"✅ Stock actualizado. Resultado: {update_result}")
+        
+        print(f"🎉 ENTREGA COMPLETADA: {cantidad} {item_nombre}")
         
         return jsonify({
             'success': True, 
@@ -2362,12 +2588,16 @@ def entregar_consumible():
 def historial_item(item_id):
     """Obtener historial de movimientos de un item específico"""
     try:
-        # Intentar consulta completa con JOINs
+        print(f"🚀 INICIANDO BÚSQUEDA DE HISTORIAL")
+        print(f"🔍 Buscando historial para item_id: {item_id}")
+        
+        # Consulta principal usando solo columnas existentes
         try:
-            query_completa = """
+            query_principal = """
                 SELECT 
                     mi.id,
                     mi.cantidad,
+                    mi.tipo_movimiento,
                     mi.fecha_movimiento,
                     mi.observaciones,
                     i.nombre as item_nombre,
@@ -2380,32 +2610,64 @@ def historial_item(item_id):
                 LIMIT 50
             """
             
-            historial = db_manager.execute_query(query_completa, (item_id,))
+            print(f"🔍 Ejecutando consulta principal final corregida:")
+            print(f"📋 Query: {query_principal}")
+            print(f"📋 Parámetro: ({item_id})")
+            
+            historial = db_manager.execute_query(query_principal, (item_id,))
+            
+            print(f"📊 Resultado crudo: {historial}")
+            print(f"📊 Cantidad de movimientos: {len(historial) if historial else 0}")
             
             if historial:
-                print("✅ Historial de item obtenido con consulta completa")
+                print(f"✅ Historial encontrado: {len(historial)} movimientos")
+                for i, mov in enumerate(historial):
+                    print(f"   📋 Movimiento {i+1}: ID={mov.get('id')}, Cantidad={mov.get('cantidad')}, Fecha={mov.get('fecha_movimiento')}")
                 return jsonify({'success': True, 'historial': historial}), 200
+            else:
+                print("⚠️ No se encontraron movimientos con consulta principal")
                 
         except Exception as e:
-            print(f"⚠️ Error en consulta completa de historial item: {e}")
+            print(f"❌ Error en consulta principal: {e}")
+            import traceback
+            print(f"🔍 Stack trace: {traceback.format_exc()}")
         
-        # Fallback: Consulta mínima
-        query_minima = """
-            SELECT * FROM movimientos_inventario 
-            WHERE inventario_id = %s
-            ORDER BY fecha_movimiento DESC
-            LIMIT 50
-        """
+        # Fallback: Consulta mínima sin JOINs
+        try:
+            print("🔄 Intentando consulta mínima...")
+            query_minima = """
+                SELECT * FROM movimientos_inventario 
+                WHERE inventario_id = %s
+                ORDER BY fecha_movimiento DESC
+                LIMIT 50
+            """
+            
+            print(f"📋 Query mínima: {query_minima}")
+            print(f"📋 Parámetro: ({item_id})")
+            
+            historial = db_manager.execute_query(query_minima, (item_id,))
+            print(f"📊 Resultado mínima: {historial}")
+            print(f"✅ Historial con consulta mínima: {len(historial or [])} movimientos")
+            
+            return jsonify({
+                'success': True,
+                'historial': historial or []
+            }), 200
+            
+        except Exception as e:
+            print(f"❌ Error en consulta mínima: {e}")
         
-        historial = db_manager.execute_query(query_minima, (item_id,))
-        print("✅ Historial de item obtenido con consulta mínima")
-        
+        # Si todo falla, retornar vacío
+        print("⚠️ Todas las consultas fallaron, retornando historial vacío")
         return jsonify({
             'success': True,
-            'historial': historial or []
+            'historial': []
         }), 200
         
     except Exception as e:
+        print(f"❌ Error general en historial item: {e}")
+        import traceback
+        print(f"🔍 Stack trace completo: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
@@ -2981,9 +3243,11 @@ def gestionar_solicitudes_nivel():
             s.fecha_respuesta,
             s.admin_revisor,
             s.comentario_admin,
+            s.laboratorio_solicitado,
             u.nombre,
             u.email,
-            u.tipo
+            u.tipo,
+            u.laboratorio_id as laboratorio_id_actual
         FROM solicitudes_nivel s
         JOIN usuarios u ON s.usuario_id = u.id
         ORDER BY 
@@ -3023,13 +3287,8 @@ def aprobar_solicitud_nivel(solicitud_id):
         sol = solicitud[0]
         comentario = request.form.get('comentario', '')
         
-        # Cambiar nivel del usuario
-        update_usuario = """
-            UPDATE usuarios 
-            SET nivel_acceso = %s, 
-                tipo = %s
-            WHERE id = %s
-        """
+        # Determinar si es instructor con inventario
+        es_instructor_inventario = sol['nivel_solicitado'] == NIVEL_INSTRUCTOR_INVENTARIO
         
         # Mapear tipo según nivel
         tipo_map = {
@@ -3042,18 +3301,100 @@ def aprobar_solicitud_nivel(solicitud_id):
         }
         nuevo_tipo = tipo_map.get(sol['nivel_solicitado'], 'aprendiz')
         
-        db_manager.execute_query(update_usuario, (sol['nivel_solicitado'], nuevo_tipo, sol['usuario_id']))
+        # Cambiar nivel del usuario usando laboratorio_solicitado si existe
+        if es_instructor_inventario:
+            # 🆕 Usar laboratorio_solicitado de la solicitud si existe
+            laboratorio_asignar = sol.get('laboratorio_solicitado')
+            
+            if laboratorio_asignar:
+                # 🆕 Iniciar transacción para asegurar consistencia
+                try:
+                    db_manager.execute_query("START TRANSACTION")
+                    
+                    # 🆕 Limpiar laboratorio anterior del usuario (si tiene uno)
+                    if sol.get('laboratorio_id_actual'):
+                        limpiar_anterior = """
+                            UPDATE laboratorios 
+                            SET responsable_id = NULL,
+                                fecha_actualizacion = NOW()
+                            WHERE id = %s AND responsable_id = %s
+                        """
+                        db_manager.execute_query(limpiar_anterior, (sol['laboratorio_id_actual'], sol['usuario_id']))
+                        print(f"🧹 Laboratorio anterior limpiado: {sol['laboratorio_id_actual']}")
+                    
+                    # ✅ Actualizar usuario con laboratorio solicitado
+                    update_usuario = """
+                        UPDATE usuarios 
+                        SET nivel_acceso = %s, 
+                            tipo = %s,
+                            a_cargo_inventario = TRUE,
+                            laboratorio_id = %s
+                        WHERE id = %s
+                    """
+                    db_manager.execute_query(update_usuario, (sol['nivel_solicitado'], nuevo_tipo, laboratorio_asignar, sol['usuario_id']))
+                    
+                    # 🆕 Actualizar responsable_id del laboratorio (responsabilidad unificada)
+                    update_laboratorio = """
+                        UPDATE laboratorios 
+                        SET responsable_id = %s,
+                            fecha_actualizacion = NOW()
+                        WHERE id = %s
+                    """
+                    db_manager.execute_query(update_laboratorio, (sol['usuario_id'], laboratorio_asignar))
+                    
+                    # 🆕 Confirmar transacción
+                    db_manager.execute_query("COMMIT")
+                    
+                    print(f"✅ Usuario {sol['usuario_id']} aprobado como instructor de inventario")
+                    print(f"🎯 Laboratorio asignado automáticamente: {laboratorio_asignar}")
+                    print(f"🔄 Sistema unificado: usando laboratorio del registro inicial")
+                    print(f"👤 Responsable del laboratorio actualizado: {sol['usuario_id']}")
+                    print(f"🏗️ Responsabilidades unificadas: usuario <-> laboratorio")
+                    print(f"💾 Transacción confirmada: actualizaciones atómicas")
+                    
+                except Exception as e:
+                    # ❌ Revertir cambios si hay error
+                    db_manager.execute_query("ROLLBACK")
+                    print(f"❌ Error en transacción: {e}")
+                    print(f"🔄 Cambios revertidos para mantener consistencia")
+                    raise e
+            else:
+                # ❌ Sin laboratorio solicitado, aprobar sin asignación
+                update_usuario = """
+                    UPDATE usuarios 
+                    SET nivel_acceso = %s, 
+                        tipo = %s,
+                        a_cargo_inventario = FALSE,
+                        laboratorio_id = NULL
+                    WHERE id = %s
+                """
+                db_manager.execute_query(update_usuario, (sol['nivel_solicitado'], nuevo_tipo, sol['usuario_id']))
+                
+                print(f"⚠️ Usuario {sol['usuario_id']} aprobado SIN laboratorio")
+                print(f"📋 No se encontró laboratorio_solicitado en la solicitud")
+                print(f"🔄 Deberá asignarse laboratorio manualmente (caso excepcional)")
+        else:
+            # Otros niveles (no necesitan laboratorio)
+            update_usuario = """
+                UPDATE usuarios 
+                SET nivel_acceso = %s, 
+                    tipo = %s,
+                    a_cargo_inventario = FALSE,
+                    laboratorio_id = NULL
+                WHERE id = %s
+            """
+            db_manager.execute_query(update_usuario, (sol['nivel_solicitado'], nuevo_tipo, sol['usuario_id']))
         
         # Marcar solicitud como aprobada
         update_solicitud = """
             UPDATE solicitudes_nivel 
             SET estado = 'aprobada', 
-                fecha_respuesta = NOW(), 
+                fecha_respuesta = %s,
                 admin_revisor = %s,
                 comentario_admin = %s
             WHERE id = %s
         """
-        db_manager.execute_query(update_solicitud, (session['user_id'], comentario, solicitud_id))
+        db_manager.execute_query(update_solicitud, (get_colombia_datetime_string(), session['user_id'], comentario, solicitud_id))
         
         # Log de auditoría
         try:
@@ -3098,12 +3439,12 @@ def rechazar_solicitud_nivel(solicitud_id):
         update_solicitud = """
             UPDATE solicitudes_nivel 
             SET estado = 'rechazada', 
-                fecha_respuesta = NOW(), 
+                fecha_respuesta = %s, 
                 admin_revisor = %s,
                 comentario_admin = %s
             WHERE id = %s
         """
-        db_manager.execute_query(update_solicitud, (session['user_id'], comentario, solicitud_id))
+        db_manager.execute_query(update_solicitud, (get_colombia_datetime_string(), session['user_id'], comentario, solicitud_id))
         
         # Log de auditoría
         try:
@@ -3141,7 +3482,8 @@ def reportes():
         **stats,
         'uso_equipos': reportes_data.get('uso_equipos', []),
         'inventario_bajo': reportes_data.get('inventario_bajo', []),
-        'usuarios_activos': reportes_data.get('usuarios_activos', [])
+        'usuarios_activos': reportes_data.get('usuarios_activos', []),
+        'proximos_vencimientos': reportes_data.get('proximos_vencimientos', [])
     }
     
     # Generar JWT para uso opcional en actualizaciones dinámicas
@@ -3179,7 +3521,7 @@ def descargar_reporte_pdf():
         pdf_buffer = report_generator.generar_pdf_estadisticas(data, fecha_inicio, fecha_fin)
         
         # Nombre del archivo
-        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fecha_actual = get_colombia_datetime().strftime("%Y%m%d_%H%M%S")
         filename = f"reporte_laboratorio_{fecha_actual}.pdf"
         
         return send_file(
@@ -3210,7 +3552,7 @@ def descargar_reporte_excel():
         excel_buffer = report_generator.generar_excel_estadisticas(data, fecha_inicio, fecha_fin)
         
         # Nombre del archivo
-        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fecha_actual = get_colombia_datetime().strftime("%Y%m%d_%H%M%S")
         filename = f"reporte_laboratorio_{fecha_actual}.xlsx"
         
         return send_file(
@@ -3304,42 +3646,183 @@ def get_dashboard_stats():
     total_users = db_manager.execute_query("SELECT COUNT(*) cantidad FROM usuarios WHERE activo = TRUE")
     stats['total_usuarios'] = total_users[0]['cantidad'] if total_users else 0
     
+    # NUEVO: Calcular horas de uso totales (últimos 30 días)
+    horas_query = """
+        SELECT SUM(duracion_minutos) as total_minutos
+        FROM historial_uso 
+        WHERE fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    """
+    horas_result = db_manager.execute_query(horas_query)
+    total_minutos = horas_result[0]['total_minutos'] if horas_result and horas_result[0]['total_minutos'] else 0
+    stats['horas_uso_totales'] = round(total_minutos / 60, 1)  # Convertir a horas
+    
+    # NUEVO: Estado de equipos para gráfico de dona
+    estados_q = "SELECT estado, COUNT(*) as cantidad FROM equipos GROUP BY estado"
+    estados_res = db_manager.execute_query(estados_q)
+    stats['equipos_estado'] = {row['estado']: row['cantidad'] for row in estados_res} if estados_res else {}
+    
+    # NUEVO: Tendencia semanal (últimos 7 días)
+    tendencia_query = """
+        SELECT 
+            DAYNAME(fecha_uso) as dia,
+            COUNT(*) as usos,
+            SUM(duracion_minutos) as minutos
+        FROM historial_uso 
+        WHERE fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DAYNAME(fecha_uso), DATE(fecha_uso)
+        ORDER BY DATE(fecha_uso)
+    """
+    tendencia_result = db_manager.execute_query(tendencia_query)
+    
+    # Mapear días de la semana y crear estructura para gráfico
+    dias_map = {'Monday': 'Lun', 'Tuesday': 'Mar', 'Wednesday': 'Mie', 'Thursday': 'Jue', 'Friday': 'Vie', 'Saturday': 'Sab', 'Sunday': 'Dom'}
+    tendencia_data = {'labels': [], 'values': []}
+    
+    if tendencia_result:
+        for row in tendencia_result:
+            dia_en = row['dia']
+            dia_es = dias_map.get(dia_en, dia_en[:3])
+            tendencia_data['labels'].append(dia_es)
+            tendencia_data['values'].append(row['usos'])
+    else:
+        # Datos por defecto si no hay datos
+        tendencia_data = {
+            'labels': ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+            'values': [0, 0, 0, 0, 0, 0, 0]
+        }
+    
+    stats['tendencia_semanal'] = tendencia_data
+    
     return stats
 
 
 def get_reportes_data():
+    """Datos específicos para reportes y gráficos"""
     data = {}
+    
+    # 1. Equipos más usados (últimos 30 días)
     q1 = (
         """
         SELECT e.nombre, COUNT(h.id) usos
         FROM equipos e
-        LEFT JOIN historial_uso h ON e.id = h.equipo_id AND h.fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        LEFT JOIN historial_uso h ON e.id = h.equipo_id AND h.fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
         GROUP BY e.id, e.nombre
+        HAVING usos > 0
         ORDER BY usos DESC
         LIMIT 10
         """
     )
     data['uso_equipos'] = db_manager.execute_query(q1)
+    
+    # 2. Inventario con stock bajo
     q2 = (
         """
-        SELECT nombre, categoria, cantidad_actual, cantidad_minima
+        SELECT nombre, categoria, cantidad_actual, cantidad_minima, unidad
         FROM inventario
         WHERE cantidad_actual <= cantidad_minima
         ORDER BY (cantidad_actual - cantidad_minima)
+        LIMIT 15
         """
     )
     data['inventario_bajo'] = db_manager.execute_query(q2)
+    
+    # 3. Usuarios más activos (últimos 7 días)
     q3 = (
         """
-        SELECT u.nombre, u.tipo, COUNT(c.id) comandos
+        SELECT u.nombre, u.tipo, COUNT(h.id) as usos, SUM(h.duracion_minutos) as total_minutos
         FROM usuarios u
-        LEFT JOIN comandos_voz c ON u.id = c.usuario_id AND c.fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        LEFT JOIN historial_uso h ON u.id = h.usuario_id AND h.fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         GROUP BY u.id, u.nombre, u.tipo
-        ORDER BY comandos DESC
+        HAVING usos > 0
+        ORDER BY usos DESC
         LIMIT 10
         """
     )
     data['usuarios_activos'] = db_manager.execute_query(q3)
+    
+    # 3.1 NUEVO: Ítems por vencer (Próximos 30 días) o vencidos
+    q_venc = (
+        """
+        SELECT nombre, categoria, fecha_vencimiento, 
+               DATEDIFF(fecha_vencimiento, CURDATE()) as dias_restantes
+        FROM inventario
+        WHERE fecha_vencimiento IS NOT NULL 
+        AND fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        ORDER BY fecha_vencimiento ASC
+        LIMIT 10
+        """
+    )
+    data['proximos_vencimientos'] = db_manager.execute_query(q_venc)
+    
+    # 4. NUEVO: Actividades recientes (últimos 7 días)
+    q4 = (
+        """
+        SELECT 
+            DATE(h.fecha_uso) as fecha,
+            u.nombre as usuario,
+            e.nombre as equipo,
+            'Uso de equipo' as accion,
+            CONCAT(h.duracion_minutos, ' min') as duracion,
+            'ok' as estado
+        FROM historial_uso h
+        JOIN usuarios u ON h.usuario_id = u.id
+        JOIN equipos e ON h.equipo_id = e.id
+        WHERE h.fecha_uso >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        ORDER BY h.fecha_uso DESC
+        LIMIT 20
+        """
+    )
+    actividades_uso = db_manager.execute_query(q4)
+    
+    # 5. Agregar reservas recientes
+    q5 = (
+        """
+        SELECT 
+            DATE(r.fecha_creacion) as fecha,
+            u.nombre as usuario,
+            e.nombre as equipo,
+            'Reserva' as accion,
+            TIME(r.fecha_inicio) as duracion,
+            r.estado as estado
+        FROM reservas r
+        JOIN usuarios u ON r.usuario_id = u.id
+        JOIN equipos e ON r.equipo_id = e.id
+        WHERE r.fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        ORDER BY r.fecha_creacion DESC
+        LIMIT 10
+        """
+    )
+    actividades_reservas = db_manager.execute_query(q5)
+    
+    # Combinar actividades y ordenar por fecha
+    actividades = []
+    
+    # Procesar actividades de uso
+    for act in actividades_uso or []:
+        act['estado'] = 'ok'  # Todas las actividades de uso son exitosas
+        actividades.append(act)
+    
+    # Procesar actividades de reserva
+    for act in actividades_reservas or []:
+        act['estado'] = 'ok' if act['estado'] in ['activa', 'programada'] else 'pending'
+        actividades.append(act)
+    
+    # Ordenar por fecha (más recientes primero)
+    actividades.sort(key=lambda x: x['fecha'], reverse=True)
+    data['actividades_recientes'] = actividades[:20]  # Limitar a 20 más recientes
+    
+    # 6. NUEVO: Equipos por estado para gráfico de pie
+    q6 = (
+        """
+        SELECT estado, COUNT(*) as cantidad
+        FROM equipos
+        GROUP BY estado
+        ORDER BY cantidad DESC
+        """
+    )
+    estados_result = db_manager.execute_query(q6)
+    data['equipos_estado'] = {r['estado']: r['cantidad'] for r in estados_result} if estados_result else {}
+    
     return data
 
 
@@ -3444,6 +3927,17 @@ def obtener_datos_completos_reporte(fecha_inicio=None, fecha_fin=None):
     """
     data['inventario_bajo'] = db_manager.execute_query(q_inventario) or []
     
+    # 6. Ítems por vencer (Próximos 30 días) o vencidos
+    q_venc = """
+        SELECT nombre, categoria, fecha_vencimiento, 
+               DATEDIFF(fecha_vencimiento, CURDATE()) as dias_restantes
+        FROM inventario
+        WHERE fecha_vencimiento IS NOT NULL 
+        AND fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        ORDER BY fecha_vencimiento ASC
+    """
+    data['proximos_vencimientos'] = db_manager.execute_query(q_venc) or []
+    
     return data
 
 # =====================================================================
@@ -3520,30 +4014,42 @@ class EquiposAPI(Resource):
         verify_jwt_or_admin()
         data = request.get_json(silent=True) or {}
         
-        # Validar campos requeridos
-        if not data.get('nombre'):
-            return {'message': 'nombre es requerido'}, 400
-        if not data.get('tipo'):
-            return {'message': 'tipo es requerido'}, 400
+        # Validar campos requeridos con DataValidator
+        is_valid, missing = DataValidator.validate_required_fields(data, ['nombre', 'tipo'])
+        if not is_valid:
+            return {'message': f'Campo requerido faltante: {", ".join(missing)}'}, 400
         
-        import uuid
-        equipo_id = f"EQ_{str(uuid.uuid4())[:8].upper()}"
+        # El id interno es un UUID
+        id_interno = f"EQ_{str(uuid.uuid4())[:8].upper()}"
+        # equipo_id es la "placa" institucional
+        placa = data.get('placa', '')
+        equipo_id_final = placa if placa else f"EQ_{str(uuid.uuid4())[:8].upper()}"
+        serial = data.get('serial', '')
+        
+        # Guardar specs como JSON
+        specs_data = data.get('especificaciones', {})
+        if isinstance(specs_data, str):
+            specs_data = {"descripcion": specs_data}
+        elif specs_data is None:
+            specs_data = {}
+            
+        # Agregar placa y serial a los specs por redundancia
+        specs_data['placa'] = placa
+        specs_data['serial'] = serial
         
         query = """
-            INSERT INTO equipos (id, nombre, tipo, estado, ubicacion, especificaciones)
-            VALUES (%s, %s, %s, 'disponible', %s, %s)
+            INSERT INTO equipos (id, equipo_id, nombre, tipo, estado, ubicacion, numero_serie, especificaciones)
+            VALUES (%s, %s, %s, %s, 'disponible', %s, %s, %s)
         """
-        
-        specs_json = json.dumps(data.get('especificaciones')) if data.get('especificaciones') else None
         
         try:
             db_manager.execute_query(query, (
-                equipo_id, data['nombre'], data['tipo'], 
-                data.get('ubicacion'), specs_json
+                id_interno, equipo_id_final, data['nombre'], data['tipo'], 
+                data.get('ubicacion'), serial, json.dumps(specs_data)
             ))
-            return {'message': 'Equipo creado exitosamente', 'id': equipo_id}, 201
+            return {'message': 'Equipo creado exitosamente', 'id': id_interno}, 201
         except Exception as e:
-            return {'message': f'Error creando equipo: {str(e)}'}, 500
+            return {'message': f'Error al crear equipo: {str(e)}'}, 500
 
 
 class EquipoAPI(Resource):
@@ -3619,11 +4125,17 @@ class LaboratoriosAPI(Resource):
         
         query = """
             SELECT l.id, l.codigo, l.nombre, l.tipo, l.ubicacion, l.capacidad_estudiantes,
-                   l.area_m2, l.responsable, l.estado, l.equipamiento_especializado,
+                   l.area_m2, l.estado, l.equipamiento_especializado,
                    COUNT(DISTINCT e.id) as total_equipos,
                    COUNT(DISTINCT i.id) as total_items,
                    COUNT(DISTINCT CASE WHEN e.estado = 'disponible' THEN e.id END) as equipos_disponibles,
-                   COUNT(DISTINCT CASE WHEN i.cantidad_actual <= i.cantidad_minima THEN i.id END) as items_criticos
+                   COUNT(DISTINCT CASE WHEN i.cantidad_actual <= i.cantidad_minima THEN i.id END) as items_criticos,
+                   (SELECT u.nombre FROM usuarios u 
+                    WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+                    LIMIT 1) as responsable_nombre,
+                   (SELECT u.id FROM usuarios u 
+                    WHERE u.a_cargo_inventario = TRUE AND u.laboratorio_id = l.id AND u.activo = TRUE 
+                    LIMIT 1) as responsable_id
             FROM laboratorios l
             LEFT JOIN equipos e ON l.id = e.laboratorio_id
             LEFT JOIN inventario i ON l.id = i.laboratorio_id
@@ -3756,7 +4268,8 @@ class LaboratorioAPI(Resource):
         
         campos_actualizables = [
             'nombre', 'ubicacion', 'capacidad_estudiantes', 'area_m2',
-            'responsable', 'equipamiento_especializado', 'normas_seguridad', 'estado'
+            'responsable_id', 'responsable', 'equipamiento_especializado', 
+            'normas_seguridad', 'estado'
         ]
         
         updates, params = [], []
@@ -3776,6 +4289,59 @@ class LaboratorioAPI(Resource):
             return ({'message': 'Laboratorio actualizado'}, 200) if affected else ({'message': 'Laboratorio no encontrado'}, 404)
         except Exception as e:
             return {'message': f'Error actualizando laboratorio: {str(e)}'}, 500
+
+
+@app.route('/api/laboratorios/diagnostico-consistencia', methods=['GET'])
+@require_login
+@require_level(NIVEL_ADMINISTRADOR)
+def diagnosticar_consistencia_laboratorios():
+    """Diagnosticar consistencia entre laboratorios y permisos de usuarios"""
+    try:
+        resultado = lab_sync_service.verificar_consistencia_laboratorios()
+        
+        return jsonify({
+            'success': True,
+            'message': resultado['mensaje'],
+            'data': {
+                'total_laboratorios': resultado['total_laboratorios'],
+                'inconsistencias': resultado['inconsistencias'],
+                'cantidad_inconsistencias': len(resultado['inconsistencias'])
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] diagnosticar_consistencia_laboratorios: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error en diagnóstico: {str(e)}'
+        }), 500
+
+
+@app.route('/api/laboratorios/sincronizar-masivo', methods=['POST'])
+@require_login
+@require_level(NIVEL_ADMINISTRADOR)
+def sincronizar_masivo_laboratorios():
+    """Sincronizar masivamente todas las asignaciones de laboratorios"""
+    try:
+        resultado = lab_sync_service.sincronizar_masivo()
+        
+        return jsonify({
+            'success': resultado['success'],
+            'message': resultado['message'],
+            'data': {
+                'resultados': resultado['resultados'],
+                'errores': resultado['errores'],
+                'total_exitosos': len(resultado['resultados']),
+                'total_errores': len(resultado['errores'])
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"[ERROR] sincronizar_masivo_laboratorios: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error en sincronización masiva: {str(e)}'
+        }), 500
 
 
 class InventarioAPI(Resource):
@@ -4243,6 +4809,41 @@ class UsuarioCreateAPI(Resource):
 
 class UsuarioUpdateAPI(Resource):
     @require_login
+    def get(self, user_id):
+        """Obtener datos de usuario para edición (solo administradores)"""
+        if session.get('user_level', 0) < NIVEL_ADMINISTRADOR:
+            return {'success': False, 'message': 'Acceso denegado'}, 403
+        
+        try:
+            # Obtener datos del usuario
+            query = """
+                SELECT id, nombre, email, nivel_acceso, laboratorio_id, activo,
+                       DATE_FORMAT(fecha_registro, '%d/%m/%Y') as registro,
+                       CASE WHEN rostro_data IS NOT NULL THEN 'Sí' ELSE 'No' END as tiene_rostro
+                FROM usuarios
+                WHERE id = %s
+            """
+            usuarios = db_manager.execute_query(query, (user_id,))
+            
+            if not usuarios:
+                return {'success': False, 'message': 'Usuario no encontrado'}, 404
+            
+            usuario = usuarios[0]
+            
+            # Obtener lista de laboratorios para el frontend
+            query_labs = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
+            laboratorios = db_manager.execute_query(query_labs) or []
+            
+            return {
+                'success': True,
+                'usuario': usuario,
+                'laboratorios': laboratorios
+            }, 200
+            
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}, 500
+    
+    @require_login
     def put(self, user_id):
         """Actualizar usuario (solo administradores)"""
         if session.get('user_level', 0) < NIVEL_ADMINISTRADOR:
@@ -4251,16 +4852,33 @@ class UsuarioUpdateAPI(Resource):
         data = request.get_json()
         nivel_acceso = data.get('nivel_acceso')
         password = data.get('password', '').strip()
+        laboratorio_id = data.get('laboratorio_id')
         
         try:
-            if password:
-                query = "UPDATE usuarios SET nivel_acceso = %s, password_hash = %s WHERE id = %s"
-                db_manager.execute_query(query, (nivel_acceso, password, user_id))
-            else:
-                query = "UPDATE usuarios SET nivel_acceso = %s WHERE id = %s"
-                db_manager.execute_query(query, (nivel_acceso, user_id))
+            # Obtener lista de laboratorios para el frontend
+            query_labs = "SELECT id, codigo, nombre FROM laboratorios WHERE estado = 'activo' ORDER BY nombre"
+            laboratorios = db_manager.execute_query(query_labs) or []
             
-            return {'success': True, 'message': 'Usuario actualizado exitosamente'}, 200
+            if password:
+                query = """
+                    UPDATE usuarios 
+                    SET nivel_acceso = %s, password_hash = %s, laboratorio_id = %s 
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (nivel_acceso, password, laboratorio_id, user_id))
+            else:
+                query = """
+                    UPDATE usuarios 
+                    SET nivel_acceso = %s, laboratorio_id = %s 
+                    WHERE id = %s
+                """
+                db_manager.execute_query(query, (nivel_acceso, laboratorio_id, user_id))
+            
+            return {
+                'success': True, 
+                'message': 'Usuario actualizado exitosamente',
+                'laboratorios': laboratorios
+            }, 200
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}, 500
 
@@ -6110,6 +6728,11 @@ def api_registro_completo():
         ubicacion = datos_sanitizados['ubicacion']
         estado = datos_sanitizados['estado']
         cantidad = datos_sanitizados['cantidad']
+        serial = datos_sanitizados['serial']
+        placa = datos_sanitizados['placa']
+        lote = datos_sanitizados['lote']
+        fecha_vencimiento = datos_sanitizados['fecha_vencimiento']
+        unidad = datos_sanitizados.get('unidad', 'unidades')
         fotos = datos_sanitizados['fotos']
         
         # DEBUG: Imprimir valores recibidos
@@ -6142,39 +6765,37 @@ def api_registro_completo():
             # ==============================================================
             if tipo_registro == 'equipo':
                 # Crear equipo
-                equipo_id = f"EQ_{str(uuid.uuid4())[:8].upper()}"
+                # Si se proporciona placa, usarla como equipo_id, de lo contrario generar uno
+                equipo_id_final = placa if placa else f"EQ_{str(uuid.uuid4())[:8].upper()}"
                 
                 query_equipo = """
-                    INSERT INTO equipos (id, nombre, tipo, estado, ubicacion, laboratorio_id, especificaciones)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO equipos (id, equipo_id, nombre, tipo, estado, ubicacion, laboratorio_id, numero_serie, especificaciones)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
+                # El campo 'id' sigue siendo el UUID o ID interno
+                id_interno = f"EQ_{str(uuid.uuid4())[:8].upper()}"
+                
                 cursor.execute(query_equipo, (
-                    equipo_id, nombre, categoria, estado, ubicacion, laboratorio_id,
-                    json.dumps({'descripcion': descripcion})
+                    id_interno, equipo_id_final, nombre, categoria, estado, ubicacion, laboratorio_id,
+                    serial, json.dumps({'descripcion': descripcion, 'placa': placa, 'serial': serial})
                 ))
-                registro_id = equipo_id
+                registro_id = id_interno
                 
             else:  # item de inventario
                 # Generar ID único para el item
+                # Generar ID único para el item (o usar placa si aplica como id primario en este sistema)
                 item_id = f"ITEM_{str(uuid.uuid4())[:8].upper()}"
                 
-                # DEBUG: Imprimir valores antes del INSERT
-                print(f"[DEBUG INSERT] Item ID: {item_id}")
-                print(f"[DEBUG INSERT] Nombre: {nombre}")
-                print(f"[DEBUG INSERT] Categoría: {categoria}")
-                print(f"[DEBUG INSERT] Laboratorio ID: {laboratorio_id}")
-                print(f"[DEBUG INSERT] Cantidad: {cantidad}")
-                print(f"[DEBUG INSERT] Tipo de cantidad: {type(cantidad)}")
-                
-                # Insertar item con cantidad inicial de stock
+                # Insertar item con cantidad inicial de stock, lote y vencimiento
                 query_item = """
-                    INSERT INTO inventario (id, nombre, categoria, laboratorio_id, cantidad_actual, unidad)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO inventario (id, nombre, categoria, laboratorio_id, cantidad_actual, cantidad_minima, unidad, lote, fecha_vencimiento, observaciones)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(query_item, (
-                    item_id, nombre, categoria, laboratorio_id, cantidad, 'unidades'
+                    item_id, nombre, categoria, laboratorio_id, cantidad, cantidad, unidad, lote, fecha_vencimiento, descripcion
                 ))
                 print(f"[DEBUG] Item insertado con cantidad: {cantidad}")
+                print(f"[DEBUG] Item ID: {item_id}, Nombre: {nombre}, Laboratorio: {laboratorio_id}")
                 registro_id = item_id
             
             # ==============================================================
@@ -6634,6 +7255,7 @@ def api_registro_eliminar(tipo, id):
 
 @app.route('/imagenes_objeto/<int:imagen_id>')
 @require_login
+@limiter.limit("200 per minute")
 def servir_imagen_objeto(imagen_id):
     """Servir imagen de objeto por ID"""
     from flask import send_file
@@ -6659,50 +7281,114 @@ def servir_imagen_objeto(imagen_id):
 def api_reemplazar_imagen():
     """API para reemplazar una imagen existente"""
     try:
-        # Obtener datos del formulario
-        imagen_id = request.form.get('imagen_id')
-        vista = request.form.get('vista')
-        objeto_id = request.form.get('objeto_id')
-        archivo = request.files.get('imagen')
-        
-        print(f"[DEBUG] Reemplazando imagen: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}")
-        
-        if not all([imagen_id, vista, objeto_id, archivo]):
-            print(f"[ERROR] Faltan datos: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}, archivo={archivo}")
-            return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
-        
-        # Obtener la ruta actual de la imagen
-        query_old = "SELECT path FROM objetos_imagenes WHERE id = %s"
-        result = db_manager.execute_query(query_old, (imagen_id,))
-        
-        if not result:
-            print(f"[ERROR] Imagen no encontrada en BD: imagen_id={imagen_id}")
-            return jsonify({'success': False, 'message': 'Imagen no encontrada'}), 404
-        
-        old_path = result[0]['path']
-        print(f"[DEBUG] Ruta antigua: {old_path}")
-        
-        # Crear directorio si no existe
-        objeto_dir = os.path.join('imagenes', 'objetos')
-        os.makedirs(objeto_dir, exist_ok=True)
-        
-        # Generar nombre de archivo único
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"obj_{objeto_id}_{vista}_{timestamp}.jpg"
-        new_path = os.path.join(objeto_dir, filename)
-        print(f"[DEBUG] Nueva ruta: {new_path}")
-        
-        # Guardar nueva imagen
-        archivo.save(new_path)
-        print(f"[DEBUG] Nueva imagen guardada: {new_path}")
-        
-        # Verificar que el archivo se guardó correctamente
-        if not os.path.exists(new_path):
-            print(f"[ERROR] No se pudo guardar la nueva imagen: {new_path}")
-            return jsonify({'success': False, 'message': 'Error al guardar la nueva imagen'}), 500
-        
-        file_size = os.path.getsize(new_path)
-        print(f"[DEBUG] Tamaño de nueva imagen: {file_size} bytes")
+        # Verificar si es JSON o FormData
+        if request.is_json:
+            # Datos JSON con base64
+            data = request.get_json()
+            imagen_id = data.get('imagen_id')
+            image_base64 = data.get('image_base64')
+            vista = data.get('vista', 'general')
+            
+            print(f"[DEBUG] Reemplazando imagen JSON: imagen_id={imagen_id}, vista={vista}")
+            
+            if not imagen_id or not image_base64:
+                print(f"[ERROR] Faltan datos JSON: imagen_id={imagen_id}, image_base64={'present' if image_base64 else 'missing'}")
+                return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            
+            # Procesar base64
+            import base64
+            
+            # Quitar prefijo data:image/...;base64,
+            if ',' in image_base64:
+                image_base64 = image_base64.split(',')[1]
+            
+            # Decodificar base64
+            image_data = base64.b64decode(image_base64)
+            
+            # Obtener información de la imagen actual
+            query_info = "SELECT oi.*, o.nombre as objeto_nombre FROM objetos_imagenes oi LEFT JOIN objetos o ON oi.objeto_id = o.id WHERE oi.id = %s"
+            result = db_manager.execute_query(query_info, (imagen_id,))
+            
+            if not result:
+                print(f"[ERROR] Imagen no encontrada en BD: imagen_id={imagen_id}")
+                return jsonify({'success': False, 'message': 'Imagen no encontrada'}), 404
+            
+            objeto_id = result[0]['objeto_id']
+            objeto_nombre = result[0]['objeto_nombre'] or 'objeto'
+            old_path = result[0]['path']
+            
+            print(f"[DEBUG] Objeto ID: {objeto_id}, Nombre: {objeto_nombre}")
+            print(f"[DEBUG] Ruta antigua: {old_path}")
+            
+            # Crear directorio si no existe
+            objeto_dir = os.path.join('imagenes', 'objetos')
+            os.makedirs(objeto_dir, exist_ok=True)
+            
+            # Generar nombre de archivo único
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"obj_{objeto_id}_{vista}_{timestamp}.jpg"
+            new_path = os.path.join(objeto_dir, filename)
+            print(f"[DEBUG] Nueva ruta: {new_path}")
+            
+            # Guardar nueva imagen desde base64
+            with open(new_path, 'wb') as f:
+                f.write(image_data)
+            
+            print(f"[DEBUG] Nueva imagen guardada desde base64: {new_path}")
+            
+            # Verificar que el archivo se guardó correctamente
+            if not os.path.exists(new_path):
+                print(f"[ERROR] No se pudo guardar la nueva imagen: {new_path}")
+                return jsonify({'success': False, 'message': 'Error al guardar la nueva imagen'}), 500
+            
+            file_size = os.path.getsize(new_path)
+            print(f"[DEBUG] Tamaño de nueva imagen: {file_size} bytes")
+            
+        else:
+            # Datos FormData tradicional (compatibilidad con código existente)
+            imagen_id = request.form.get('imagen_id')
+            vista = request.form.get('vista', 'general')
+            objeto_id = request.form.get('objeto_id')
+            archivo = request.files.get('imagen')
+            
+            print(f"[DEBUG] Reemplazando imagen FormData: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}")
+            
+            if not all([imagen_id, vista, objeto_id, archivo]):
+                print(f"[ERROR] Faltan datos FormData: imagen_id={imagen_id}, vista={vista}, objeto_id={objeto_id}, archivo={archivo}")
+                return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            
+            # Obtener ruta antigua
+            query_old = "SELECT path FROM objetos_imagenes WHERE id = %s"
+            result = db_manager.execute_query(query_old, (imagen_id,))
+            
+            if not result:
+                print(f"[ERROR] Imagen no encontrada en BD: imagen_id={imagen_id}")
+                return jsonify({'success': False, 'message': 'Imagen no encontrada'}), 404
+            
+            old_path = result[0]['path']
+            print(f"[DEBUG] Ruta antigua: {old_path}")
+            
+            # Crear directorio si no existe
+            objeto_dir = os.path.join('imagenes', 'objetos')
+            os.makedirs(objeto_dir, exist_ok=True)
+            
+            # Generar nombre de archivo único
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"obj_{objeto_id}_{vista}_{timestamp}.jpg"
+            new_path = os.path.join(objeto_dir, filename)
+            print(f"[DEBUG] Nueva ruta: {new_path}")
+            
+            # Guardar nueva imagen
+            archivo.save(new_path)
+            print(f"[DEBUG] Nueva imagen guardada: {new_path}")
+            
+            # Verificar que el archivo se guardó correctamente
+            if not os.path.exists(new_path):
+                print(f"[ERROR] No se pudo guardar la nueva imagen: {new_path}")
+                return jsonify({'success': False, 'message': 'Error al guardar la nueva imagen'}), 500
+            
+            file_size = os.path.getsize(new_path)
+            print(f"[DEBUG] Tamaño de nueva imagen: {file_size} bytes")
         
         # Actualizar ruta en base de datos
         query_update = "UPDATE objetos_imagenes SET path = %s WHERE id = %s"

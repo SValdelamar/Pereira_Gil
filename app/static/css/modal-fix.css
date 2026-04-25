@@ -1,114 +1,160 @@
 /**
- * Modal Fix Styles
+ * Modal Enhancement Styles
  * 
- * Solución definitiva para el problema de backdrops bloqueantes en modales Bootstrap.
- * Este archivo debe cargarse DESPUÉS de Bootstrap pero ANTES de otros CSS personalizados.
+ * Mejoras para modales Bootstrap sin romper funcionalidad nativa.
+ * Compatible con Bootstrap 5.x y sigue buenas prácticas de producción.
  * 
- * @version 1.0.0
+ * @version 2.0.0
  * @author Sistema Laboratorio SENA
  */
 
 /* =====================================================================
-   ELIMINACIÓN DE BACKDROPS BLOQUEANTES
+   MEJORAS DE BACKDROPS (NO ELIMINACIÓN)
    ===================================================================== */
 
 /**
- * Forzar que los backdrops de Bootstrap nunca se muestren ni bloqueen la UI.
- * Usamos múltiples selectores para cubrir todas las variantes de clases.
+ * Mejorar la apariencia y comportamiento de backdrops sin eliminarlos
+ * Bootstrap necesita los backdrops para funcionamiento correcto
  */
-.modal-backdrop,
-div.modal-backdrop,
-.modal-backdrop.show,
-.modal-backdrop.fade,
-.modal-backdrop.fade.show,
-div[class*="modal-backdrop"],
-div[class*="backdrop"] {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    z-index: -9999 !important;
-    width: 0 !important;
-    height: 0 !important;
-    position: absolute !important;
-    top: -9999px !important;
-    left: -9999px !important;
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(2px) !important;
+    transition: opacity 0.15s ease-in-out !important;
+}
+
+.modal-backdrop.show {
+    opacity: 1 !important;
 }
 
 /* =====================================================================
-   PREVENCIÓN DE BLOQUEO DEL BODY
+   GESTIÓN MEJORADA DEL BODY
    ===================================================================== */
 
 /**
- * Asegurar que el body siempre sea scrolleable cuando hay modales abiertos.
- * Bootstrap por defecto agrega overflow: hidden al body.modal-open
+ * Permitir scroll suave cuando hay modales con contenido largo
  */
 body.modal-open {
-    overflow: auto !important;
+    overflow: hidden !important;
     padding-right: 0 !important;
 }
 
 /* =====================================================================
-   Z-INDEX CORRECTO PARA MODALES
+   Z-INDEX CONSISTENTE
    ===================================================================== */
 
 /**
- * Asegurar que los modales tengan el z-index correcto para aparecer
- * sobre otros elementos pero sin backdrop bloqueante.
+ * Asegurar apilamiento correcto de elementos modales
  */
 .modal {
-    z-index: 9999 !important;
+    z-index: 1055 !important;
 }
 
-.modal.show {
-    display: block !important;
-}
-
-/**
- * Asegurar que los diálogos de modales sean siempre interactuables
- */
 .modal-dialog {
-    pointer-events: all !important;
-    z-index: 10000 !important;
+    z-index: 1060 !important;
+    pointer-events: auto !important;
 }
 
-/**
- * Asegurar que el contenido del modal sea interactuable
- */
 .modal-content {
-    pointer-events: all !important;
-    z-index: 10001 !important;
-    position: relative !important;
+    z-index: 1065 !important;
+    pointer-events: auto !important;
 }
 
-.modal-content * {
-    pointer-events: all !important;
-}
+/* =====================================================================
+   MEJORAS DE ACCESIBILIDAD Y FOCUS
+   ===================================================================== */
 
 /**
- * Asegurar que los inputs y elementos del formulario sean interactuables
+ * Mejorar manejo de focus para accesibilidad
+ */
+.modal.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.modal-dialog-centered {
+    display: flex !important;
+    align-items: center !important;
+    min-height: calc(100% - 1rem) !important;
+}
+
+/* =====================================================================
+   TRANSICIONES SUAVES MEJORADAS
+   ===================================================================== */
+
+/**
+ * Transiciones más suaves y profesionales
+ */
+.modal.fade .modal-dialog {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    transform: scale(0.9) translateY(-20px) !important;
+    opacity: 0 !important;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1) translateY(0) !important;
+    opacity: 1 !important;
+}
+
+/* =====================================================================
+   RESPONSIVIDAD MEJORADA
+   ===================================================================== */
+
+/**
+ * Mejorar comportamiento en dispositivos móviles
+ */
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem !important;
+        max-width: calc(100% - 1rem) !important;
+    }
+    
+    .modal-content {
+        border-radius: 0.5rem !important;
+    }
+}
+
+/* =====================================================================
+   PREVENCIÓN DE CONFLICTOS
+   ===================================================================== */
+
+/**
+ * Asegurar que los elementos del formulario sean siempre interactuables
  */
 .modal input,
 .modal textarea,
 .modal select,
-.modal button {
-    pointer-events: all !important;
+.modal button,
+.modal .form-control,
+.modal .btn {
+    pointer-events: auto !important;
     position: relative !important;
-    z-index: 10002 !important;
 }
 
 /* =====================================================================
-   TRANSICIONES SUAVES
+   ESTADOS ESPECIALES
    ===================================================================== */
 
 /**
- * Mantener las transiciones suaves de Bootstrap pero sin backdrop
+ * Estados especiales para diferentes tipos de modales
  */
-.modal.fade .modal-dialog {
-    transition: transform 0.3s ease-out;
-    transform: translate(0, -50px);
+.modal.loading .modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1070;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.modal.show .modal-dialog {
-    transform: none;
+.modal.loading .modal-content::after {
+    content: '⏳';
+    font-size: 2rem;
+    z-index: 1071;
+    position: relative;
 }

@@ -65,3 +65,31 @@ Thumbs.db
 verificar_*.py
 diagnostico_*.py
 crear_tabla_*.py
+
+# Archivos de testing y desarrollo (limpieza producción)
+test_*.py
+test_*.html
+tests/
+debug_*.js
+
+# Archivos de análisis temporal (eliminados en producción)
+ANALISIS_*.md
+ESTANDAR_*.md
+CAMBIO_*.md
+INSTRUCCIONES_*.md
+LOGGING_*.md
+WCAG_*.md
+INFORME_*.md
+
+# Backups de templates (eliminados en producción)
+*.backup
+
+# Utilidades temporales (eliminadas en producción)
+utils_fotos.py
+
+# Archivos temporales de uploads
+app/static/uploads/temp_*
+
+# Variables de entorno sensibles
+.env.local
+.env.development

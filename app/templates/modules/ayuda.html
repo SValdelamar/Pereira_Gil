@@ -1,6 +1,37 @@
 {% extends 'base.html' %}
 {% set title = 'Ayuda - Manual de Usuario' %}
 {% block content %}
+{% block content %}
+<div class="ui-page-container">
+
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white text-sena p-3 me-4 shadow-sm d-flex align-items-center justify-content-center" style="width: 65px; height: 65px;">
+                        <i class="bi bi-journal-bookmark-fill fs-1"></i>
+                    </div>
+                    <div>
+                        <h1 class="module-header-title">Centro de Ayuda y Soporte</h1>
+                        <p class="module-header-description">Manual de usuario, guías rápidas y documentación técnica del Sistema GIL</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex gap-2 justify-content-lg-end">
+                    <button class="btn btn-outline-light btn-print-manual">
+                        <i class="bi bi-printer-fill me-2"></i>Imprimir Manual
+                    </button>
+                    <a href="mailto:gilcentrominero@gmail.com" class="btn btn-outline-light">
+                        <i class="bi bi-envelope-fill me-2"></i>Soporte Técnico
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 <!-- Portada del Manual (solo visible en impresión) -->
 <div class="manual-cover">
     <div class="text-center py-4">
@@ -147,52 +178,49 @@
     </div>
 </div>
 
-<div class="help-header">
-    <i class="bi bi-question-circle" style="font-size: 3em; margin-bottom: 15px;"></i>
-    <h1>Centro de Ayuda</h1>
-    <p class="mb-0">Manual de Usuario - Sistema de Gestión de Laboratorios</p>
-</div>
 
-<div class="row">
-    <div class="col-md-4 mb-4">
-        <div class="help-section text-center">
-            <div class="help-icon mx-auto">
-                <i class="bi bi-play-circle"></i>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="ui-data-card text-center p-5 h-100 shadow-hover transition-all">
+            <div class="rounded-circle bg-sena-soft text-sena p-4 mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <i class="bi bi-play-circle-fill fs-1"></i>
             </div>
-            <h4>Primeros Pasos</h4>
-            <p class="text-muted">Aprende a usar el sistema desde cero</p>
-            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalPrimerosPasos">
-                Ver Tutorial
+            <h4 class="fw-bold text-dark">Primeros Pasos</h4>
+            <p class="text-muted small px-3">Aprende a navegar e interactuar con el ecosistema GIL desde cero</p>
+            <button class="btn btn-primary px-4 mt-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPrimerosPasos">
+                Ver Tutorial Interactivo
             </button>
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
-        <div class="help-section text-center">
-            <div class="help-icon mx-auto">
-                <i class="bi bi-book"></i>
+    <div class="col-md-4">
+        <div class="ui-data-card text-center p-5 h-100 shadow-hover transition-all">
+            <div class="rounded-circle bg-blue-soft text-primary p-4 mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <i class="bi bi-journal-text fs-1"></i>
             </div>
-            <h4>Guías Rápidas</h4>
-            <p class="text-muted">Consulta guías paso a paso</p>
-            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalGuias">
-                Ver Guías
+            <h4 class="fw-bold text-dark">Guías Rápidas</h4>
+            <p class="text-muted small px-3">Manuales paso a paso para procesos técnicos y administrativos</p>
+            <button class="btn btn-outline-primary px-4 mt-3" data-bs-toggle="modal" data-bs-target="#modalGuias">
+                Explorar Biblioteca
             </button>
         </div>
     </div>
 
-    <div class="col-md-4 mb-4">
-        <div class="help-section text-center">
-            <div class="help-icon mx-auto">
-                <i class="bi bi-chat-dots"></i>
+    <div class="col-md-4">
+        <div class="ui-data-card text-center p-5 h-100 shadow-hover transition-all">
+            <div class="rounded-circle bg-orange-soft text-warning p-4 mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <i class="bi bi-patch-question-fill fs-1"></i>
             </div>
-            <h4>Preguntas Frecuentes</h4>
-            <p class="text-muted">Encuentra respuestas rápidas</p>
-            <a href="#faq" class="btn btn-outline-success">
-                Ver FAQs
+            <h4 class="fw-bold text-dark">Dudas Frecuentes</h4>
+            <p class="text-muted small px-3">Encuentra respuestas rápidas a los problemas técnicos más comunes</p>
+            <a href="#faq" class="btn btn-outline-warning px-4 mt-3">
+                Consultar FAQ
             </a>
         </div>
     </div>
 </div>
+
 
 <div class="help-section" id="faq">
     <h3 class="mb-4"><i class="bi bi-patch-question me-2"></i>Preguntas Frecuentes</h3>
@@ -1196,7 +1224,7 @@
     <p class="text-muted mb-4">Descarga o imprime el manual completo con todas las imágenes y detalles</p>
     
     <div class="d-flex justify-content-center gap-3 flex-wrap">
-        <button class="btn btn-lg btn-imprimir-manual" style="background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%); color: white; border: none;">
+        <button class="btn btn-lg btn-imprimir-manual btn-pdf-manual">
             <i class="bi bi-file-pdf me-2"></i>Descargar como PDF
         </button>
         <button class="btn btn-lg btn-outline-success btn-print-manual">
@@ -1207,7 +1235,7 @@
         </a>
     </div>
     
-    <div class="alert alert-info mt-4 mx-auto" style="max-width: 600px;">
+    <div class="alert alert-info mt-4 mx-auto ayuda-instrucciones">
         <i class="bi bi-info-circle me-2"></i>
         <strong>Instrucciones para descargar:</strong>
         <ol class="mb-0 mt-2 text-start">

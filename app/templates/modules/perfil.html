@@ -1,134 +1,136 @@
 {% extends 'base.html' %}
 {% set title = 'Mi Perfil' %}
+
 {% block content %}
-<div class="profile-header">
-    <div class="profile-avatar">
-        <i class="bi bi-person-circle"></i>
-    </div>
-    <h2 class="mb-2 position-relative" style="z-index: 1;">{{ usuario.nombre }}</h2>
-    <p class="mb-0 position-relative" style="z-index: 1;">
-        <span class="info-badge">
-            <i class="bi bi-person-badge me-1"></i>{{ usuario.id }}
-        </span>
-        <span class="info-badge">
-            <i class="bi bi-shield-check me-1"></i>Nivel {{ usuario.nivel_acceso }}
-        </span>
-        <span class="info-badge">
-            <i class="bi bi-briefcase me-1"></i>{{ usuario.tipo|capitalize }}
-        </span>
-    </p>
-</div>
+<div class="ui-page-container">
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="profile-card">
-            <h4 class="mb-4"><i class="bi bi-pencil-square me-2"></i>Editar Información Personal</h4>
-            
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category=='error' else category }} alert-dismissible fade show">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white text-sena p-3 me-4 shadow-sm d-flex align-items-center justify-content-center" style="width: 65px; height: 65px;">
+                        <i class="bi bi-person-circle fs-1"></i>
+                    </div>
+                    <div>
+                        <h1 class="module-header-title">Configuración de Perfil</h1>
+                        <p class="module-header-description">Gestiona tu identidad digital y preferencias en el sistema GIL</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex gap-2 flex-wrap justify-content-lg-end">
+                    <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                        <i class="bi bi-shield-lock-fill me-2 text-primary"></i>NIVEL {{ usuario.nivel_acceso }}
+                    </span>
+                    <span class="badge bg-white text-dark shadow-sm px-3 py-2 text-uppercase">
+                        {{ usuario.tipo }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- 2. Formulario Principal (CMD) -->
+        <div class="col-lg-8">
+            <div class="ui-data-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-pencil-square"></i> Información Personal</h5>
+                </div>
+                <div class="p-4">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category=='error' else category }} border-0 shadow-sm mb-4">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('perfil') }}">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="ui-label">Nombre Completo</label>
+                                <input type="text" class="ui-input" name="nombre" value="{{ usuario.nombre }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="ui-label">Correo Institucional</label>
+                                <input type="email" class="ui-input" name="email" value="{{ usuario.email or '' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="ui-label">Teléfono de Contacto</label>
+                                <input type="tel" class="ui-input" name="telefono" value="{{ usuario.telefono or '' }}" placeholder="300XXXXXXX">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="ui-label">Programa de Formación / Área</label>
+                                <input type="text" class="ui-input" name="programa" value="{{ usuario.programa or '' }}">
+                            </div>
+                            <div class="col-12">
+                                <div class="alert bg-light border-0 py-3 small">
+                                    <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                                    <strong>Nota:</strong> Tu Identificador (ID: {{ usuario.id }}) y Nivel de Acceso son administrados centralmente y no pueden ser modificados desde este panel.
+                                </div>
+                            </div>
+                            <div class="col-12 text-end">
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-light px-4 me-2">Cancelar</a>
+                                <button type="submit" class="btn btn-primary px-5 shadow-sm">Actualizar Perfil</button>
+                            </div>
                         </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" action="{{ url_for('perfil') }}">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="nombre" class="form-label">
-                            <i class="bi bi-person me-2"></i>Nombre Completo
-                        </label>
-                        <input type="text" class="form-control" id="nombre" name="nombre" 
-                               value="{{ usuario.nombre }}" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="email" class="form-label">
-                            <i class="bi bi-envelope me-2"></i>Correo Electrónico
-                        </label>
-                        <input type="email" class="form-control" id="email" name="email" 
-                               value="{{ usuario.email or '' }}" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="telefono" class="form-label">
-                            <i class="bi bi-phone me-2"></i>Teléfono
-                        </label>
-                        <input type="tel" class="form-control" id="telefono" name="telefono" 
-                               value="{{ usuario.telefono or '' }}" placeholder="3001234567">
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="programa" class="form-label">
-                            <i class="bi bi-book me-2"></i>Programa
-                        </label>
-                        <input type="text" class="form-control" id="programa" name="programa" 
-                               value="{{ usuario.programa or '' }}" placeholder="Ej: Tecnología Minera">
-                    </div>
-
-                    <div class="col-12 mb-3">
-                        <div class="alert border-0 alert-sena">
-                            <i class="bi bi-info-circle me-2 text-sena-light"></i>
-                            <strong class="text-sena-primary">Nota:</strong> Tu ID de usuario y nivel de acceso no pueden ser modificados. 
-                            Contacta al administrador si necesitas cambios en estos campos.
-                        </div>
-                    </div>
-
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-2"></i>Guardar Cambios
-                        </button>
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
-                            <i class="bi bi-x-circle me-2"></i>Cancelar
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="profile-card">
-            <h5 class="mb-3"><i class="bi bi-graph-up me-2"></i>Mi Actividad</h5>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Reservas</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-number">0</div>
-                    <div class="stat-label">Comandos</div>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="profile-card mt-3">
-            <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Seguridad</h5>
-            <div class="list-group">
-                <a href="{{ url_for('recuperar_contrasena') }}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-key me-2"></i>Cambiar Contraseña
-                </a>
-                <a href="#" class="list-group-item list-group-item-action">
-                    <i class="bi bi-camera me-2"></i>Actualizar Foto Facial
-                </a>
+        <!-- 3. Paneles Laterales (CMD) -->
+        <div class="col-lg-4">
+            <!-- Widgets de Actividad -->
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="ui-stat-widget text-center py-4">
+                        <div class="stat-value fs-2">0</div>
+                        <div class="stat-label">Reservas</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="ui-stat-widget text-center py-4">
+                        <div class="stat-value fs-2">0</div>
+                        <div class="stat-label">Comandos</div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="profile-card mt-3">
-            <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Preferencias</h5>
-            <div class="list-group">
-                <a href="#" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#modalAccesibilidad">
-                    <i class="bi bi-universal-access me-2"></i>Accesibilidad
-                </a>
-                <a href="{{ url_for('ayuda') }}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-question-circle me-2"></i>Ayuda
-                </a>
+            <!-- Seguridad -->
+            <div class="ui-data-card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0" style="font-size: 0.9rem;"><i class="bi bi-shield-lock"></i> Seguridad</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('recuperar_contrasena') }}" class="list-group-item list-group-item-action p-3 small border-0 border-bottom">
+                        <i class="bi bi-key me-2 text-primary"></i> Cambiar Contraseña
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action p-3 small border-0">
+                        <i class="bi bi-camera me-2 text-primary"></i> Actualizar Biometría Facial
+                    </a>
+                </div>
+            </div>
+
+            <!-- Ayuda -->
+            <div class="ui-data-card">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0" style="font-size: 0.9rem;"><i class="bi bi-gear"></i> Ayuda y Soporte</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('ayuda') }}" class="list-group-item list-group-item-action p-3 small border-0 border-bottom">
+                        <i class="bi bi-question-circle me-2 text-success"></i> Centro de Ayuda
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action p-3 small border-0" data-bs-toggle="modal" data-bs-target="#modalAccesibilidad">
+                        <i class="bi bi-universal-access me-2 text-success"></i> Accesibilidad
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}

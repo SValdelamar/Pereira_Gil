@@ -5,19 +5,71 @@
 {% block main_class %}register-main{% endblock %}
 
 {% block auth_content %}
-        <div class="register-container">
-            <!-- Encabezado -->
-            <div class="text-center mb-4">
-                <div class="register-icon-large mx-auto mb-3">
-                    <i class="bi bi-person-plus"></i>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="row g-0 h-100">
+                <!-- Lado Izquierdo - Branding -->
+                <div class="col-lg-6">
+                    <div class="brand-side">
+                        <div class="brand-logo">
+                            <img src="{{ url_for('static', filename='logos/Logo_Sena.png') }}" 
+                                 alt="Logo SENA" 
+                                 class="brand-logo-img">
+                        </div>
+                        
+                        <h1>GIL</h1>
+                        <p>Gestión inteligente de Laboratorios</p>
+                        
+                        <div class="feature-list">
+                            <!-- Fila Superior -->
+                            <div class="feature-row">
+                                <div class="feature-item">
+                                    <i class="bi bi-person-plus-fill"></i>
+                                    <div>
+                                        <h6>Registro Sencillo</h6>
+                                        <p>Proceso paso a paso</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <i class="bi bi-shield-check-fill"></i>
+                                    <div>
+                                        <h6>Seguro</h6>
+                                        <p>Protección de datos</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fila Inferior -->
+                            <div class="feature-row">
+                                <div class="feature-item">
+                                    <i class="bi bi-people-fill"></i>
+                                    <div>
+                                        <h6>Múltiples Roles</h6>
+                                        <p>Aprendices, instructores</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <div>
+                                        <h6>Validación</h6>
+                                        <p>Verificación automática</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h1 class="register-title">Crear Cuenta</h1>
-                <p class="register-subtitle">Sistema de Gestión de Laboratorios - Centro Minero SENA</p>
-            </div>
-            
-            <!-- Tarjeta del Formulario -->
-            <div class="register-card">
-                <div class="register-body">
+                
+                <!-- Lado Derecho - Formulario -->
+                <div class="col-lg-6">
+                    <div class="form-side">
+                        <div class="form-container">
+                            <div class="form-header">
+                                <h2>Crear Cuenta</h2>
+                                <p>Regístrate en el sistema</p>
+                            </div>
                 <!-- Progress Steps -->
                 <div class="progress-steps">
                     <div class="progress-step active" data-step="1">
@@ -52,7 +104,7 @@
                 <form method="POST" action="{{ url_for('registro') }}" id="registroForm">
                     <!-- PASO 1: Datos Básicos -->
                     <div class="form-step active" id="step1">
-                        <h5 class="mb-4 text-center" style="color: #1e5128;">
+                        <h5 class="mb-4 text-center" style="color: var(--sena-primary-dark);">
                             <i class="bi bi-person-badge me-2"></i>Información Básica
                         </h5>
                         
@@ -102,14 +154,14 @@
                                    title="Solo dígitos, entre 7 y 15 números">
                         </div>
 
-                        <button type="button" class="btn btn-register w-100" onclick="nextStep()">
+                        <button type="button" class="btn btn-primary btn-lg w-100" onclick="nextStep()">
                             Siguiente <i class="bi bi-arrow-right ms-2"></i>
                         </button>
                     </div>
 
                     <!-- PASO 2: Selección de Rol -->
                     <div class="form-step" id="step2">
-                        <h5 class="mb-4 text-center" style="color: #1e5128;">
+                        <h5 class="mb-4 text-center" style="color: var(--sena-primary-dark);">
                             <i class="bi bi-person-badge me-2"></i>Tipo de Usuario
                         </h5>
 
@@ -171,7 +223,7 @@
                             <button type="button" class="btn btn-secondary flex-fill" onclick="prevStep()">
                                 <i class="bi bi-arrow-left me-2"></i>Anterior
                             </button>
-                            <button type="button" class="btn btn-register flex-fill" onclick="nextStep()">
+                            <button type="button" class="btn btn-primary flex-fill" onclick="nextStep()">
                                 Siguiente <i class="bi bi-arrow-right ms-2"></i>
                             </button>
                         </div>
@@ -179,7 +231,7 @@
 
                     <!-- PASO 3: Campos Específicos por Rol -->
                     <div class="form-step" id="step3">
-                        <h5 class="mb-4 text-center" style="color: #1e5128;">
+                        <h5 class="mb-4 text-center" style="color: var(--sena-primary-dark);">
                             <i class="bi bi-info-circle me-2"></i>Información Específica
                         </h5>
 
@@ -288,7 +340,7 @@
                             <button type="button" class="btn btn-secondary flex-fill" onclick="prevStep()">
                                 <i class="bi bi-arrow-left me-2"></i>Anterior
                             </button>
-                            <button type="button" class="btn btn-register flex-fill" onclick="nextStep()">
+                            <button type="button" class="btn btn-primary flex-fill" onclick="nextStep()">
                                 Siguiente <i class="bi bi-arrow-right ms-2"></i>
                             </button>
                         </div>
@@ -296,7 +348,7 @@
 
                     <!-- PASO 4: Contraseña -->
                     <div class="form-step" id="step4">
-                        <h5 class="mb-4 text-center" style="color: #1e5128;">
+                        <h5 class="mb-4 text-center" style="color: var(--sena-primary-dark);">
                             <i class="bi bi-key me-2"></i>Seguridad
                         </h5>
 
@@ -305,7 +357,7 @@
                                 <i class="bi bi-lock me-2"></i>Contraseña *
                             </label>
                             <input type="password" class="form-control" id="password" name="password" 
-                                   placeholder="Mínimo 6 caracteres" required minlength="6">
+                                   placeholder="Mínimo 6 caracteres" required minlength="6" data-validate="true">
                         </div>
 
                         <div class="mb-3">
@@ -327,7 +379,7 @@
                             <button type="button" class="btn btn-secondary flex-fill" onclick="prevStep()">
                                 <i class="bi bi-arrow-left me-2"></i>Anterior
                             </button>
-                            <button type="submit" class="btn btn-register flex-fill">
+                            <button type="submit" class="btn btn-primary btn-shimmer flex-fill">
                                 <i class="bi bi-check-circle me-2"></i>Crear Cuenta
                             </button>
                         </div>
@@ -336,7 +388,7 @@
 
                     <div class="text-center mt-4 pt-3" style="border-top: 1px solid #e9ecef;">
                         <p class="mb-0 text-muted">¿Ya tienes una cuenta? 
-                            <a href="{{ url_for('login') }}" class="text-decoration-none" style="color: var(--color-sena-medium); font-weight: 600;">Iniciar Sesión</a>
+                            <a href="{{ url_for('login') }}" class="text-decoration-none" style="color: var(--sena-primary); font-weight: 600;">Iniciar Sesión</a>
                         </p>
                     </div>
                 </div>
@@ -455,7 +507,7 @@
 
             // Validación especial paso 2
             if (step === 2 && !selectedNivel) {
-                alert('Por favor selecciona un tipo de usuario');
+                Logger.showUserMessage('Por favor selecciona un tipo de usuario', 'warning', 5000);
                 return false;
             }
 
@@ -473,7 +525,7 @@
             // Asegurar que se haya seleccionado un rol (nivel_acceso)
             if (!document.getElementById('nivel_acceso').value) {
                 e.preventDefault();
-                alert('Por favor selecciona un tipo de usuario (Rol) en el paso 2.');
+                Logger.showUserMessage('Por favor selecciona un tipo de usuario (Rol) en el paso 2.', 'warning', 5000);
                 return false;
             }
 
@@ -482,9 +534,15 @@
             const confirmPassword = document.getElementById('confirm_password').value;
             if (password !== confirmPassword) {
                 e.preventDefault();
-                alert('Las contraseñas no coinciden');
+                Logger.showUserMessage('Las contraseñas no coinciden', 'warning', 5000);
                 return false;
             }
         });
 </script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

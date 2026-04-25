@@ -2,12 +2,21 @@
 {% set title = 'Entrenamiento Visual IA' %}
 {% block content %}
 
-<!-- Header -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-  <div class="card-body p-4">
-    <div>
-      <h4 class="mb-1 text-white fw-bold"><i class="bi bi-robot me-2"></i>Entrenamiento Visual IA</h4>
-      <p class="mb-0 text-white opacity-90">Entrena la IA para reconocer equipos e items por cámara</p>
+<!-- Header Estándar -->
+<div class="card border-0 shadow-lg mb-4 module-header-standard">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-12">
+        <div class="d-flex align-items-center">
+          <div class="module-header-icon">
+            <i class="bi bi-robot"></i>
+          </div>
+          <div>
+            <h1 class="module-header-title">Entrenamiento Visual IA</h1>
+            <p class="module-header-description">Entrena la IA para reconocer equipos e items por cámara</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -200,7 +209,7 @@
             </div>
             
             <div id="imagenCapturada" class="d-none">
-              <img id="imgCapturada" class="img-fluid rounded border card-shadow-sm" style="max-height: 150px;">
+              <img id="imgCapturada" class="img-fluid rounded border card-shadow-sm img-capturada">
             </div>
           </div>
         </div>
@@ -253,7 +262,7 @@ document.getElementById('btnIniciarCamara').addEventListener('click', async () =
     document.getElementById('btnIniciarCamara').innerHTML = '<i class="bi bi-camera-video-off me-1"></i>Detener Cámara';
     document.getElementById('btnReconocer').disabled = false;
   } catch (error) {
-    alert('Error accediendo a la cámara: ' + error.message);
+    Logger.showUserMessage('Error accediendo a la cámara: ' + error.message, 'error', 6000);
   }
 });
 
@@ -345,7 +354,7 @@ async function loadStats() {
       }
     }
   } catch (error) {
-    console.error('Error cargando estadísticas:', error);
+    Logger.error('Error cargando estadísticas:', error);
     // Mostrar 0 en caso de error
     document.getElementById('statsEquipos').textContent = '0';
     document.getElementById('statsItems').textContent = '0';
@@ -358,8 +367,7 @@ async function loadStats() {
 function mostrarDetalles(details) {
   if (!details) return;
   
-  // Debug: Mostrar datos recibidos en consola
-  console.log('📊 Detalles recibidos:', details);
+  Logger.debug('Detalles recibidos:', details);
   
   const detallesDiv = document.getElementById('detallesItem');
   
@@ -625,11 +633,11 @@ document.getElementById('tipoItem').addEventListener('change', async (e) => {
       selectItem.appendChild(option);
     });
   } catch (error) {
-    console.error('Error cargando items:', error);
+    Logger.error('Error cargando items: ' + error.message);
     selectItem.innerHTML = '<option value="">Error cargando items</option>';
     
     // Mostrar mensaje de ayuda
-    alert('Error cargando items. Asegúrate de:\n1. Haber iniciado sesión en la API\n2. Tener equipos/items registrados');
+    Logger.showUserMessage('Error cargando items. Asegúrate de:\\n1. Haber iniciado sesión en la API\\n2. Tener equipos/items registrados', 'error', 8000);
   }
 });
 
@@ -652,7 +660,7 @@ document.getElementById('btnIniciarCamaraTrain').addEventListener('click', async
     document.getElementById('btnIniciarCamaraTrain').innerHTML = '<i class="bi bi-camera-video-off me-1"></i>Detener';
     document.getElementById('btnCapturarTrain').disabled = false;
   } catch (error) {
-    alert('Error accediendo a la cámara: ' + error.message);
+    Logger.showUserMessage('Error accediendo a la cámara: ' + error.message, 'error', 6000);
   }
 });
 
@@ -680,7 +688,7 @@ document.getElementById('btnGuardarEntrenamiento').addEventListener('click', asy
   const descripcion = document.getElementById('descripcionEntrenamiento').value;
   
   if (!tipoItem || !itemId || !capturedImageData) {
-    alert('Complete todos los campos y capture una imagen');
+    Logger.showUserMessage('Complete todos los campos y capture una imagen', 'warning', 5000);
     return;
   }
   
@@ -715,7 +723,7 @@ document.getElementById('btnGuardarEntrenamiento').addEventListener('click', asy
           detallesMsg += `✓ Especificaciones guardadas: ${Object.keys(data.item_details.especificaciones).length}\n`;
         }
       }
-      alert(detallesMsg);
+      Logger.showUserMessage(detallesMsg, 'success', 8000);
       
       // Limpiar formulario
       document.getElementById('tipoItem').value = '';
@@ -731,10 +739,10 @@ document.getElementById('btnGuardarEntrenamiento').addEventListener('click', asy
       // Cerrar modal
       bootstrap.Modal.getInstance(document.getElementById('modalEntrenar')).hide();
     } else {
-      alert('Error en entrenamiento: ' + data.message);
+      Logger.showUserMessage('Error en entrenamiento: ' + data.message, 'error', 6000);
     }
   } catch (error) {
-    alert('Error: ' + error.message);
+    Logger.showUserMessage('Error: ' + error.message, 'error', 6000);
   } finally {
     btn.innerHTML = originalText;
     btn.disabled = false;

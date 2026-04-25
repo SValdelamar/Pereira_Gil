@@ -5,19 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %} - Centro Minero SENA</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logos/Logo_Sena.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logos/Logo_Sena.png') }}">
+    
     <!-- Bootstrap y dependencias locales (sin CDN) -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     
-    <!-- CSS Modular -->
+    <!-- CSS Modular -->py
     <link href="{{ url_for('static', filename='css/common.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/modules.css') | cache_bust }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 </head>
-<body class="auth-body-clean">
-    <!-- Main Content -->
-    <main class="{% block main_class %}auth-main-full{% endblock %}">
+<body class="auth-body-clean bg-light">
+    <!-- Contenido principal fijo -->
+    <main class="auth-main-full">
         {% block auth_content %}
         <!-- Contenido específico de cada página -->
         {% endblock %}
@@ -37,6 +41,12 @@
 
     <!-- Bootstrap JS local (sin CDN) -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    
+    <!-- Password Toggle Component -->
+    <script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
+    
+    <!-- Password Validator Component -->
+    <script src="{{ url_for('static', filename='js/password-validator.js') }}"></script>
     
     <script>
       // Aplicar accesibilidad también en páginas de autenticación

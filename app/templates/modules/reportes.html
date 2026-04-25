@@ -1,693 +1,249 @@
 {% extends 'base.html' %}
 {% set title = 'Reportes y Estadísticas' %}
+
 {% block content %}
-<!-- Header -->
-<div class="reportes-header">
-  <div class="d-flex justify-content-between align-items-center">
-    <div>
-      <h3 class="mb-2"><i class="bi bi-graph-up-arrow me-2"></i>Reportes y Estadísticas</h3>
-      <p class="mb-0 opacity-75">Análisis detallado del uso del sistema</p>
+<div class="ui-page-container">
+
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="module-header-title">Reportes y Estadísticas</h1>
+                <p class="module-header-description">Análisis estratégico, auditoría de activos y predicción de consumo</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <div class="d-flex gap-2 justify-content-lg-end">
+                    <button class="btn btn-outline-light btn-exportar-pdf">
+                        <i class="bi bi-file-earmark-pdf-fill me-2"></i>PDF
+                    </button>
+                    <button class="btn btn-outline-light btn-exportar-excel">
+                        <i class="bi bi-file-earmark-excel-fill me-2"></i>Excel
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-light export-btn btn-exportar-pdf">
-        <i class="bi bi-file-pdf me-2"></i>Descargar PDF
-      </button>
-      <button class="btn btn-success export-btn btn-exportar-excel">
-        <i class="bi bi-file-excel me-2"></i>Descargar Excel
-      </button>
+
+    <!-- 2. Filtros de Análisis (CMD) -->
+    <div class="ui-filter-card">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="ui-label">Período de Inicio</label>
+                <input type="date" class="ui-input" id="fechaInicio">
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Período de Cierre</label>
+                <input type="date" class="ui-input" id="fechaFin">
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Módulo de Análisis</label>
+                <select class="ui-input" id="tipoReporte">
+                    <option value="general">Dashboard Estratégico</option>
+                    <option value="inventario">Control de Inventario</option>
+                    <option value="uso">Uso de Infraestructura</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100 btn-aplicar-filtros">
+                    <i class="bi bi-arrow-repeat me-2"></i>Actualizar Análisis
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <!-- 3. Indicadores KPI (CMD - ui-stat-widget) -->
+    <div class="row g-3 mb-4">
+        {% set kpis = [
+            {'id': 'totalEquipos', 'label': 'Equipos Activos', 'icon': 'cpu', 'color': 'primary'},
+            {'id': 'totalUsuarios', 'label': 'Usuarios Activos', 'icon': 'people', 'color': 'info'},
+            {'id': 'totalReservas', 'label': 'Servicios / Reservas', 'icon': 'calendar-check', 'color': 'warning'},
+            {'id': 'horasUso', 'label': 'Horas de Uso', 'icon': 'clock-history', 'color': 'success'}
+        ] %}
+        {% for kpi in kpis %}
+        <div class="col-md-3">
+            <div class="ui-stat-widget border-bottom border-4 border-{{ kpi.color }}">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 bg-{{ kpi.color }}-soft p-3 me-3 text-{{ kpi.color }}">
+                        <i class="bi bi-{{ kpi.icon }} fs-3"></i>
+                    </div>
+                    <div>
+                        <div class="stat-label">{{ kpi.label }}</div>
+                        <div class="stat-value" id="{{ kpi.id }}">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 4. Grid de Gráficos (CMD - ui-data-card) -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="ui-data-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-bar-chart-line-fill text-success"></i> Equipos con Mayor Rotación</h5>
+                </div>
+                <div class="p-4">
+                    <canvas id="chartEquipos" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="ui-data-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-people-fill text-primary"></i> Usuarios con Mayor Actividad</h5>
+                </div>
+                <div class="p-4">
+                    <canvas id="chartUsuarios" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Inteligencia Artificial y Tendencias (CMD) -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="ui-data-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title"><i class="bi bi-calendar-x-fill text-danger"></i> Monitor de Vencimientos (IA)</h5>
+                    <span class="badge bg-red-soft text-danger">Próximos 30 días</span>
+                </div>
+                <div class="p-0 scroll-y-300 custom-scroll" id="vencimientosContainer">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="ui-data-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-graph-up-arrow text-warning"></i> Tendencia de Uso Semanal</h5>
+                </div>
+                <div class="p-4">
+                    <canvas id="chartTendencia" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Bitácora de Auditoría (CMD - ui-table-premium) -->
+    <div class="ui-data-card">
+        <div class="card-header">
+            <h5 class="card-title"><i class="bi bi-journal-text-fill text-sena"></i> Bitácora Maestra de Auditoría</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="ui-table-premium">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Responsable</th>
+                        <th>Recurso / Activo</th>
+                        <th>Evento Registrado</th>
+                        <th>Estado Final</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaActividades">
+                    <!-- Dinámico -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<!-- Datos SSR para evitar hardcode y problemas de lint con Jinja en JS -->
+<!-- Datos SSR para Chart.js -->
 <script id="reportes-data" type="application/json">{{ reportes|tojson|safe }}</script>
 
-<!-- Filtros -->
-<div class="filter-section">
-  <div class="row g-3 align-items-end">
-    <div class="col-md-3">
-      <label class="form-label fw-semibold small">Fecha Inicio</label>
-      <input type="date" class="form-control" id="fechaInicio" value="{{ fecha_inicio }}">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label fw-semibold small">Fecha Fin</label>
-      <input type="date" class="form-control" id="fechaFin" value="{{ fecha_fin }}">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label fw-semibold small">Tipo de Reporte</label>
-      <select class="form-select" id="tipoReporte">
-        <option value="general">General</option>
-        <option value="equipos">Equipos</option>
-        <option value="usuarios">Usuarios</option>
-        <option value="inventario">Inventario</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <button class="btn w-100 btn-sena-primary btn-aplicar-filtros">
-        <i class="bi bi-funnel me-2"></i>Aplicar Filtros
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Mini Estadísticas -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card stat-mini-card stat-box-success">
-      <div class="card-body text-center p-3">
-        <div class="mb-2">
-          <div class="icon-circle">
-            <i class="bi bi-cpu fs-2"></i>
-          </div>
-        </div>
-        <h4 class="mb-0 mt-2 text-white fw-bold" id="totalEquipos">--</h4>
-        <small class="text-white opacity-90">Equipos Activos</small>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card stat-mini-card stat-box-primary">
-      <div class="card-body text-center p-3">
-        <div class="mb-2">
-          <div class="icon-circle">
-            <i class="bi bi-people fs-2"></i>
-          </div>
-        </div>
-        <h4 class="mb-0 mt-2 text-white fw-bold" id="totalUsuarios">--</h4>
-        <small class="text-white opacity-90">Usuarios Activos</small>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card stat-mini-card stat-box-success">
-      <div class="card-body text-center p-3">
-        <div class="mb-2">
-          <div class="icon-circle">
-            <i class="bi bi-calendar-check fs-2"></i>
-          </div>
-        </div>
-        <h4 class="mb-0 mt-2 text-white fw-bold" id="totalReservas">--</h4>
-        <small class="text-white opacity-90">Reservas</small>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card stat-mini-card stat-box-warning">
-      <div class="card-body text-center p-3">
-        <div class="mb-2">
-          <div class="icon-circle">
-            <i class="bi bi-clock-history fs-2"></i>
-          </div>
-        </div>
-        <h4 class="mb-0 mt-2 text-white fw-bold" id="horasUso">--</h4>
-        <small class="text-white opacity-90">Horas de Uso</small>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Gráficos Principales -->
-<div class="row g-4 mb-4">
-  <div class="col-12 col-lg-6">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-bar-chart-line-fill me-2 text-success"></i>
-          Equipos Más Utilizados (30 días)
-        </h6>
-      </div>
-      <div class="card-body p-4">
-        <canvas id="chartEquipos" class="w-100" style="max-height: 300px;"></canvas>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-12 col-lg-6">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-people-fill me-2 text-primary"></i>
-          Usuarios Más Activos (7 días)
-        </h6>
-      </div>
-      <div class="card-body p-4">
-        <canvas id="chartUsuarios" class="w-100" style="max-height: 300px;"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Gráficos Secundarios -->
-<div class="row g-4 mb-4">
-  <div class="col-12 col-lg-4">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-pie-chart-fill me-2 text-info"></i>
-          Estado de Equipos
-        </h6>
-      </div>
-      <div class="card-body p-4">
-        <canvas id="chartEstadoEquipos"></canvas>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-12 col-lg-4">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-graph-up me-2 text-warning"></i>
-          Tendencia de Uso Semanal
-        </h6>
-      </div>
-      <div class="card-body p-4">
-        <canvas id="chartTendencia"></canvas>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-12 col-lg-4">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-box-seam me-2 text-danger"></i>
-          Inventario Crítico
-        </h6>
-      </div>
-      <div class="card-body p-4">
-        <div id="inventarioCritico" class="scroll-y-300">
-          <div class="text-center text-muted py-4">
-            <i class="bi bi-hourglass-split fs-2"></i>
-            <p class="mt-2">Cargando datos...</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Tabla de Detalles -->
-<div class="row">
-  <div class="col-12">
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h6 class="mb-0 fw-bold">
-          <i class="bi bi-table me-2"></i>
-          Detalle de Actividades Recientes
-        </h6>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Equipo</th>
-                <th>Acción</th>
-                <th>Duración</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="tablaActividades">
-              <tr>
-                <td colspan="6" class="text-center text-muted py-4">
-                  <i class="bi bi-hourglass-split me-2"></i>Cargando datos...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Configuración de colores
-const colores = {
-  sena: 'rgba(45, 106, 79, 0.85)',
-  senaBorder: 'rgba(30, 81, 40, 1)',
-  success: 'rgba(16, 185, 129, 0.85)',
-  primary: 'rgba(59, 130, 246, 0.85)',
-  warning: 'rgba(245, 158, 11, 0.85)',
-  danger: 'rgba(239, 68, 68, 0.85)',
-  info: 'rgba(59, 130, 246, 0.85)'
-};
-
-// Datos iniciales del servidor (SSR - Server Side Rendering)
-const _SSR_DATA_EL = document.getElementById('reportes-data');
-const datosServidor = _SSR_DATA_EL ? JSON.parse(_SSR_DATA_EL.textContent || '{}') : {};
-
-// Función para cargar datos (ahora usa datos del servidor primero)
-let lastApiCall = 0; // Control de cache para evitar llamadas repetitivas
-const API_CALL_COOLDOWN = 30000; // 30 segundos entre llamadas a la API
-
-async function cargarDatos() {
-  try {
-    // Control de cooldown para evitar llamadas repetitivas
-    const now = Date.now();
-    if (now - lastApiCall < API_CALL_COOLDOWN) {
-      console.log('⏸️ API en cooldown, esperando...');
-      return;
-    }
-    
-    // ✅ MEJOR PRÁCTICA: Usar datos del servidor (SSR) - Carga instantánea
-    if (datosServidor && Object.keys(datosServidor).length > 0) {
-      console.log('✅ Usando datos del servidor (SSR)');
-      renderizarDatos(datosServidor);
-      return;
-    }
-    
-    // Fallback: Intentar API REST (solo si SSR falla)
-    const token = localStorage.getItem('jwt') || '{{ session.get("api_token", "") }}';
-    if (!token) {
-      console.warn('⚠️ No hay token JWT, mostrando datos básicos');
-      cargarDatosDummy();
-      return;
-    }
-
-    console.log('🔄 Realizando llamada a API de estadísticas...');
-    lastApiCall = now; // Marcar tiempo de esta llamada
-
-    const res = await fetch('/api/estadisticas', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-
-    if (res.ok) {
-      const data = (await res.json()).estadisticas;
-      renderizarDatos(data);
-    } else {
-      cargarDatosDummy();
-    }
-  } catch (e) {
-    console.error('Error cargando datos:', e);
-    // Si todo falla, intentar con datos del servidor aunque estén vacíos
-    if (datosServidor) {
-      renderizarDatos(datosServidor);
-    } else {
-      cargarDatosDummy();
-    }
-  }
-}
-
-// Renderizar datos reales
-function renderizarDatos(data) {
-  console.log('📊 Renderizando datos:', data);
-
-  // Calcular total de equipos activos
-  const totalEquipos = data.equipos_activos || 0;
-  
-  // Total de usuarios activos (desde total_inventario o conteo)
-  const totalUsuarios = data.total_usuarios || 0;
-  
-  // Total de reservas próximas
-  const totalReservas = data.reservas_proximas || 0;
-  
-  // Calcular horas de uso (estimación basada en uso de equipos)
-  const usoEquipos = data.uso_equipos || [];
-  const totalUsos = usoEquipos.reduce((sum, eq) => sum + (eq.usos || 0), 0);
-  const horasUso = Math.round(totalUsos * 0.5); // Estimación: 30min por uso
-  
-  // Actualizar mini estadísticas
-  document.getElementById('totalEquipos').textContent = totalEquipos;
-  document.getElementById('totalUsuarios').textContent = totalUsuarios || '--';
-  document.getElementById('totalReservas').textContent = totalReservas;
-  document.getElementById('horasUso').textContent = horasUso ? horasUso + 'h' : '--';
-
-  // Gráfico de equipos más usados
-  const equiposData = data.uso_equipos || data.equipos_mas_usados || [];
-  const eNames = equiposData.map(x => x.nombre || 'Sin nombre');
-  const eUsos = equiposData.map(x => x.usos || 0);
-  
-  new Chart(document.getElementById('chartEquipos'), {
-    type: 'bar',
-    data: {
-      labels: eNames,
-      datasets: [{
-        label: 'Usos',
-        data: eUsos,
-        backgroundColor: colores.sena,
-        borderColor: colores.senaBorder,
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          borderRadius: 8
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' }
-        },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  // Gráfico de usuarios activos
-  const uNames = (data.usuarios_activos || []).map(x => x.nombre);
-  const uCmds = (data.usuarios_activos || []).map(x => x.comandos);
-  
-  new Chart(document.getElementById('chartUsuarios'), {
-    type: 'bar',
-    data: {
-      labels: uNames,
-      datasets: [{
-        label: 'Actividad',
-        data: uCmds,
-        backgroundColor: colores.primary,
-        borderColor: 'rgba(0, 123, 255, 1)',
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          borderRadius: 8
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(0, 0, 0, 0.05)' }
-        },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  crearGraficosAdicionales({});
-}
-
-// Cargar datos dummy si no hay conexión
-function cargarDatosDummy() {
-  console.warn('[WARN] Cargando datos de prueba - No se pudo conectar al API');
-  document.getElementById('totalEquipos').textContent = '--';
-  document.getElementById('totalUsuarios').textContent = '--';
-  document.getElementById('totalReservas').textContent = '--';
-  document.getElementById('horasUso').textContent = '--';
-
-  // Gráfico equipos dummy
-  new Chart(document.getElementById('chartEquipos'), {
-    type: 'bar',
-    data: {
-      labels: ['Microscopio', 'Osciloscopio', 'Multímetro', 'Balanza', 'Centrífuga'],
-      datasets: [{
-        label: 'Usos',
-        data: [25, 19, 15, 12, 8],
-        backgroundColor: colores.sena,
-        borderColor: colores.senaBorder,
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  // Gráfico usuarios dummy
-  new Chart(document.getElementById('chartUsuarios'), {
-    type: 'bar',
-    data: {
-      labels: ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez'],
-      datasets: [{
-        label: 'Actividad',
-        data: [42, 38, 31, 25],
-        backgroundColor: colores.primary,
-        borderColor: 'rgba(0, 123, 255, 1)',
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  crearGraficosAdicionales(data);
-}
-
-// Gráficos adicionales
-function crearGraficosAdicionales(data) {
-  // Estado de equipos (pie chart) - usar datos reales
-  const estadosLabels = Object.keys(data.equipos_estado || {});
-  const estadosData = Object.values(data.equipos_estado || {});
-  
-  new Chart(document.getElementById('chartEstadoEquipos'), {
-    type: 'doughnut',
-    data: {
-      labels: estadosLabels.map(e => e.charAt(0).toUpperCase() + e.slice(1).replace('_', ' ')),
-      datasets: [{
-        data: estadosData,
-        backgroundColor: [colores.success, colores.primary, colores.warning, colores.danger],
-        borderWidth: 2,
-        borderColor: '#fff'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { position: 'bottom' }
-      }
-    }
-  });
-
-  // Tendencia semanal
-  const tendenciaLabels = (data.tendencia_semanal && data.tendencia_semanal.labels) || ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const tendenciaValues = (data.tendencia_semanal && data.tendencia_semanal.values) || [12, 19, 15, 17, 14, 8, 6];
-
-  new Chart(document.getElementById('chartTendencia'), {
-    type: 'line',
-    data: {
-      labels: tendenciaLabels,
-      datasets: [{
-        label: 'Usos',
-        data: tendenciaValues,
-        borderColor: colores.warning,
-        backgroundColor: 'rgba(255, 193, 7, 0.1)',
-        tension: 0.4,
-        fill: true,
-        borderWidth: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-
-  // Inventario crítico (dinámico)
-  const invCritico = data.inventario_bajo || [];
-  const invContainer = document.getElementById('inventarioCritico');
-  if (invCritico.length === 0) {
-    invContainer.innerHTML = `
-      <div class="text-center text-muted py-4">
-        <i class="bi bi-check-circle text-success fs-2"></i>
-        <p class="mt-2 mb-0">No hay items con stock crítico</p>
-      </div>`;
-  } else {
-    invContainer.innerHTML = `
-      <div class="list-group list-group-flush">
-        ${invCritico.map(it => {
-          const badgeClass = (it.cantidad_actual <= (it.cantidad_minima || 0)) ? 'bg-danger' : 'bg-warning';
-          const nombre = it.nombre || 'Sin nombre';
-          const unidades = (it.cantidad_actual !== undefined && it.cantidad_minima !== undefined)
-            ? `${it.cantidad_actual}/${it.cantidad_minima} ${it.unidad || ''}`
-            : (it.unidad ? `${it.unidad}` : '');
-          return `<div class="list-group-item d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-exclamation-triangle text-warning me-2"></i>${nombre}</span>
-            <span class="badge ${badgeClass}">${unidades}</span>
-          </div>`;
-        }).join('')}
-      </div>`;
-  }
-
-  // Tabla de actividades (dinámico)
-  const actividades = data.actividades_recientes || data.actividades || [];
-  const tbody = document.getElementById('tablaActividades');
-  if (actividades.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="text-center text-muted py-4">
-          <i class="bi bi-inbox me-2"></i>Sin actividades recientes
-        </td>
-      </tr>`;
-  } else {
-    tbody.innerHTML = actividades.map(a => {
-      const fecha = a.fecha || a.fecha_hora || '';
-      const usuario = a.usuario || a.usuario_nombre || '—';
-      const equipo = a.equipo || a.equipo_nombre || '—';
-      const accion = (a.accion || '').toLowerCase();
-      const duracion = a.duracion || a.tiempo || '—';
-      const estadoIcon = a.estado === 'ok' ? 'bi-check-circle-fill text-success' : 'bi-clock-fill text-warning';
-      const badge = accion.includes('reserva') ? 'bg-info' : 'bg-success';
-      const accionTxt = accion ? accion.charAt(0).toUpperCase() + accion.slice(1) : '—';
-      return `
-        <tr>
-          <td>${fecha}</td>
-          <td>${usuario}</td>
-          <td>${equipo}</td>
-          <td><span class="badge ${badge}">${accionTxt}</span></td>
-          <td>${duracion}</td>
-          <td><i class="bi ${estadoIcon}"></i></td>
-        </tr>`;
-    }).join('');
-  }
-}
-
-// Funciones auxiliares
-function mostrarAlerta(mensaje) {
-  const alerta = document.createElement('div');
-  alerta.className = 'alert alert-warning alert-dismissible fade show';
-  alerta.innerHTML = `
-    <i class="bi bi-exclamation-triangle me-2"></i>${mensaje}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `;
-  document.querySelector('.reportes-header').after(alerta);
-}
-
-function aplicarFiltros() {
-  const fechaInicio = document.getElementById('fechaInicio').value;
-  const fechaFin = document.getElementById('fechaFin').value;
-  const tipo = document.getElementById('tipoReporte').value;
-
-  // Aquí iría la lógica para recargar datos con filtros
-  cargarDatos();
-}
-
-function exportarReportePDF() {
-  const fechaInicio = document.getElementById('fechaInicio').value;
-  const fechaFin = document.getElementById('fechaFin').value;
-  
-  // Construir URL con parámetros
-  let url = '/reportes/descargar/pdf';
-  const params = new URLSearchParams();
-  
-  if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-  if (fechaFin) params.append('fecha_fin', fechaFin);
-  
-  if (params.toString()) {
-    url += '?' + params.toString();
-  }
-  
-  // Mostrar mensaje de carga
-  const btnPDF = event.target.closest('button');
-  const originalHTML = btnPDF.innerHTML;
-  btnPDF.disabled = true;
-  btnPDF.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generando PDF...';
-  
-  // Descargar archivo
-  window.location.href = url;
-  
-  // Restaurar botón después de un momento
-  setTimeout(() => {
-    btnPDF.disabled = false;
-    btnPDF.innerHTML = originalHTML;
-  }, 2000);
-}
-
-function exportarReporteExcel() {
-  const fechaInicio = document.getElementById('fechaInicio').value;
-  const fechaFin = document.getElementById('fechaFin').value;
-  
-  // Construir URL con parámetros
-  let url = '/reportes/descargar/excel';
-  const params = new URLSearchParams();
-  
-  if (fechaInicio) params.append('fecha_inicio', fechaInicio);
-  if (fechaFin) params.append('fecha_fin', fechaFin);
-  
-  if (params.toString()) {
-    url += '?' + params.toString();
-  }
-  
-  // Mostrar mensaje de carga
-  const btnExcel = event.target.closest('button');
-  const originalHTML = btnExcel.innerHTML;
-  btnExcel.disabled = true;
-  btnExcel.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generando Excel...';
-  
-  // Descargar archivo
-  window.location.href = url;
-  
-  // Restaurar botón después de un momento
-  setTimeout(() => {
-    btnExcel.disabled = false;
-    btnExcel.innerHTML = originalHTML;
-  }, 2000);
-}
-
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
-  // Establecer fechas por defecto
-  const hoy = new Date();
-  const hace30dias = new Date(hoy.getTime() - (30 * 24 * 60 * 60 * 1000));
-  
-  document.getElementById('fechaFin').value = hoy.toISOString().split('T')[0];
-  document.getElementById('fechaInicio').value = hace30dias.toISOString().split('T')[0];
-  
-  // Cargar datos
-  cargarDatos();
-  
-  // Event delegation para botones
-  document.addEventListener('click', function(e) {
-    // Botón exportar PDF
-    const btnPDF = e.target.closest('.btn-exportar-pdf');
-    if (btnPDF) {
-      exportarReportePDF();
-      return;
+    const palette = {
+        sena: '#00af00', primary: '#0066cc', success: '#00af00',
+        warning: '#ffc107', danger: '#cc0000', info: '#0dcaf0'
+    };
+
+    const rawData = JSON.parse(document.getElementById('reportes-data').textContent || '{}');
+
+    const renderizar = (data) => {
+        // KPIs
+        document.getElementById('totalEquipos').textContent = data.equipos_activos || '0';
+        document.getElementById('totalUsuarios').textContent = data.total_usuarios || '0';
+        document.getElementById('totalReservas').textContent = data.reservas_proximas || '0';
+        document.getElementById('horasUso').textContent = data.horas_uso_totales ? `${data.horas_uso_totales}h` : '0h';
+
+        // Gráficos Premium
+        renderBar('chartEquipos', data.uso_equipos || [], palette.sena);
+        renderBar('chartUsuarios', data.usuarios_activos || [], palette.primary);
+        renderLine('chartTendencia', data.tendencia_semanal || {});
+
+        // Listas y Auditoría
+        renderVencimientos(data.proximos_vencimientos || []);
+        renderTabla(data.actividades_recientes || []);
+    };
+
+    function renderBar(id, items, color) {
+        const ctx = document.getElementById(id).getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: items.map(i => i.nombre),
+                datasets: [{ data: items.map(i => i.usos || 0), backgroundColor: color, borderRadius: 8 }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
+            }
+        });
     }
-    
-    // Botón exportar Excel
-    const btnExcel = e.target.closest('.btn-exportar-excel');
-    if (btnExcel) {
-      exportarReporteExcel();
-      return;
+
+    function renderLine(id, tendencia) {
+        const ctx = document.getElementById(id).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: tendencia.labels || [],
+                datasets: [{ 
+                    data: tendencia.values || [], 
+                    borderColor: palette.warning, 
+                    borderWidth: 3, tension: 0.4, fill: true, 
+                    backgroundColor: 'rgba(255, 193, 7, 0.05)' 
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
     }
-    
-    // Botón aplicar filtros
-    const btnFiltros = e.target.closest('.btn-aplicar-filtros');
-    if (btnFiltros) {
-      aplicarFiltros();
-      return;
+
+    function renderVencimientos(items) {
+        const container = document.getElementById('vencimientosContainer');
+        container.innerHTML = items.length === 0 ? '<div class="p-4 text-center text-muted">Sin alertas próximas</div>' : 
+        items.map(it => `
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                <div><div class="fw-bold text-dark">${it.nombre}</div><div class="small text-muted">${it.fecha_vencimiento}</div></div>
+                <span class="badge bg-red-soft text-danger">-${it.dias_restantes} días</span>
+            </div>
+        `).join('');
     }
-  });
+
+    function renderTabla(items) {
+        const tbody = document.getElementById('tablaActividades');
+        tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="text-center p-4">Sin registros</td></tr>' :
+        items.map(a => `
+            <tr>
+                <td><span class="small fw-bold">${a.fecha}</span></td>
+                <td><div class="fw-bold text-dark">${a.usuario}</div></td>
+                <td><span class="badge bg-sena-soft text-sena">${a.equipo}</span></td>
+                <td><span class="small text-muted">${a.accion}</span></td>
+                <td><i class="bi bi-check-circle-fill text-success"></i></td>
+            </tr>
+        `).join('');
+    }
+
+    renderizar(rawData);
 });
 </script>
+
+<style>
+    .scroll-y-300 { max-height: 300px; overflow-y: auto; }
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+</style>
 {% endblock %}

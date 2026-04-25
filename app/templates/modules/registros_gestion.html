@@ -1,266 +1,326 @@
 {% extends "base.html" %}
-
-{% block title %}Gestión de Registros - Centro Minero SENA{% endblock %}
+{% set title = 'Gestión de Registros' %}
 
 {% block content %}
+<div class="ui-page-container">
 
-<div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="card border-0 shadow-sm mb-4 module-header">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-1 fw-bold"><i class="bi bi-folder-check me-2"></i>Gestión de Registros</h2>
-                    <p class="mb-0 text-secondary">Administra equipos e items del laboratorio</p>
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white text-sena p-3 me-4 shadow-sm d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                        <i class="bi bi-journal-text fs-1"></i>
+                    </div>
+                    <div>
+                        <h1 class="module-header-title">Gestión de Registros</h1>
+                        <p class="module-header-description">Historial técnico, control de activos y auditoría de inventario</p>
+                    </div>
                 </div>
-                <a href="{{ url_for('registro_completo') }}" class="btn btn-light">
-                    <i class="bi bi-plus-circle me-1"></i>Nuevo Registro
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <a href="{{ url_for('registro_completo') }}" class="ui-btn-action ui-btn-action-primary px-4 py-3">
+                    <i class="bi bi-plus-circle-fill fs-5"></i>
+                    <span>Nuevo Registro</span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header border-0 card-filter-header">
-            <h6 class="mb-0 fw-bold section-title-dark"><i class="bi bi-funnel me-2"></i>Filtros de Búsqueda</h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Tipo</label>
-                    <select class="form-select" id="filtroTipo">
-                        <option value="">Todos</option>
-                        <option value="equipo">Equipos</option>
-                        <option value="item">Items</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Categoría</label>
-                    <select class="form-select" id="filtroCategoria">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Laboratorio</label>
-                    <select class="form-select" id="filtroLaboratorio">
-                        <option value="">Todos</option>
-                        {% for lab in laboratorios %}
-                        <option value="{{ lab.id }}">{{ lab.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Buscar</label>
-                    <input type="text" class="form-control" id="buscar" placeholder="Nombre del objeto...">
+    <!-- 2. Barra de Filtros (CMD) -->
+    <div class="ui-filter-card">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="ui-label">Tipo de Objeto</label>
+                <select class="ui-input" id="filtroTipo">
+                    <option value="">Todos los tipos</option>
+                    <option value="equipo">Equipos</option>
+                    <option value="item">Items / Consumibles</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Categoría Técnica</label>
+                <select class="ui-input" id="filtroCategoria">
+                    <option value="">Todas las categorías</option>
+                    <option value="Computación">Computación</option>
+                    <option value="Electrónica">Electrónica</option>
+                    <option value="Herramientas">Herramientas</option>
+                    <option value="Mobiliario">Mobiliario</option>
+                    <option value="Insumos">Insumos</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Ambiente / Laboratorio</label>
+                <select class="ui-input" id="filtroLaboratorio">
+                    <option value="">Todos los laboratorios</option>
+                    {% for lab in laboratorios %}
+                    <option value="{{ lab.id }}">{{ lab.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="ui-label">Búsqueda Rápida</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" class="ui-input ps-0" id="buscar" placeholder="Nombre o ID...">
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tabs -->
-    <ul class="nav nav-pills mb-3 gap-2" id="registrosTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active btn-sena-primary" id="equipos-tab" data-bs-toggle="tab" data-bs-target="#equipos" type="button">
-                <i class="bi bi-cpu me-2"></i>Equipos (<span id="countEquipos">0</span>)
+    <!-- 3. Contenedor de Datos con Tabs (CMD) -->
+    <ul class="nav nav-pills mb-4 gap-2" id="registrosTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-tab-premium" id="equipos-tab" data-bs-toggle="tab" data-bs-target="#equipos" type="button">
+                <i class="bi bi-cpu-fill me-2"></i>Equipos (<span id="countEquipos">0</span>)
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link btn-sena-outline" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button">
-                <i class="bi bi-box-seam me-2"></i>Items (<span id="countItems">0</span>)
+        <li class="nav-item">
+            <button class="nav-link btn-tab-premium" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button">
+                <i class="bi bi-box-seam-fill me-2"></i>Items (<span id="countItems">0</span>)
             </button>
         </li>
     </ul>
 
-    <!-- Contenido de Tabs -->
     <div class="tab-content" id="registrosTabContent">
         <!-- Tab Equipos -->
-        <div class="tab-pane fade show active" id="equipos" role="tabpanel">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Foto</th>
-                                    <th>Nombre</th>
-                                    <th>Categoría</th>
-                                    <th>Laboratorio</th>
-                                    <th>Estado</th>
-                                    <th>IA</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaEquipos">
-                                <tr>
-                                    <td colspan="7" class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Cargando...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="tab-pane fade show active" id="equipos">
+            <div class="ui-data-card">
+                <div class="table-responsive">
+                    <table class="ui-table-premium">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Miniatura</th>
+                                <th>Nombre del Activo</th>
+                                <th>Categoría</th>
+                                <th>Laboratorio</th>
+                                <th>Estado</th>
+                                <th>IA</th>
+                                <th class="text-end">Operaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaEquipos">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
         <!-- Tab Items -->
-        <div class="tab-pane fade" id="items" role="tabpanel">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Foto</th>
-                                    <th>Nombre</th>
-                                    <th>Categoría</th>
-                                    <th>Laboratorio</th>
-                                    <th>Stock</th>
-                                    <th>IA</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaItems">
-                                <tr>
-                                    <td colspan="7" class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Cargando...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="tab-pane fade" id="items">
+            <div class="ui-data-card">
+                <div class="table-responsive">
+                    <table class="ui-table-premium">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Miniatura</th>
+                                <th>Nombre del Item</th>
+                                <th>Categoría</th>
+                                <th>Laboratorio</th>
+                                <th>Stock Actual</th>
+                                <th>IA</th>
+                                <th class="text-end">Operaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaItems">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Ver Detalles -->
+<!-- Modal Detalles CMD -->
 <div class="modal fade" id="modalDetalles" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Detalles del Registro</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-sena text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-eye-fill me-2"></i>Detalles del Registro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="detallesContenido">
-                <!-- Contenido dinámico -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <div class="modal-body p-4" id="detallesContenido"></div>
+            <div class="modal-footer border-0">
+                <button type="button" class="ui-btn-action ui-btn-action-outline" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Editar Registro -->
-<div class="modal fade" id="modalEditar" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar Registro</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal Edición de Registro -->
+<div class="modal fade" id="editarRegistroModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-sena text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Editar Registro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <form id="formEditar">
-                    <input type="hidden" id="editId">
-                    <input type="hidden" id="editTipo">
-                    <input type="hidden" id="editObjetoId">
-                    
-                    <div class="row">
-                        <!-- Columna izquierda: Información básica -->
+            <div class="modal-body p-4">
+                <form id="formEditarRegistro">
+                    <!-- Campos ocultos -->
+                    <input type="hidden" id="editRegistroId">
+                    <input type="hidden" id="editRegistroTipo">
+
+                    <!-- Campos comunes -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Nombre *</label>
+                            <input type="text" class="form-control" id="editNombre" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Estado</label>
+                            <select class="form-select" id="editEstado">
+                                <option value="disponible">Disponible</option>
+                                <option value="en_uso">En Uso</option>
+                                <option value="mantenimiento">En Mantenimiento</option>
+                                <option value="danado">Dañado</option>
+                                <option value="dado_baja">Dado de Baja</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Información General</h6>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label">Nombre *</label>
-                                    <input type="text" class="form-control" id="editNombre" required>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Tipo/Categoría *</label>
-                                    <input type="text" class="form-control" id="editCategoria" required>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Descripción</label>
-                                    <textarea class="form-control" id="editDescripcion" rows="3"></textarea>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Ubicación</label>
-                                    <input type="text" class="form-control" id="editUbicacion">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Laboratorio</label>
-                                    <select class="form-select" id="editLaboratorio">
-                                        <option value="">Seleccionar...</option>
-                                        {% for lab in laboratorios %}
-                                        <option value="{{ lab.id }}">{{ lab.nombre }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-12" id="divEstado">
-                                    <label class="form-label">Estado</label>
-                                    <select class="form-select" id="editEstado">
-                                        <option value="disponible">Disponible</option>
-                                        <option value="en_uso">En Uso</option>
-                                        <option value="mantenimiento">Mantenimiento</option>
-                                        <option value="fuera_servicio">Fuera de Servicio</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 d-none" id="divStock">
-                                    <label class="form-label">Stock Actual</label>
-                                    <input type="number" class="form-control" id="editStock" min="0">
-                                </div>
+                            <label class="form-label fw-semibold">Categoría *</label>
+                            <select class="form-select" id="editCategoria" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Computación">Computación</option>
+                                <option value="Electrónica">Electrónica</option>
+                                <option value="Herramientas">Herramientas</option>
+                                <option value="Mobiliario">Mobiliario</option>
+                                <option value="Insumos">Insumos</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Laboratorio</label>
+                            <select class="form-select" id="editLaboratorio">
+                                <option value="">Sin asignar</option>
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción</label>
+                        <textarea class="form-control" id="editDescripcion" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Ubicación Específica</label>
+                        <input type="text" class="form-control" id="editUbicacion" placeholder="Ej: Laboratorio 101, Mesa A">
+                    </div>
+
+                    <!-- Campos específicos para Equipos -->
+                    <div id="camposEquipo" style="display: none;">
+                        <hr class="my-4">
+                        <h6 class="text-primary fw-bold mb-3">Información del Equipo</h6>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Placa</label>
+                                <input type="text" class="form-control" id="editPlaca">
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Serial</label>
+                                <input type="text" class="form-control" id="editSerial">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Marca</label>
+                                <input type="text" class="form-control" id="editMarca">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Modelo</label>
+                                <input type="text" class="form-control" id="editModelo">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Fecha de Adquisición</label>
+                                <input type="date" class="form-control" id="editFechaAdquisicion">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Última Calibración</label>
+                                <input type="date" class="form-control" id="editUltimaCalibracion">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Próxima Calibración</label>
+                                <input type="date" class="form-control" id="editProximaCalibracion">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos específicos para Items -->
+                    <div id="camposItem" style="display: none;">
+                        <hr class="my-4">
+                        <h6 class="text-success fw-bold mb-3">Información del Item</h6>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Stock Actual</label>
+                                <input type="number" class="form-control" id="editStockActual" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="editStockMinimo" min="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Unidad de Medida</label>
+                                <select class="form-select" id="editUnidad">
+                                    <option value="Unidades">Unidades</option>
+                                    <option value="Kilos">Kilos</option>
+                                    <option value="Litros">Litros</option>
+                                    <option value="Metros">Metros</option>
+                                    <option value="Cajas">Cajas</option>
+                                    <option value="Paquetes">Paquetes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Proveedor</label>
+                                <input type="text" class="form-control" id="editProveedor">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Fecha de Compra</label>
+                                <input type="date" class="form-control" id="editFechaCompra">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección de Imágenes -->
+                    <div class="mt-4">
+                        <hr class="my-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="text-primary fw-bold mb-0">
+                                <i class="bi bi-images me-2"></i>Imágenes del Registro
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-success" onclick="agregarImagen()">
+                                <i class="bi bi-plus-circle me-1"></i>Agregar Imagen
+                            </button>
                         </div>
                         
-                        <!-- Columna derecha: Gestión de imágenes -->
-                        <div class="col-md-6">
-                            <h6 class="mb-3"><i class="bi bi-images me-2"></i>Gestión de Imágenes</h6>
-                            <div id="editFotosContainer">
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle me-2"></i>Cargando imágenes...
-                                </div>
-                            </div>
+                        <div id="imagenesContainer" class="row g-3">
+                            <!-- Las imágenes se cargarán aquí dinámicamente -->
                         </div>
+                        
+                        <!-- Input oculto para subir imágenes -->
+                        <input type="file" id="imagenInput" accept="image/*" style="display: none;" onchange="handleImagenSeleccionada(event)">
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnGuardarEdicion">
-                    <i class="bi bi-save me-2"></i>Guardar Cambios
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para capturar nueva imagen -->
-<div class="modal fade" id="modalCapturarImagen" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-camera me-2"></i>Reemplazar Imagen</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <video id="videoCaptura" width="100%" height="400" autoplay class="rounded bg-dark"></video>
-                </div>
-                <canvas id="canvasCaptura" class="d-none"></canvas>
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>Posiciona el objeto frente a la cámara y haz clic en "Capturar"
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnCapturarYReemplazar">
-                    <i class="bi bi-camera-fill me-2"></i>Capturar
+            <div class="modal-footer border-0">
+                <button type="button" class="ui-btn-action ui-btn-action-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="ui-btn-action ui-btn-action-primary" onclick="guardarCambiosRegistro()">
+                    <i class="bi bi-check-circle me-2"></i>Guardar Cambios
                 </button>
             </div>
         </div>
@@ -268,661 +328,539 @@
 </div>
 
 <script>
-let registros = [];
+    let registros = [];
 
-// Cargar registros al iniciar
-document.addEventListener('DOMContentLoaded', () => {
-    cargarRegistros();
-    
-    // Event listener para botón guardar edición
-    const btnGuardarEdicion = document.getElementById('btnGuardarEdicion');
-    if (btnGuardarEdicion) {
-        btnGuardarEdicion.addEventListener('click', guardarEdicion);
-    }
-    
-    // Event listener para botón capturar y reemplazar
-    const btnCapturarYReemplazar = document.getElementById('btnCapturarYReemplazar');
-    if (btnCapturarYReemplazar) {
-        btnCapturarYReemplazar.addEventListener('click', capturarYReemplazar);
-    }
-    
-    // Event delegation para botones de acción en tablas
-    document.addEventListener('click', function(e) {
-        // Botón ver detalles
-        const btnView = e.target.closest('.btn-action-view');
-        if (btnView) {
-            const id = btnView.dataset.id;
-            const tipo = btnView.dataset.tipo;
-            verDetalles(id, tipo);
-            return;
-        }
-        
-        // Botón editar
-        const btnEdit = e.target.closest('.btn-action-edit');
-        if (btnEdit) {
-            const id = btnEdit.dataset.id;
-            const tipo = btnEdit.dataset.tipo;
-            editarRegistro(id, tipo);
-            return;
-        }
-        
-        // Botón eliminar
-        const btnDelete = e.target.closest('.btn-action-delete');
-        if (btnDelete) {
-            const id = btnDelete.dataset.id;
-            const tipo = btnDelete.dataset.tipo;
-            eliminarRegistro(id, tipo);
-            return;
-        }
-        
-        // Imagen ampliable
-        const imgAmpliable = e.target.closest('.img-ampliable');
-        if (imgAmpliable) {
-            const src = imgAmpliable.dataset.imagenSrc;
-            const titulo = imgAmpliable.dataset.imagenTitulo;
-            ampliarImagen(src, titulo);
-            return;
-        }
-    });
-});
-
-// Cargar registros desde el servidor
-async function cargarRegistros() {
-    try {
-        const response = await fetch('/api/registros-completos');
-        const data = await response.json();
-        
-        if (data.success) {
-            registros = data.registros;
-            actualizarTablas();
-        }
-    } catch (error) {
-        console.error('Error cargando registros:', error);
-    }
-}
-
-// Actualizar tablas
-function actualizarTablas() {
-    const equipos = registros.filter(r => r.tipo === 'equipo');
-    const items = registros.filter(r => r.tipo === 'item');
-    
-    document.getElementById('countEquipos').textContent = equipos.length;
-    document.getElementById('countItems').textContent = items.length;
-    
-    renderTablaEquipos(equipos);
-    renderTablaItems(items);
-}
-
-// Render tabla equipos
-function renderTablaEquipos(equipos) {
-    const tbody = document.getElementById('tablaEquipos');
-    
-    if (equipos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay equipos registrados</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = equipos.map(eq => `
-        <tr>
-            <td>
-                ${eq.foto_frontal ? 
-                    `<img src="${eq.foto_frontal}" class="img-thumbnail-table">` :
-                    '<i class="bi bi-image fs-2 text-muted"></i>'
-                }
-            </td>
-            <td><strong>${eq.nombre}</strong></td>
-            <td><span class="badge bg-secondary">${eq.categoria}</span></td>
-            <td>${eq.laboratorio_nombre || 'N/A'}</td>
-            <td>
-                ${eq.estado === 'disponible' ? '<span class="badge badge-disponible">Disponible</span>' :
-                  eq.estado === 'en_uso' ? '<span class="badge badge-en-uso">En Uso</span>' :
-                  eq.estado === 'mantenimiento' ? '<span class="badge badge-mantenimiento">Mantenimiento</span>' :
-                  '<span class="badge bg-danger">Fuera de Servicio</span>'}
-            </td>
-            <td>
-                ${eq.entrenado_ia ? 
-                    '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Entrenado</span>' :
-                    '<span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Parcial</span>'
-                }
-            </td>
-            <td>
-                <button class="btn btn-sm btn-action-view" data-id="${eq.id}" data-tipo="equipo">
-                    <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-action-edit" data-id="${eq.id}" data-tipo="equipo">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-action-delete" data-id="${eq.id}" data-tipo="equipo">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-// Render tabla items
-function renderTablaItems(items) {
-    const tbody = document.getElementById('tablaItems');
-    
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay items registrados</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = items.map(item => `
-        <tr>
-            <td>
-                ${item.foto_frontal ? 
-                    `<img src="${item.foto_frontal}" class="img-thumbnail-table">` :
-                    '<i class="bi bi-image fs-2 text-muted"></i>'
-                }
-            </td>
-            <td><strong>${item.nombre}</strong></td>
-            <td><span class="badge bg-secondary">${item.categoria}</span></td>
-            <td>${item.laboratorio_nombre || 'N/A'}</td>
-            <td><strong>${item.stock_actual || 0}</strong> unidades</td>
-            <td>
-                ${item.entrenado_ia ? 
-                    '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Entrenado</span>' :
-                    '<span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Parcial</span>'
-                }
-            </td>
-            <td>
-                <button class="btn btn-sm btn-action-view" data-id="${item.id}" data-tipo="item">
-                    <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-sm btn-action-edit" data-id="${item.id}" data-tipo="item">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-action-delete" data-id="${item.id}" data-tipo="item">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-// Ver detalles
-async function verDetalles(id, tipo) {
-    try {
-        const response = await fetch(`/api/registro-detalle/${tipo}/${id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            mostrarModalDetalles(data.registro);
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-// Mostrar modal con detalles
-function mostrarModalDetalles(registro) {
-    const contenido = document.getElementById('detallesContenido');
-    
-    // Determinar si es equipo o item
-    const esEquipo = registro.estado !== undefined;
-    const categoria = esEquipo ? registro.tipo : registro.categoria;
-    
-    // Generar HTML de fotos
-    let fotosHtml = '';
-    if (registro.fotos && registro.fotos.length > 0) {
-        fotosHtml = `
-            <h6 class="mb-3"><i class="bi bi-images me-2"></i>Fotos Capturadas (${registro.fotos.length})</h6>
-            <div class="row g-3">
-                ${registro.fotos.map(foto => `
-                    <div class="col-6 col-md-4">
-                        <div class="card">
-                            <img src="/imagenes_objeto/${foto.id}" 
-                                 class="card-img-top img-thumbnail-detail img-ampliable" 
-                                 alt="${foto.vista}"
-                                 data-imagen-src="/imagenes_objeto/${foto.id}"
-                                 data-imagen-titulo="${foto.vista}"
-                                 style="cursor: pointer;"
-                                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ESin imagen%3C/text%3E%3C/svg%3E'">
-                            <div class="card-body p-2 text-center">
-                                <small class="text-muted">${foto.vista}</small>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    } else {
-        fotosHtml = `
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-2"></i>No hay fotos disponibles para este registro
-            </div>
-        `;
-    }
-    
-    contenido.innerHTML = `
-        <div class="row">
-            <div class="col-md-5">
-                <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Información General</h6>
-                <table class="table table-sm">
-                    <tbody>
-                        <tr>
-                            <td class="fw-bold" style="width: 40%;">ID:</td>
-                            <td><code>${registro.id}</code></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Nombre:</td>
-                            <td>${registro.nombre}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">${esEquipo ? 'Tipo' : 'Categoría'}:</td>
-                            <td><span class="badge bg-secondary">${categoria}</span></td>
-                        </tr>
-                        ${registro.descripcion ? `
-                        <tr>
-                            <td class="fw-bold">Descripción:</td>
-                            <td>${registro.descripcion}</td>
-                        </tr>
-                        ` : ''}
-                        <tr>
-                            <td class="fw-bold">Ubicación:</td>
-                            <td>${registro.ubicacion || '<span class="text-muted">No especificada</span>'}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Laboratorio:</td>
-                            <td>${registro.laboratorio_nombre || '<span class="text-muted">No asignado</span>'}</td>
-                        </tr>
-                        ${esEquipo ? `
-                        <tr>
-                            <td class="fw-bold">Estado:</td>
-                            <td>
-                                ${registro.estado === 'disponible' ? '<span class="badge bg-success">Disponible</span>' :
-                                  registro.estado === 'en_uso' ? '<span class="badge bg-primary">En Uso</span>' :
-                                  registro.estado === 'mantenimiento' ? '<span class="badge bg-warning">Mantenimiento</span>' :
-                                  '<span class="badge bg-danger">Fuera de Servicio</span>'}
-                            </td>
-                        </tr>
-                        ` : `
-                        <tr>
-                            <td class="fw-bold">Stock Actual:</td>
-                            <td><strong>${registro.cantidad_actual || 0}</strong> unidades</td>
-                        </tr>
-                        `}
-                        <tr>
-                            <td class="fw-bold">IA Entrenada:</td>
-                            <td>
-                                ${registro.entrenado_ia ? 
-                                    '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Sí</span>' :
-                                    '<span class="badge bg-secondary"><i class="bi bi-x-circle"></i> No</span>'}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-md-7">
-                ${fotosHtml}
-            </div>
-        </div>
-    `;
-    
-    new bootstrap.Modal(document.getElementById('modalDetalles')).show();
-}
-
-// Ampliar imagen en modal
-function ampliarImagen(src, titulo) {
-    const modalHtml = `
-        <div class="modal fade" id="modalImagenAmpliada" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">${titulo}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body text-center">
-                        <img src="${src}" class="img-fluid" alt="${titulo}">
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Eliminar modal anterior si existe
-    const modalAnterior = document.getElementById('modalImagenAmpliada');
-    if (modalAnterior) {
-        modalAnterior.remove();
-    }
-    
-    // Agregar nuevo modal
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('modalImagenAmpliada'));
-    modal.show();
-    
-    // Limpiar al cerrar
-    document.getElementById('modalImagenAmpliada').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
-}
-
-// Editar registro
-async function editarRegistro(id, tipo) {
-    try {
-        const response = await fetch(`/api/registro-editar/${tipo}/${id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            const registro = data.registro;
-            
-            // Llenar formulario
-            document.getElementById('editId').value = id;
-            document.getElementById('editTipo').value = tipo;
-            document.getElementById('editObjetoId').value = registro.objeto_id || '';
-            document.getElementById('editNombre').value = registro.nombre || '';
-            // Para equipos usar 'tipo', para items usar 'categoria'
-            document.getElementById('editCategoria').value = registro.tipo || registro.categoria || '';
-            document.getElementById('editDescripcion').value = registro.descripcion || '';
-            document.getElementById('editUbicacion').value = registro.ubicacion || '';
-            document.getElementById('editLaboratorio').value = registro.laboratorio_id || '';
-            
-            // Mostrar/ocultar campos según tipo
-            if (tipo === 'equipo') {
-                document.getElementById('divEstado').style.display = 'block';
-                document.getElementById('divStock').style.display = 'none';
-                document.getElementById('editEstado').value = registro.estado || 'disponible';
-            } else {
-                document.getElementById('divEstado').style.display = 'none';
-                document.getElementById('divStock').style.display = 'block';
-                document.getElementById('editStock').value = registro.cantidad_actual || 0;
+    async function cargarRegistros() {
+        try {
+            const response = await fetch('/api/registros-completos');
+            const data = await response.json();
+            if (data.success) {
+                registros = data.registros;
+                actualizarTablas();
             }
-            
-            // Cargar imágenes
-            cargarImagenesEdicion(registro.fotos || [], registro.objeto_id);
-            
-            // Mostrar modal
-            new bootstrap.Modal(document.getElementById('modalEditar')).show();
-        } else {
-            alert('❌ Error: ' + data.message);
+        } catch (e) { 
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.error('Error:', e);
+            } else {
+                console.error('Error:', e);
+            }
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ Error al cargar datos: ' + error.message);
     }
+
+    function actualizarTablas(datos = registros) {
+        const eqs = datos.filter(r => r.tipo === 'equipo');
+        const its = datos.filter(r => r.tipo === 'item');
+        document.getElementById('countEquipos').textContent = eqs.length;
+        document.getElementById('countItems').textContent = its.length;
+        renderTabla(eqs, 'tablaEquipos', 'equipo');
+        renderTabla(its, 'tablaItems', 'item');
+    }
+
+    function renderTabla(lista, idContenedor, tipo) {
+        const tbody = document.getElementById(idContenedor);
+        if(lista.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted small">No hay registros</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = lista.map(r => `
+            <tr>
+                <td><img src="${r.foto_frontal || ''}" class="rounded shadow-sm border" style="width: 50px; height: 35px; object-fit: cover;" onerror="this.src='{{ url_for('static', filename='images/placeholder-50x35.svg') }}'"></td>
+                <td class="fw-bold text-dark">${r.nombre}</td>
+                <td><span class="badge bg-light text-dark border">${r.categoria}</span></td>
+                <td class="small text-primary fw-bold">${r.laboratorio_nombre || 'SEDE CENTRAL'}</td>
+                <td>
+                    ${tipo === 'equipo' ? 
+                      `<span class="badge bg-${r.estado === 'disponible' ? 'sena' : 'warning'}-soft text-${r.estado === 'disponible' ? 'sena' : 'warning'}">${r.estado.toUpperCase()}</span>` :
+                      `<span class="badge bg-sena-soft text-sena">${r.stock_actual} Uds</span>`}
+                </td>
+                <td class="text-center">${r.entrenado_ia ? '<i class="bi bi-cpu-fill text-success fs-5"></i>' : '<i class="bi bi-cpu text-muted opacity-25 fs-5"></i>'}</td>
+                <td class="text-end">
+                    <div class="d-flex justify-content-end gap-1">
+                        <button class="ui-btn-action ui-btn-action-outline btn-sm" onclick="verDetalles('${r.id}', '${tipo}')"><i class="bi bi-eye"></i></button>
+                        <button class="ui-btn-action ui-btn-action-outline btn-sm" onclick="editarRegistro('${r.id}', '${tipo}')"><i class="bi bi-pencil-square"></i></button>
+                        <button class="ui-btn-action ui-btn-action-danger btn-sm" onclick="eliminarRegistro('${r.id}', '${tipo}')"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Funciones de acción usando BaseActions (herencia)
+function verDetalles(id, tipo) {
+    window.RegistroManager.editRegistro(id, tipo, function(data) {
+        if (data.success) {
+            // Mostrar detalles en un modal o console
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.info(`Detalles de ${tipo}:`, data.usuario || data.equipo || data.item);
+            }
+        }
+    });
 }
 
-// Guardar edición
-async function guardarEdicion() {
-    const id = document.getElementById('editId').value;
-    const tipo = document.getElementById('editTipo').value;
+function editarRegistro(id, tipo) {
+    // Obtener datos del registro para edición
+    const registro = registros.find(r => r.id == id && r.tipo === tipo);
+    if (!registro) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.showToast('Registro no encontrado', 'error');
+        }
+        return;
+    }
+
+    // Usar RegistroManager para obtener datos completos y mostrar modal
+    window.RegistroManager.editRegistro(id, tipo, function(data) {
+        if (data.success) {
+            // Llenar el modal con los datos
+            llenarModalEdicion(data, tipo);
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(document.getElementById('editarRegistroModal'));
+            modal.show();
+        }
+    });
+}
+
+function llenarModalEdicion(data, tipo) {
+    // Limpiar formulario
+    const form = document.getElementById('formEditarRegistro');
+    if (form) form.reset();
+
+    // Los datos vienen anidados en data.registro
+    const registro = data.registro || data;
     
-    const datos = {
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.log('Datos recibidos en llenarModalEdicion:', data);
+    } else {
+        console.log('Datos recibidos en llenarModalEdicion:', data);
+    }
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.log('Registro extraído:', registro);
+    } else {
+        console.log('Registro extraído:', registro);
+    }
+
+    // Llenar campos comunes
+    document.getElementById('editRegistroId').value = registro.id || '';
+    document.getElementById('editRegistroTipo').value = tipo;
+    document.getElementById('editNombre').value = registro.nombre || '';
+    document.getElementById('editCategoria').value = registro.categoria || '';
+    document.getElementById('editDescripcion').value = registro.descripcion || '';
+    document.getElementById('editEstado').value = registro.estado || 'disponible';
+
+    // Campos específicos por tipo
+    if (tipo === 'equipo') {
+        document.getElementById('editPlaca').value = registro.placa || '';
+        document.getElementById('editSerial').value = registro.serial || '';
+        document.getElementById('editMarca').value = registro.marca || '';
+        document.getElementById('editModelo').value = registro.modelo || '';
+        document.getElementById('editLaboratorio').value = registro.laboratorio_id || '';
+        document.getElementById('editUbicacion').value = registro.ubicacion_especifica || '';
+        document.getElementById('editFechaAdquisicion').value = registro.fecha_adquisicion || '';
+        document.getElementById('editUltimaCalibracion').value = registro.ultima_calibracion || '';
+        document.getElementById('editProximaCalibracion').value = registro.proxima_calibracion || '';
+        
+        // Mostrar campos de equipo
+        document.getElementById('camposEquipo').style.display = 'block';
+        document.getElementById('camposItem').style.display = 'none';
+    } else if (tipo === 'item') {
+        document.getElementById('editStockActual').value = registro.stock_actual || '';
+        document.getElementById('editStockMinimo').value = registro.stock_minimo || '';
+        document.getElementById('editUnidad').value = registro.unidad_medida || '';
+        document.getElementById('editLaboratorio').value = registro.laboratorio_id || '';
+        document.getElementById('editUbicacion').value = registro.ubicacion_especifica || '';
+        document.getElementById('editProveedor').value = registro.proveedor || '';
+        document.getElementById('editFechaCompra').value = registro.fecha_compra || '';
+        
+        // Mostrar campos de item
+        document.getElementById('camposEquipo').style.display = 'none';
+        document.getElementById('camposItem').style.display = 'block';
+    }
+
+    // Cargar imágenes del registro
+    cargarImagenesRegistro(registro.id, tipo);
+}
+
+function guardarCambiosRegistro() {
+    const id = document.getElementById('editRegistroId').value;
+    const tipo = document.getElementById('editRegistroTipo').value;
+
+    // Validación básica
+    if (!window.EntityManager.validateForm(document.getElementById('formEditarRegistro'), ['nombre', 'categoria'])) {
+        return;
+    }
+
+    // Recopilar datos del formulario
+    let formData = {
         nombre: document.getElementById('editNombre').value,
         categoria: document.getElementById('editCategoria').value,
         descripcion: document.getElementById('editDescripcion').value,
-        ubicacion: document.getElementById('editUbicacion').value,
-        laboratorio_id: document.getElementById('editLaboratorio').value || null
+        estado: document.getElementById('editEstado').value,
+        laboratorio_id: document.getElementById('editLaboratorio').value || null,
+        ubicacion_especifica: document.getElementById('editUbicacion').value || ''
     };
-    
+
+    // Agregar campos específicos por tipo
     if (tipo === 'equipo') {
-        datos.estado = document.getElementById('editEstado').value;
+        formData = {
+            ...formData,
+            placa: document.getElementById('editPlaca').value || '',
+            serial: document.getElementById('editSerial').value || '',
+            marca: document.getElementById('editMarca').value || '',
+            modelo: document.getElementById('editModelo').value || '',
+            fecha_adquisicion: document.getElementById('editFechaAdquisicion').value || '',
+            ultima_calibracion: document.getElementById('editUltimaCalibracion').value || '',
+            proxima_calibracion: document.getElementById('editProximaCalibracion').value || ''
+        };
+    } else if (tipo === 'item') {
+        formData = {
+            ...formData,
+            stock_actual: parseInt(document.getElementById('editStockActual').value) || 0,
+            stock_minimo: parseInt(document.getElementById('editStockMinimo').value) || 0,
+            unidad_medida: document.getElementById('editUnidad').value || '',
+            proveedor: document.getElementById('editProveedor').value || '',
+            fecha_adquisicion: document.getElementById('editFechaAdquisicion').value || ''
+        };
+    }
+
+    // Guardar usando RegistroManager
+    window.RegistroManager.saveRegistro(id, tipo, formData, function() {
+        // Recargar registros después de guardar
+        cargarRegistros();
+    }, 'editarRegistroModal');
+}
+
+// Funciones para gestión de imágenes
+let registroActual = null;
+let imagenesActuales = [];
+
+function cargarImagenesRegistro(id, tipo) {
+    // Obtener imágenes del registro desde el endpoint de detalles
+    fetch(`/api/registro-detalle/${tipo}/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.registro) {
+                registroActual = data.registro;
+                if (typeof window.Logger !== 'undefined') {
+                    window.Logger.log('Registro cargado, objeto_id:', registroActual.objeto_id);
+                } else {
+                    console.log('Registro cargado, objeto_id:', registroActual.objeto_id);
+                }
+                imagenesActuales = data.registro.fotos || [];
+                if (typeof window.Logger !== 'undefined') {
+                    window.Logger.log('Imágenes encontradas:', imagenesActuales.length);
+                } else {
+                    console.log('Imágenes encontradas:', imagenesActuales.length);
+                }
+                mostrarImagenes();
+            } else {
+                if (typeof window.Logger !== 'undefined') {
+                    window.Logger.error('Error en respuesta del servidor:', data);
+                } else {
+                    console.error('Error en respuesta del servidor:', data);
+                }
+            }
+        })
+        .catch(error => {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.error('Error al cargar imágenes:', error);
+            } else {
+                console.error('Error al cargar imágenes:', error);
+            }
+        });
+}
+
+function mostrarImagenes() {
+    const container = document.getElementById('imagenesContainer');
+    container.innerHTML = '';
+
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.log('Mostrando imágenes - Total:', imagenesActuales ? imagenesActuales.length : 0);
     } else {
-        datos.stock_actual = parseInt(document.getElementById('editStock').value) || 0;
+        console.log('Mostrando imágenes - Total:', imagenesActuales ? imagenesActuales.length : 0);
     }
-    
-    try {
-        const response = await fetch(`/api/registro-actualizar/${tipo}/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(datos)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            alert('✅ Registro actualizado exitosamente');
-            bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
-            cargarRegistros();
-        } else {
-            alert('❌ Error: ' + data.message);
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ Error al guardar: ' + error.message);
-    }
-}
 
-// Eliminar registro
-async function eliminarRegistro(id, tipo) {
-    if (!confirm('¿Está seguro de eliminar este registro?')) return;
-    
-    try {
-        const response = await fetch(`/api/registro-eliminar/${tipo}/${id}`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            alert('✅ Registro eliminado exitosamente');
-            cargarRegistros();
-        } else {
-            alert('❌ Error: ' + data.message);
-        }
-    } catch (error) {
-        alert('❌ Error al eliminar: ' + error.message);
-    }
-}
-
-// Filtros
-document.getElementById('filtroTipo').addEventListener('change', aplicarFiltros);
-document.getElementById('filtroCategoria').addEventListener('change', aplicarFiltros);
-document.getElementById('filtroLaboratorio').addEventListener('change', aplicarFiltros);
-document.getElementById('buscar').addEventListener('input', aplicarFiltros);
-
-function aplicarFiltros() {
-    // Implementar filtrado
-    const tipo = document.getElementById('filtroTipo').value;
-    const categoria = document.getElementById('filtroCategoria').value;
-    const laboratorio = document.getElementById('filtroLaboratorio').value;
-    const buscar = document.getElementById('buscar').value.toLowerCase();
-    
-    let filtrados = registros.filter(r => {
-        if (tipo && r.tipo !== tipo) return false;
-        if (categoria && r.categoria !== categoria) return false;
-        if (laboratorio && r.laboratorio_id != laboratorio) return false;
-        if (buscar && !r.nombre.toLowerCase().includes(buscar)) return false;
-        return true;
-    });
-    
-    actualizarTablas();
-}
-
-// ==========================================
-// GESTIÓN DE IMÁGENES
-// ==========================================
-
-let imagenActualReemplazar = null;
-let streamCamara = null;
-
-// Cargar imágenes en el modal de edición
-function cargarImagenesEdicion(fotos, objetoId) {
-    const container = document.getElementById('editFotosContainer');
-    
-    if (!fotos || fotos.length === 0) {
+    if (!imagenesActuales || imagenesActuales.length === 0) {
         container.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle me-2"></i>No hay imágenes disponibles para este registro
+            <div class="col-12">
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-image display-4"></i>
+                    <p class="mb-0">No hay imágenes registradas</p>
+                    <small>Click en "Agregar Imagen" para añadir la primera</small>
+                </div>
             </div>
         `;
         return;
     }
-    
-    container.innerHTML = `
-        <div class="row g-2">
-            ${fotos.map(foto => `
-                <div class="col-6 col-md-4">
-                    <div class="card image-grid-card">
-                        <img src="/imagenes_objeto/${foto.id}?v=${Date.now()}" 
-                             class="card-img-top" 
-                             alt="${foto.vista}"
-                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ESin imagen%3C/text%3E%3C/svg%3E'">
-                        <div class="card-body">
-                            <span class="image-vista-label">${foto.vista}</span>
-                            <button type="button" class="btn btn-reemplazar-imagen" 
-                                    data-imagen-id="${foto.id}" 
-                                    data-vista="${foto.vista}" 
-                                    data-objeto-id="${objetoId}">
-                                <i class="bi bi-camera-fill"></i> Reemplazar
-                            </button>
-                        </div>
+
+    imagenesActuales.forEach((imagen, index) => {
+        const imageUrl = `/imagenes_objeto/${imagen.id}`;
+        
+        const imagenCard = document.createElement('div');
+        imagenCard.className = 'col-md-4 col-sm-6';
+        imagenCard.innerHTML = `
+            <div class="card border-0 shadow-sm">
+                <div class="card-img-top position-relative" style="height: 150px; overflow: hidden;">
+                    <img src="${imageUrl}" class="w-100 h-100 object-fit-cover" alt="Imagen ${index + 1}" 
+                         onerror="if(typeof window.Logger !== 'undefined'){window.Logger.error('Error cargando imagen:', '${imageUrl}');}else{console.error('Error cargando imagen:', '${imageUrl}');} this.src='/static/images/placeholder-50x35.svg';">
+                    <div class="position-absolute top-0 end-0 p-2 d-flex gap-1">
+                        <button class="btn btn-sm btn-warning" onclick="reemplazarImagen('${imagen.id}', '${imagen.path}')" title="Reemplazar imagen">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="eliminarImagen('${imagen.id}', '${imagen.path}')" title="Eliminar imagen">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </div>
-            `).join('')}
-        </div>
-    `;
-    
-    // Agregar event listeners a los botones de reemplazar
-    container.querySelectorAll('.btn-reemplazar-imagen').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const imagenId = this.getAttribute('data-imagen-id');
-            const vista = this.getAttribute('data-vista');
-            const objetoId = this.getAttribute('data-objeto-id');
-
-            abrirCamaraReemplazo(imagenId, vista, objetoId);
-        });
+                <div class="card-body p-2">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-eye me-1"></i>${imagen.vista || 'Sin vista especificada'}
+                    </small>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-calendar me-1"></i>${imagen.fecha_creacion || 'Fecha desconocida'}
+                    </small>
+                </div>
+            </div>
+        `;
+        container.appendChild(imagenCard);
     });
 }
 
-// Abrir cámara para reemplazar imagen
-async function abrirCamaraReemplazo(imagenId, vista, objetoId) {
-    imagenActualReemplazar = { id: imagenId, vista: vista, objetoId: objetoId };
-    
-    const modalElement = document.getElementById('modalCapturarImagen');
-    const modal = new bootstrap.Modal(modalElement, {
-        backdrop: 'static',  // No cerrar al hacer clic fuera
-        keyboard: false      // No cerrar con ESC
-    });
-    
-    // Mostrar modal primero
-    modal.show();
-    
-    // Esperar a que el modal esté completamente visible
-    modalElement.addEventListener('shown.bs.modal', async function iniciarCamara() {
-        // Remover listener para que solo se ejecute una vez
-        modalElement.removeEventListener('shown.bs.modal', iniciarCamara);
-        
-        try {
+// Variable para controlar si estamos reemplazando o agregando
+let imagenReemplazandoId = null;
 
-            streamCamara = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'environment'  // Cámara trasera en móviles
-                } 
-            });
-            
-            const video = document.getElementById('videoCaptura');
-            video.srcObject = streamCamara;
-            
-            // Esperar a que el video esté listo
-            video.onloadedmetadata = () => {
-                video.play();
-
-            };
-            
-        } catch (error) {
-            console.error('[ERROR] Error al acceder a la cámara:', error);
-            alert('❌ No se pudo acceder a la cámara: ' + error.message + '\n\nAsegúrate de dar permisos de cámara al navegador.');
-            modal.hide();
-        }
-    });
+function agregarImagen() {
+    // Abrir el selector de archivos para nueva imagen
+    imagenReemplazandoId = null;
+    document.getElementById('imagenInput').click();
 }
 
-// Detener cámara
-function detenerCamara() {
-    if (streamCamara) {
-        streamCamara.getTracks().forEach(track => track.stop());
-        streamCamara = null;
+function reemplazarImagen(imagenId, imagePath) {
+    // Abrir el selector de archivos para reemplazar
+    imagenReemplazandoId = imagenId;
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.log('Iniciando reemplazo de imagen:', imagenId);
+    } else {
+        console.log('Iniciando reemplazo de imagen:', imagenId);
     }
-    bootstrap.Modal.getInstance(document.getElementById('modalCapturarImagen')).hide();
+    document.getElementById('imagenInput').click();
 }
 
-// Capturar y reemplazar imagen
-async function capturarYReemplazar() {
-    if (!imagenActualReemplazar) {
-        alert('❌ Error: No hay imagen seleccionada');
+function handleImagenSeleccionada(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.showToast('Por favor seleccione un archivo de imagen válido', 'error');
+        }
         return;
     }
-    
-    const video = document.getElementById('videoCaptura');
-    const canvas = document.getElementById('canvasCaptura');
-    const context = canvas.getContext('2d');
-    
-    // Configurar canvas con el tamaño del video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Capturar frame
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Convertir a blob
-    canvas.toBlob(async (blob) => {
-        try {
-            // Crear FormData
-            const formData = new FormData();
-            formData.append('imagen', blob, 'captura.jpg');
-            formData.append('imagen_id', imagenActualReemplazar.id);
-            formData.append('vista', imagenActualReemplazar.vista);
-            formData.append('objeto_id', imagenActualReemplazar.objetoId);
-            
-            // Enviar al servidor
-            const response = await fetch('/api/reemplazar-imagen', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                alert('✅ Imagen reemplazada exitosamente');
-                detenerCamara();
-                
-                // Recargar imágenes en el modal de edición
-                const id = document.getElementById('editId').value;
-                const tipo = document.getElementById('editTipo').value;
-                const responseEdit = await fetch(`/api/registro-editar/${tipo}/${id}`);
-                const dataEdit = await responseEdit.json();
-                if (dataEdit.success) {
-                    cargarImagenesEdicion(dataEdit.registro.fotos || [], dataEdit.registro.objeto_id);
-                }
-                
-                // Recargar lista de registros
-                cargarRegistros();
-            } else {
-                alert('❌ Error: ' + data.message);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('❌ Error al reemplazar imagen: ' + error.message);
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.showToast('La imagen no debe superar 5MB', 'error');
         }
-    }, 'image/jpeg', 0.9);
+        return;
+    }
+
+    // Convertir a base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Data = e.target.result;
+        
+        if (imagenReemplazandoId) {
+            // Reemplazar imagen existente
+            reemplazarImagenServidor(imagenReemplazandoId, base64Data);
+        } else {
+            // Subir nueva imagen
+            subirImagen(base64Data);
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
-// Limpiar al cerrar modal de captura
-document.getElementById('modalCapturarImagen').addEventListener('hidden.bs.modal', function() {
+function reemplazarImagenServidor(imagenId, base64Data) {
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.log('Enviando imagen para reemplazar:', imagenId);
+    } else {
+        console.log('Enviando imagen para reemplazar:', imagenId);
+    }
+    
+    // Enviar imagen al servidor para reemplazar
+    fetch('/api/reemplazar-imagen', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            imagen_id: imagenId,
+            image_base64: base64Data
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.log('Respuesta del servidor:', data.success ? 'éxito' : 'error');
+        } else {
+            console.log('Respuesta del servidor:', data.success ? 'éxito' : 'error');
+        }
+        if (data.success) {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Imagen reemplazada correctamente', 'success');
+            }
+            // Recargar imágenes
+            cargarImagenesRegistro(document.getElementById('editRegistroId').value, document.getElementById('editRegistroTipo').value);
+        } else {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Error al reemplazar imagen: ' + (data.message || 'Error desconocido'), 'error');
+            }
+        }
+    })
+    .catch(error => {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.error('Error al reemplazar imagen:', error);
+        } else {
+            console.error('Error al reemplazar imagen:', error);
+        }
+    })
+    .finally(() => {
+        // Limpiar el input y resetear variable
+        document.getElementById('imagenInput').value = '';
+        imagenReemplazandoId = null;
+    });
+}
 
-    if (streamCamara) {
-        streamCamara.getTracks().forEach(track => {
-            track.stop();
+function subirImagen(base64Data) {
+    if (!registroActual || !registroActual.objeto_id) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.showToast('No se puede agregar imagen: el registro no tiene objeto asociado', 'error');
+        }
+        return;
+    }
 
+    const objetoId = registroActual.objeto_id;
+    
+    // Enviar imagen al servidor
+    fetch(`/api/objetos/${objetoId}/imagenes`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            image_base64: base64Data,
+            vista: 'general', // Vista por defecto
+            fuente: 'edicion_registro'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Imagen agregada correctamente', 'success');
+            }
+            // Recargar imágenes
+            cargarImagenesRegistro(document.getElementById('editRegistroId').value, document.getElementById('editRegistroTipo').value);
+        } else {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Error al agregar imagen: ' + (data.message || 'Error desconocido'), 'error');
+            }
+        }
+    })
+    .catch(error => {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.error('Error al subir imagen:', error);
+        }
+    })
+    .finally(() => {
+        // Limpiar el input
+        document.getElementById('imagenInput').value = '';
+    });
+}
+
+function eliminarImagen(imagenId, imagePath) {
+    if (typeof window.Logger !== 'undefined') {
+        window.Logger.confirm('¿Estás seguro de eliminar esta imagen? Esta acción no se puede deshacer.', function(confirmed) {
+            if (confirmed) {
+                ejecutarEliminacionImagen(imagenId);
+            }
         });
-        streamCamara = null;
+    } else {
+        if (confirm('¿Estás seguro de eliminar esta imagen? Esta acción no se puede deshacer.')) {
+            ejecutarEliminacionImagen(imagenId);
+        }
     }
-    // Limpiar video
-    const video = document.getElementById('videoCaptura');
-    if (video.srcObject) {
-        video.srcObject = null;
+}
+
+function ejecutarEliminacionImagen(imagenId) {
+    fetch(`/api/objetos/imagen/${imagenId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Imagen eliminada correctamente', 'success');
+            }
+            // Recargar imágenes
+            cargarImagenesRegistro(document.getElementById('editRegistroId').value, document.getElementById('editRegistroTipo').value);
+        } else {
+            if (typeof window.Logger !== 'undefined') {
+                window.Logger.showToast('Error al eliminar imagen: ' + (data.message || 'Error desconocido'), 'error');
+            }
+        }
+    })
+    .catch(error => {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.error('Error al eliminar imagen:', error);
+        }
+    });
+}
+
+function eliminarRegistro(id, tipo) {
+    const registro = registros.find(r => r.id == id && r.tipo === tipo);
+    if (!registro) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.showToast('Registro no encontrado', 'error');
+        }
+        return;
     }
+
+    window.RegistroManager.deleteRegistro(id, tipo, registro.nombre, function() {
+        // Recargar registros después de eliminar
+        cargarRegistros();
+    });
+}
+
+async function cargarLaboratorios() {
+    try {
+        const response = await fetch('/api/laboratorios');
+        const data = await response.json();
+        if (data.success && data.laboratorios) {
+            const select = document.getElementById('editLaboratorio');
+            if (select) {
+                select.innerHTML = '<option value="">Sin asignar</option>';
+                data.laboratorios.forEach(lab => {
+                    select.innerHTML += `<option value="${lab.id}">${lab.nombre}</option>`;
+                });
+            }
+        }
+    } catch (error) {
+        if (typeof window.Logger !== 'undefined') {
+            window.Logger.error('Error al cargar laboratorios:', error);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarRegistros();
+    cargarLaboratorios();
 });
 </script>
 
+<style>
+    .btn-tab-premium { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; background: #f1f5f9; color: #64748b; border: none; }
+    .btn-tab-premium.active { background: var(--sena-primary) !important; color: white !important; box-shadow: var(--shadow-md); }
+</style>
 {% endblock %}
+

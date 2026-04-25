@@ -3,63 +3,79 @@
 {% block title %}Gestión de Creación de Cuentas{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-  
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="mb-1"><i class="bi bi-person-plus-fill me-2"></i>Gestión de Creación de Cuentas</h2>
-      <p class="text-muted mb-0">Aprobar o rechazar solicitudes de registro de nuevos usuarios</p>
-    </div>
-    <div>
-      {% if pendientes > 0 %}
-      <span class="badge bg-warning text-dark fs-5">
-        <i class="bi bi-clock-history me-1"></i>{{ pendientes }} pendiente{{ 's' if pendientes != 1 }}
-      </span>
-      {% else %}
-      <span class="badge bg-success fs-5">
-        <i class="bi bi-check-circle me-1"></i>Sin solicitudes pendientes
-      </span>
-      {% endif %}
-    </div>
-  </div>
 
-  <!-- Filtros -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Filtrar por estado</label>
-          <select class="form-select" id="filtroEstado">
-            <option value="">Todos los estados</option>
-            <option value="pendiente" selected>Pendientes</option>
-            <option value="aprobada">Aprobadas</option>
-            <option value="rechazada">Rechazadas</option>
-          </select>
+<!-- Header Estándar -->
+<div class="card border-0 shadow-lg mb-4 module-header-standard">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center">
+          <div class="module-header-icon">
+            <i class="bi bi-person-plus-fill"></i>
+          </div>
+          <div>
+            <h1 class="module-header-title">Gestión de Creación de Cuentas</h1>
+            <p class="module-header-description">Aprobar o rechazar solicitudes de registro de nuevos usuarios</p>
+          </div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Buscar usuario</label>
-          <input type="text" class="form-control" id="buscarUsuario" placeholder="Nombre o ID...">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Nivel solicitado</label>
-          <select class="form-select" id="filtroNivel">
-            <option value="">Todos los niveles</option>
-            <option value="2">Funcionario</option>
-            <option value="3">Instructor (No Química)</option>
-            <option value="4">Instructor (Química)</option>
-            <option value="5">Instructor Inventario</option>
-            <option value="6">Administrador</option>
-          </select>
-        </div>
+      </div>
+      <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        {% if pendientes > 0 %}
+        <span class="badge bg-warning text-dark fs-5">
+          <i class="bi bi-clock-history me-1"></i>{{ pendientes }} pendiente{{ 's' if pendientes != 1 }}
+        </span>
+        {% else %}
+        <span class="badge bg-success fs-5">
+          <i class="bi bi-check-circle me-1"></i>Sin solicitudes pendientes
+        </span>
+        {% endif %}
       </div>
     </div>
   </div>
+</div>
+
+<!-- Filtros -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-funnel me-2 filter-section-title"></i>
+      <h6 class="mb-0 fw-semibold filter-section-title">Filtros de Búsqueda</h6>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="filter-label">Filtrar por estado</label>
+        <select class="form-select" id="filtroEstado">
+          <option value="">Todos los estados</option>
+          <option value="pendiente" selected>Pendientes</option>
+          <option value="aprobada">Aprobadas</option>
+          <option value="rechazada">Rechazadas</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="filter-label">Buscar usuario</label>
+        <input type="text" class="form-control" id="buscarUsuario" placeholder="Nombre o ID...">
+      </div>
+      <div class="col-md-4">
+        <label class="filter-label">Nivel solicitado</label>
+        <select class="form-select" id="filtroNivel">
+          <option value="">Todos los niveles</option>
+          <option value="2">Funcionario</option>
+          <option value="3">Instructor (No Química)</option>
+          <option value="4">Instructor (Química)</option>
+          <option value="5">Instructor Inventario</option>
+          <option value="6">Administrador</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Tabla de solicitudes -->
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-      <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Listado de Solicitudes</h5>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header border-0 table-header-gradient">
+      <h5 class="mb-0 fw-semibold table-header-title">
+        <i class="bi bi-list-ul me-2"></i>Listado de Solicitudes
+      </h5>
     </div>
     <div class="card-body p-0">
       {% if solicitudes %}
@@ -105,7 +121,7 @@
               </td>
               
               <td>
-                <span class="badge" style="background: {% if sol.nivel_solicitado == 6 %}#dc3545{% elif sol.nivel_solicitado >= 4 %}#fd7e14{% else %}#0d6efd{% endif %}">
+                <span class="badge {% if sol.nivel_solicitado == 6 %}badge-nivel-admin{% elif sol.nivel_solicitado >= 4 %}badge-nivel-coordinador{% else %}badge-nivel-instructor{% endif %}">
                   <i class="bi bi-arrow-up-circle me-1"></i>
                   Nivel {{ sol.nivel_solicitado }} - {{ roles_nombres[sol.nivel_solicitado] }}
                 </span>
@@ -143,43 +159,50 @@
               
               <td class="text-center">
                 {% if sol.estado == 'pendiente' %}
-                  <!-- Botón Aprobar -->
-                  <button class="btn btn-sm btn-success me-1 btn-aprobar-solicitud" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#modalAprobar"
-                          data-solicitud-id="{{ sol.id }}"
-                          data-usuario-id="{{ sol.usuario_id }}"
-                          data-usuario-nombre="{{ sol.nombre }}"
-                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
-                          data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}">
-                    <i class="bi bi-check-circle"></i>
-                  </button>
-                  
-                  <!-- Botón Rechazar -->
-                  <button class="btn btn-sm btn-danger btn-rechazar-solicitud" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#modalRechazar"
-                          data-solicitud-id="{{ sol.id }}"
-                          data-usuario-id="{{ sol.usuario_id }}"
-                          data-usuario-nombre="{{ sol.nombre }}"
-                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
-                          data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
+                  <!-- Botones de acción para solicitudes pendientes -->
+                  <div class="dt-actions">
+                    <button class="dt-btn-action dt-btn-success btn-aprobar-solicitud" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalAprobar"
+                            data-solicitud-id="{{ sol.id }}"
+                            data-usuario-id="{{ sol.usuario_id }}"
+                            data-usuario-nombre="{{ sol.nombre }}"
+                            data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                            data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}"
+                            data-laboratorio-solicitado="{{ sol.laboratorio_solicitado or '' }}"
+                            title="Aprobar solicitud">
+                      <i class="bi bi-check-circle"></i>
+                    </button>
+                    <button class="dt-btn-action dt-btn-danger btn-rechazar-solicitud" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalRechazar"
+                            data-solicitud-id="{{ sol.id }}"
+                            data-usuario-id="{{ sol.usuario_id }}"
+                            data-usuario-nombre="{{ sol.nombre }}"
+                            data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                            data-rol-nombre="{{ roles_nombres[sol.nivel_solicitado] }}"
+                            data-laboratorio-solicitado="{{ sol.laboratorio_solicitado or '' }}"
+                            title="Rechazar solicitud">
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  </div>
                 {% else %}
                   <!-- Ver detalles -->
-                  <button class="btn btn-sm btn-outline-secondary btn-ver-detalles-solicitud" 
-                          data-bs-toggle="modal" 
-                          data-bs-target="#modalDetalles"
-                          data-usuario-id="{{ sol.usuario_id }}"
-                          data-usuario-nombre="{{ sol.nombre }}"
-                          data-nivel-actual="{{ sol.nivel_actual }}"
-                          data-nivel-solicitado="{{ sol.nivel_solicitado }}"
-                          data-estado="{{ sol.estado }}"
-                          data-admin-revisor="{{ sol.admin_revisor or 'N/A' }}"
-                          data-comentario-admin="{{ sol.comentario_admin or '' }}">
-                    <i class="bi bi-eye"></i>
-                  </button>
+                  <div class="dt-actions">
+                    <button class="dt-btn-action dt-btn-outline-primary btn-ver-detalles-solicitud" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalDetalles"
+                            data-usuario-id="{{ sol.usuario_id }}"
+                            data-usuario-nombre="{{ sol.nombre }}"
+                            data-nivel-actual="{{ sol.nivel_actual }}"
+                            data-nivel-solicitado="{{ sol.nivel_solicitado }}"
+                            data-estado="{{ sol.estado }}"
+                            data-admin-revisor="{{ sol.admin_revisor or 'N/A' }}"
+                            data-comentario-admin="{{ sol.comentario_admin or '' }}"
+                            title="Ver detalles">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
                 {% endif %}
               </td>
             </tr>
@@ -224,6 +247,22 @@
             <dt class="col-sm-4">Nuevo nivel:</dt>
             <dd class="col-sm-8">
               <span class="badge bg-success" id="aprobar-nivel"></span>
+            </dd>
+            
+            <dt class="col-sm-4">Laboratorio Solicitado:</dt>
+            <dd class="col-sm-8">
+              <div id="laboratorio-solicitado-info">
+                <!-- Se llenará dinámicamente -->
+              </div>
+            </dd>
+            
+            <dt class="col-sm-4">Notas:</dt>
+            <dd class="col-sm-8">
+              <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <strong>Asignación Automática de Laboratorio</strong><br>
+                <small id="notas-laboratorio">El sistema asignará automáticamente el laboratorio solicitado por el usuario durante el registro.</small>
+              </div>
             </dd>
           </dl>
           
@@ -339,7 +378,7 @@
 let solicitudActual = null;
 
 // Setear datos de solicitud en modales
-function setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel) {
+function setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel, laboratorioSolicitado) {
   solicitudActual = id;
   
   // Modal aprobar
@@ -347,6 +386,39 @@ function setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel) {
   document.getElementById('aprobar-id').textContent = usuarioId;
   document.getElementById('aprobar-nivel').textContent = `Nivel ${nivel} - ${nombreNivel}`;
   document.getElementById('formAprobar').action = `/admin/solicitud/aprobar/${id}`;
+  
+  // Mostrar laboratorio solicitado si aplica
+  const laboratorioInfo = document.getElementById('laboratorio-solicitado-info');
+  const notasLaboratorio = document.getElementById('notas-laboratorio');
+  
+  if (nivel == 5 && laboratorioSolicitado) {
+    // Instructor de inventario con laboratorio solicitado
+    laboratorioInfo.innerHTML = `
+      <div class="alert alert-success">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Laboratorio asignado automáticamente:</strong><br>
+        <span class="badge bg-primary">ID: ${laboratorioSolicitado}</span>
+        <small class="text-muted ms-2">Se usará el laboratorio seleccionado en el registro</small>
+      </div>
+    `;
+    notasLaboratorio.textContent = 'El sistema asignará automáticamente el laboratorio solicitado por el usuario durante el registro.';
+  } else if (nivel == 5) {
+    // Instructor de inventario sin laboratorio solicitado
+    laboratorioInfo.innerHTML = `
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Sin laboratorio solicitado</strong><br>
+        <small>El usuario no seleccionó laboratorio en el registro. Deberá asignarse manualmente después.</small>
+      </div>
+    `;
+    notasLaboratorio.textContent = 'El usuario será aprobado como instructor de inventario, pero deberá asignarse un laboratorio manualmente.';
+  } else {
+    // Otros niveles (no aplica)
+    laboratorioInfo.innerHTML = `
+      <span class="text-muted">No aplica para este nivel</span>
+    `;
+    laboratorioInfo.parentElement.parentElement.style.display = 'none'; // Ocultar fila
+  }
   
   // Modal rechazar
   document.getElementById('rechazar-usuario').textContent = nombre;
@@ -412,7 +484,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const nombre = btnAprobar.dataset.usuarioNombre;
       const nivel = btnAprobar.dataset.nivelSolicitado;
       const nombreNivel = btnAprobar.dataset.rolNombre;
-      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel);
+      const laboratorioSolicitado = btnAprobar.dataset.laboratorioSolicitado || null;
+      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel, laboratorioSolicitado);
       return;
     }
     
@@ -424,7 +497,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const nombre = btnRechazar.dataset.usuarioNombre;
       const nivel = btnRechazar.dataset.nivelSolicitado;
       const nombreNivel = btnRechazar.dataset.rolNombre;
-      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel);
+      const laboratorioSolicitado = btnRechazar.dataset.laboratorioSolicitado || null;
+      setearSolicitud(id, usuarioId, nombre, nivel, nombreNivel, laboratorioSolicitado);
       return;
     }
     

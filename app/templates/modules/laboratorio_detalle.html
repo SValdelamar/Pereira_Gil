@@ -2,581 +2,304 @@
 {% set title = laboratorio.nombre %}
 
 {% block content %}
-<!-- Breadcrumb -->
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('laboratorios') }}"><i class="bi bi-building me-1"></i>Laboratorios</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{ laboratorio.codigo }}</li>
-    </ol>
-</nav>
+<div class="ui-page-container">
 
-<!-- Header Premium del Laboratorio -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-    <div class="card-body p-4">
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
         <div class="row align-items-center">
             <div class="col-lg-8">
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Icono circular según tipo -->
-                    <div class="header-icon-circle">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-white text-sena p-3 me-4 shadow-sm d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
                         {% if laboratorio.tipo == 'laboratorio' %}
-                            <i class="bi bi-flask"></i>
+                            <i class="bi bi-flask fs-1"></i>
                         {% elif laboratorio.tipo == 'aula' %}
-                            <i class="bi bi-book-fill"></i>
+                            <i class="bi bi-book-fill fs-1"></i>
                         {% elif laboratorio.tipo == 'taller' %}
-                            <i class="bi bi-tools"></i>
+                            <i class="bi bi-tools fs-1"></i>
                         {% else %}
-                            <i class="bi bi-archive-fill"></i>
+                            <i class="bi bi-building fs-1"></i>
                         {% endif %}
                     </div>
                     <div>
-                        <h1 class="h3 mb-2 fw-bold">{{ laboratorio.nombre }}</h1>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="text-muted">
-                                <i class="bi bi-upc-scan me-1"></i>
-                                <strong>{{ laboratorio.codigo }}</strong>
+                        <h1 class="module-header-title">{{ laboratorio.nombre }}</h1>
+                        <p class="module-header-description">
+                            <span class="badge bg-white text-dark me-2">CÓDIGO: {{ laboratorio.codigo }}</span>
+                            <span class="badge bg-white text-{{ 'success' if laboratorio.estado == 'activo' else 'warning' }} text-uppercase">
+                                <i class="bi bi-circle-fill me-1 small"></i>{{ laboratorio.estado.replace('_', ' ') }}
                             </span>
-                            <span class="badge badge-estado-{{ laboratorio.estado }}">
-                                {{ laboratorio.estado.replace('_', ' ').title() }}
-                            </span>
-                            <span class="badge bg-light text-dark">
-                                <i class="bi bi-tag me-1"></i>
-                                {{ laboratorio.tipo.title() }}
-                            </span>
-                        </div>
+                        </p>
                     </div>
                 </div>
             </div>
             <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                {% if user.user_level >= 3 %}
-                <button class="btn btn-light px-4 py-2 shadow-sm btn-editar-lab" 
-                        data-lab-id="{{ laboratorio.id }}"
-                        data-lab-nombre="{{ laboratorio.nombre }}"
-                        data-lab-estado="{{ laboratorio.estado }}">
-                    <i class="bi bi-pencil-fill me-2"></i>Editar Laboratorio
-                </button>
-                {% endif %}
+                <div class="d-flex gap-2 justify-content-lg-end">
+                    <a href="{{ url_for('laboratorios') }}" class="btn btn-outline-light">
+                        <i class="bi bi-arrow-left me-2"></i>Volver
+                    </a>
+                    {% if user.user_level >= 3 %}
+                    <button class="btn btn-light shadow-sm btn-editar-lab" 
+                            data-lab-id="{{ laboratorio.id }}"
+                            data-lab-nombre="{{ laboratorio.nombre }}"
+                            data-lab-estado="{{ laboratorio.estado }}">
+                        <i class="bi bi-pencil-square me-2"></i>Editar Ambiente
+                    </button>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Grid de Información y Estadísticas -->
-<div class="row mb-4">
-    <!-- Información General --><div class="col-lg-8 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-light border-0">
-                <h5 class="mb-0 fw-bold text-sena-primary">
-                    <i class="bi bi-info-circle-fill me-2"></i>Información General
-                </h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <!-- Columna izquierda -->
-                    <div class="col-md-6">
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-geo-alt-fill text-primary"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Ubicación</small>
-                                    <strong class="text-dark">{{ laboratorio.ubicacion or 'No especificada' }}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-person-badge-fill text-success"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Responsable</small>
-                                    <strong class="text-dark">{{ laboratorio.responsable or 'Sin asignar' }}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {% if laboratorio.capacidad_estudiantes and laboratorio.capacidad_estudiantes > 0 %}
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-people-fill text-info"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Capacidad</small>
-                                    <strong class="text-dark">{{ laboratorio.capacidad_estudiantes }} estudiantes</strong>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Columna derecha -->
-                    <div class="col-md-6">
-                        {% if laboratorio.area_m2 %}
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-rulers text-warning"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Área</small>
-                                    <strong class="text-dark">{{ "%.1f"|format(laboratorio.area_m2) }} m²</strong>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if laboratorio.telefono_contacto %}
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-secondary bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-telephone-fill text-secondary"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Teléfono</small>
-                                    <strong class="text-dark">{{ laboratorio.telefono_contacto }}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        {% if laboratorio.email_contacto %}
-                        <div class="info-item mb-3">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-danger bg-opacity-10 rounded-circle p-2 me-3">
-                                    <i class="bi bi-envelope-fill text-danger"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <small class="text-muted d-block mb-1">Email</small>
-                                    <strong class="text-dark text-break">{{ laboratorio.email_contacto }}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
+    <!-- 2. Rejilla de Información y KPIs (CMD) -->
+    <div class="row g-4 mb-4">
+        <!-- Información Técnica -->
+        <div class="col-lg-8">
+            <div class="ui-data-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-info-circle-fill text-primary"></i> Especificaciones del Espacio</h5>
                 </div>
-                
-                {% if laboratorio.equipamiento_especializado %}
-                <div class="alert alert-info border-0 mt-3 mb-0">
-                    <h6 class="alert-heading mb-2">
-                        <i class="bi bi-gear-wide-connected me-2"></i>Equipamiento Especializado
-                    </h6>
-                    <p class="mb-0 small">{{ laboratorio.equipamiento_especializado }}</p>
-                </div>
-                {% endif %}
-                
-                {% if laboratorio.normas_seguridad %}
-                <div class="alert alert-warning border-0 mt-3 mb-0">
-                    <h6 class="alert-heading mb-2">
-                        <i class="bi bi-shield-fill-exclamation me-2"></i>Normas de Seguridad
-                    </h6>
-                    <p class="mb-0 small">{{ laboratorio.normas_seguridad }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- Estadísticas Premium -->
-    <div class="col-lg-4">
-        <div class="row g-3">
-            <!-- Total Equipos -->
-            <div class="col-12">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4 text-center">
-                        <div class="mb-3">
-                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 d-inline-block">
-                                <i class="bi bi-cpu-fill text-primary fs-3"></i>
+                <div class="p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <div class="mb-4">
+                                <label class="ui-label">Ubicación Física</label>
+                                <div class="fw-bold text-dark"><i class="bi bi-geo-alt me-2 text-muted"></i>{{ laboratorio.ubicacion or 'Sede Central' }}</div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="ui-label">Responsable Técnico</label>
+                                <div class="fw-bold text-dark"><i class="bi bi-person-badge me-2 text-muted"></i>{{ laboratorio.responsable or 'Sin asignar' }}</div>
+                            </div>
+                            <div>
+                                <label class="ui-label">Contacto</label>
+                                <div class="small text-muted">{{ laboratorio.email_contacto or 'N/A' }}</div>
                             </div>
                         </div>
-                        <h2 class="mb-1 fw-bold text-primary">{{ laboratorio.total_equipos or 0 }}</h2>
-                        <p class="mb-0 text-muted">Equipos Registrados</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Total Items -->
-            <div class="col-12">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4 text-center">
-                        <div class="mb-3">
-                            <div class="bg-info bg-opacity-10 rounded-circle p-3 d-inline-block">
-                                <i class="bi bi-box-seam-fill text-info fs-3"></i>
+                        <div class="col-md-6">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="ui-label">Área</label>
+                                    <div class="fw-bold text-dark">{{ "%.1f"|format(laboratorio.area_m2 or 0) }} m²</div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="ui-label">Capacidad</label>
+                                    <div class="fw-bold text-dark">{{ laboratorio.capacidad_estudiantes or 0 }} Aprendices</div>
+                                </div>
                             </div>
-                        </div>
-                        <h2 class="mb-1 fw-bold text-info">{{ laboratorio.total_items or 0 }}</h2>
-                        <p class="mb-0 text-muted">Items de Inventario</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Valor Total -->
-            <div class="col-12">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body p-4 text-center">
-                        <div class="mb-3">
-                            <div class="bg-success bg-opacity-10 rounded-circle p-3 d-inline-block">
-                                <i class="bi bi-currency-dollar text-success fs-3"></i>
+                            {% if laboratorio.equipamiento_especializado %}
+                            <div class="mt-4 p-3 bg-sena-soft rounded-3">
+                                <label class="ui-label text-sena">Equipamiento Especializado</label>
+                                <p class="small mb-0 text-dark">{{ laboratorio.equipamiento_especializado }}</p>
                             </div>
+                            {% endif %}
                         </div>
-                        <h2 class="mb-1 fw-bold text-success">${{ "{:,.2f}".format(laboratorio.valor_inventario or 0) }}</h2>
-                        <p class="mb-0 text-muted">Valor Total</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Tabs Modernos -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-light border-0 p-3">
-        <ul class="nav nav-pills" id="labTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="equipos-tab" data-bs-toggle="tab" data-bs-target="#equipos" type="button">
-                    <i class="bi bi-cpu me-2"></i>Equipos
-                    <span class="badge bg-primary ms-2">{{ equipos|length }}</span>
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="inventario-tab" data-bs-toggle="tab" data-bs-target="#inventario" type="button">
-                    <i class="bi bi-box-seam me-2"></i>Inventario
-                    <span class="badge bg-info ms-2">{{ inventario|length }}</span>
-                </button>
-            </li>
-        </ul>
+        <!-- KPIs de Activos -->
+        <div class="col-lg-4">
+            <div class="row g-3 h-100">
+                <div class="col-12">
+                    <div class="ui-stat-widget border-bottom border-4 border-primary">
+                        <div class="stat-label">Equipos Registrados</div>
+                        <div class="stat-value text-primary">{{ laboratorio.total_equipos or 0 }}</div>
+                        <div class="small text-muted mt-1">Activos fijos en custodia</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="ui-stat-widget border-bottom border-4 border-info">
+                        <div class="stat-label">Items de Inventario</div>
+                        <div class="stat-value text-info">{{ laboratorio.total_items or 0 }}</div>
+                        <div class="small text-muted mt-1">Consumibles y herramientas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    
+
+    <!-- 3. Consola de Gestión de Activos (Tabs CMD) -->
+    <ul class="nav nav-pills mb-4 gap-2" id="labTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-tab-premium" id="equipos-tab" data-bs-toggle="tab" data-bs-target="#equipos" type="button">
+                <i class="bi bi-cpu-fill me-2"></i>Equipos (<span id="countEquipos">{{ equipos|length }}</span>)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-tab-premium" id="inventario-tab" data-bs-toggle="tab" data-bs-target="#inventario" type="button">
+                <i class="bi bi-box-seam-fill me-2"></i>Inventario (<span id="countItems">{{ inventario|length }}</span>)
+            </button>
+        </li>
+    </ul>
+
     <div class="tab-content" id="labTabsContent">
         <!-- Tab Equipos -->
-        <div class="tab-pane fade show active p-4" id="equipos" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="mb-0 fw-bold">
-                    <i class="bi bi-cpu me-2"></i>Equipos del Laboratorio
-                </h5>
-                {% if user.user_level >= 5 %}
-                <a href="{{ url_for('registro_completo') }}" class="btn btn-primary btn-sm">
-                    <i class="bi bi-plus-lg me-2"></i>Registrar Equipo
-                </a>
-                {% endif %}
-            </div>
-            
-            {% if equipos %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th><i class="bi bi-tag me-1"></i>Equipo</th>
-                            <th class="text-center"><i class="bi bi-gear me-1"></i>Tipo</th>
-                            <th class="text-center"><i class="bi bi-toggle-on me-1"></i>Estado</th>
-                            <th><i class="bi bi-geo-alt me-1"></i>Ubicación</th>
-                            <th class="text-center"><i class="bi bi-calendar-event me-1"></i>Calibración</th>
-                            <th class="text-center"><i class="bi bi-wrench me-1"></i>Mantenimiento</th>
-                            <th class="text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for equipo in equipos %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-primary bg-opacity-10 rounded p-2 me-2">
-                                        <i class="bi bi-cpu-fill text-primary"></i>
+        <div class="tab-pane fade show active" id="equipos">
+            <div class="ui-data-card">
+                <div class="table-responsive">
+                    <table class="ui-table-premium">
+                        <thead>
+                            <tr>
+                                <th>Nombre del Equipo</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                                <th>Calibración</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for equipo in equipos %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ equipo.nombre }}</div>
+                                    <code class="smaller text-muted">{{ equipo.id }}</code>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ equipo.tipo or 'N/A' }}</span></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if equipo.estado == 'disponible' else 'warning' }}-soft text-{{ 'success' if equipo.estado == 'disponible' else 'warning' }}">
+                                        {{ equipo.estado.upper() }}
+                                    </span>
+                                </td>
+                                <td class="small text-muted">{{ equipo.calibracion or 'Sin registro' }}</td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a href="/equipos/detalle/{{ equipo.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                                        <button class="btn btn-sm btn-success btn-reservar-equipo" 
+                                                data-equipo-id="{{ equipo.id }}" 
+                                                data-equipo-nombre="{{ equipo.nombre }}"
+                                                {% if equipo.estado != 'disponible' %}disabled{% endif %}>
+                                            <i class="bi bi-calendar-plus me-1"></i>Reservar
+                                        </button>
                                     </div>
-                                    <div>
-                                        <div class="fw-semibold text-sena-primary">{{ equipo.nombre }}</div>
-                                        <small class="text-muted d-block"><code>{{ equipo.id }}</code></small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark">{{ equipo.tipo or 'Sin tipo' }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge badge-estado-{{ equipo.estado }}">
-                                    {{ equipo.estado.replace('_', ' ').title() }}
-                                </span>
-                            </td>
-                            <td>
-                                <small>
-                                    <i class="bi bi-pin-map text-muted me-1"></i>
-                                    {{ equipo.ubicacion or 'No especificada' }}
-                                </small>
-                            </td>
-                            <td class="text-center">
-                                {% if equipo.calibracion %}
-                                    <small class="text-muted">{{ equipo.calibracion }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if equipo.mantenimiento %}
-                                    <small class="text-muted">{{ equipo.mantenimiento }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <a href="/equipos/detalle/{{ equipo.id }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-success btn-reservar-equipo" 
-                                            data-equipo-id="{{ equipo.id }}" 
-                                            data-equipo-nombre="{{ equipo.nombre }}"
-                                            {% if equipo.estado != 'disponible' %}disabled{% endif %}>
-                                        <i class="bi bi-calendar-check me-1"></i>Reservar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <div class="mb-4">
-                    <div class="d-inline-block bg-light rounded-circle p-4">
-                        <i class="bi bi-cpu fs-1 text-muted"></i>
-                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center py-5 text-muted">No hay equipos asignados a este laboratorio</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <h5 class="text-muted mb-3">No hay equipos registrados</h5>
-                <p class="text-muted mb-4">Este laboratorio aún no tiene equipos asociados</p>
-                {% if user.user_level >= 5 %}
-                <a href="{{ url_for('registro_completo') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg me-2"></i>Registrar Primer Equipo
-                </a>
-                {% endif %}
             </div>
-            {% endif %}
         </div>
-        
+
         <!-- Tab Inventario -->
-        <div class="tab-pane fade p-4" id="inventario" role="tabpanel">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="mb-0 fw-bold">
-                    <i class="bi bi-box-seam me-2"></i>Inventario del Laboratorio
-                </h5>
-                {% if user.user_level >= 5 %}
-                <a href="{{ url_for('registro_completo') }}" class="btn btn-sena btn-sm">
-                    <i class="bi bi-plus-lg me-2"></i>Registrar Item
-                </a>
-                {% endif %}
-            </div>
-            
-            {% if inventario %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th><i class="bi bi-tag me-1"></i>Item</th>
-                            <th class="text-center"><i class="bi bi-folder me-1"></i>Categoría</th>
-                            <th class="text-center"><i class="bi bi-boxes me-1"></i>Stock</th>
-                            <th class="text-center"><i class="bi bi-speedometer2 me-1"></i>Nivel</th>
-                            <th class="text-center"><i class="bi bi-calculator me-1"></i>Unidad</th>
-                            <th><i class="bi bi-truck me-1"></i>Proveedor</th>
-                            <th class="text-center"><i class="bi bi-calendar-x me-1"></i>Vencimiento</th>
-                            <th class="text-center"><i class="bi bi-gear me-1"></i>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in inventario %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-info bg-opacity-10 rounded p-2 me-2">
-                                        <i class="bi bi-box-seam-fill text-info"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold text-sena-primary">{{ item.nombre }}</div>
-                                        {% if item.ubicacion %}
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-geo-alt me-1"></i>{{ item.ubicacion }}
-                                        </small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark">{{ item.categoria or 'Sin categoría' }}</span>
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <strong class="text-{{ 'danger' if item.cantidad_actual <= item.cantidad_minima else 'success' }}">
-                                        {{ item.cantidad_actual }}
+        <div class="tab-pane fade" id="inventario">
+            <div class="ui-data-card">
+                <div class="table-responsive">
+                    <table class="ui-table-premium">
+                        <thead>
+                            <tr>
+                                <th>Item / Insumo</th>
+                                <th>Categoría</th>
+                                <th>Stock</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventario %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ item.nombre }}</div>
+                                    <small class="text-muted">{{ item.proveedor or '' }}</small>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ item.categoria }}</span></td>
+                                <td>
+                                    <strong class="text-{{ 'danger' if item.cantidad_actual <= item.cantidad_minima else 'dark' }}">
+                                        {{ item.cantidad_actual }} {{ item.unidad }}
                                     </strong>
-                                    <span class="text-muted">/</span>
-                                    <span class="text-muted">{{ item.cantidad_minima }}</span>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-{{ 'danger' if item.stock_status == 'critico' else 'warning' if item.stock_status == 'bajo' else 'success' }}">
-                                    {% if item.stock_status == 'critico' %}
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                    {% elif item.stock_status == 'bajo' %}
-                                        <i class="bi bi-exclamation-circle-fill me-1"></i>
-                                    {% else %}
-                                        <i class="bi bi-check-circle-fill me-1"></i>
-                                    {% endif %}
-                                    {{ item.stock_status.title() }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <code>{{ item.unidad or '-' }}</code>
-                            </td>
-                            <td>
-                                <small>{{ item.proveedor or 'No especificado' }}</small>
-                            </td>
-                            <td class="text-center">
-                                {% if item.vencimiento %}
-                                    <small class="text-muted">{{ item.vencimiento }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <a href="/inventario/detalle/{{ item.id }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <div class="mb-4">
-                    <div class="d-inline-block bg-light rounded-circle p-4">
-                        <i class="bi bi-box-seam fs-1 text-muted"></i>
-                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if item.stock_status == 'critico' else 'success' }}-soft text-{{ 'danger' if item.stock_status == 'critico' else 'success' }}">
+                                        {{ item.stock_status.upper() }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/inventario/detalle/{{ item.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center py-5 text-muted">No hay items de inventario asignados</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <h5 class="text-muted mb-3">No hay items de inventario</h5>
-                <p class="text-muted mb-4">Este laboratorio aún no tiene items registrados</p>
-                {% if user.user_level >= 5 %}
-                <a href="{{ url_for('registro_completo') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg me-2"></i>Registrar Primer Item
-                </a>
-                {% endif %}
             </div>
-            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Estado CMD -->
+<div class="modal fade" id="modalEditarLab" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient-sena text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Estado del Ambiente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editLabId">
+                <div class="mb-4 text-center">
+                    <div class="small text-muted mb-1">AMBIENTE SELECCIONADO</div>
+                    <div class="h5 fw-bold text-dark" id="editLabNombreDisplay">-</div>
+                </div>
+                <div class="mb-3">
+                    <label class="ui-label">Estado de Disponibilidad</label>
+                    <select class="ui-input" id="editLabEstado">
+                        <option value="activo">Activo (Disponible)</option>
+                        <option value="mantenimiento">En Mantenimiento</option>
+                        <option value="inactivo">Fuera de Servicio</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary px-4" id="btnGuardarLab">Guardar Cambios</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-/**
- * Gestión de Laboratorio - Detalle
- * Sistema de eventos sin código hardcodeado
- */
 document.addEventListener('DOMContentLoaded', function() {
-    'use strict';
-    
-    // Inicializar tooltips de Bootstrap si existen
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Event delegation centralizado
+    // Evento Reservar Equipo
     document.addEventListener('click', function(e) {
-        
-        // ========================================
-        // BOTÓN: Editar Laboratorio
-        // ========================================
-        const btnEditarLab = e.target.closest('.btn-editar-lab');
-        if (btnEditarLab) {
-            e.preventDefault();
-            
-            const labId = btnEditarLab.dataset.labId;
-            const labNombre = btnEditarLab.dataset.labNombre;
-            const estadoActual = btnEditarLab.dataset.labEstado;
-            
-            // Confirmación con estados disponibles
-            const mensaje = `Cambiar estado de: ${labNombre}\n\nEstado actual: ${estadoActual.toUpperCase()}\n\nOpciones disponibles:\n• activo\n• mantenimiento\n• inactivo`;
-            const nuevoEstado = prompt(mensaje, estadoActual);
-            
-            // Validar estado
-            if (!nuevoEstado) return;
-            
-            const estadosValidos = ['activo', 'mantenimiento', 'inactivo'];
-            const estadoNormalizado = nuevoEstado.toLowerCase().trim();
-            
-            if (!estadosValidos.includes(estadoNormalizado)) {
-                if (typeof flash === 'function') {
-                    flash('Estado inválido. Use: activo, mantenimiento o inactivo', 'warning', 3000);
-                } else {
-                    alert('Estado inválido. Use: activo, mantenimiento o inactivo');
-                }
-                return;
-            }
-            
-            // Actualizar laboratorio
-            fetch(`/api/laboratorios/${labId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ estado: estadoNormalizado })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success || data.message) {
-                    if (typeof flash === 'function') {
-                        flash('✅ Estado del laboratorio actualizado correctamente', 'success', 2000);
-                    } else {
-                        alert('Estado actualizado correctamente');
-                    }
-                    
-                    // Recargar después de 2 segundos
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    throw new Error(data.error || 'Error actualizando estado');
-                }
-            })
-            .catch(err => {
-                console.error('[ERROR] Actualizar laboratorio:', err);
-                if (typeof flash === 'function') {
-                    flash(`❌ Error: ${err.message}`, 'danger', 3000);
-                } else {
-                    alert(`Error: ${err.message}`);
-                }
-            });
-            
-            return;
-        }
-        
-        // ========================================
-        // BOTÓN: Reservar Equipo
-        // ========================================
-        const btnReservar = e.target.closest('.btn-reservar-equipo');
-        if (btnReservar) {
-            e.preventDefault();
-            
-            // Verificar que el botón no esté deshabilitado
-            if (btnReservar.disabled) {
-                if (typeof flash === 'function') {
-                    flash('⚠️ Este equipo no está disponible para reserva', 'warning', 3000);
-                }
-                return;
-            }
-            
-            const equipoId = btnReservar.dataset.equipoId;
-            const equipoNombre = btnReservar.dataset.equipoNombre;
-            
-            // Redirigir al módulo de reservas con el equipo preseleccionado
-            window.location.href = `/reservas?equipo_id=${equipoId}&equipo_nombre=${encodeURIComponent(equipoNombre)}`;
-            
-            return;
+        const btn = e.target.closest('.btn-reservar-equipo');
+        if (btn && !btn.disabled) {
+            window.location.href = `/reservas?equipo_id=${btn.dataset.equipoId}&equipo_nombre=${encodeURIComponent(btn.dataset.equipoNombre)}`;
         }
     });
-    
-    // Log de inicialización
-    console.log('[DETALLE LAB] Módulo inicializado correctamente');
+
+    // Abrir Modal Edición
+    document.querySelectorAll('.btn-editar-lab').forEach(btn => {
+        btn.onclick = () => {
+            document.getElementById('editLabId').value = btn.dataset.labId;
+            document.getElementById('editLabNombreDisplay').textContent = btn.dataset.labNombre;
+            document.getElementById('editLabEstado').value = btn.dataset.labEstado;
+            new bootstrap.Modal(document.getElementById('modalEditarLab')).show();
+        };
+    });
+
+    // Guardar Cambios API
+    document.getElementById('btnGuardarLab').onclick = async function() {
+        const id = document.getElementById('editLabId').value;
+        const estado = document.getElementById('editLabEstado').value;
+        try {
+            const res = await fetch(`/api/laboratorios/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ estado })
+            });
+            if (res.ok) {
+                Logger.showUserMessage('Ambiente actualizado', 'success');
+                location.reload();
+            }
+        } catch (e) { Logger.error('Error:', e); }
+    };
 });
 </script>
+
+<style>
+    .btn-tab-premium { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; background: #f1f5f9; color: #64748b; border: none; }
+    .btn-tab-premium.active { background: var(--sena-primary) !important; color: white !important; box-shadow: var(--shadow-md); }
+</style>
 {% endblock %}

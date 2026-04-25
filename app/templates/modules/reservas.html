@@ -1,433 +1,404 @@
 {% extends 'base.html' %}
+
 {% set title = 'Reservas' %}
+
 {% block content %}
+<div class="ui-page-container">
 
-<!-- Header -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-  <div class="card-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h1 class="h3 mb-1 text-white fw-bold"><i class="bi bi-calendar-event me-2"></i>Gestión de Reservas</h1>
-        <p class="mb-0 text-white opacity-90">Administra las reservas de equipos y recursos</p>
-      </div>
-      <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#modalNuevaReserva">
-        <i class="bi bi-plus-circle me-2"></i>Nueva Reserva
-      </button>
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="module-header-title">Gestión de Reservas</h1>
+                <p class="module-header-description">Administración centralizada de cronogramas y préstamos de laboratorio</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaReserva">
+                    <i class="bi bi-plus-circle-fill me-2"></i>
+                    Nueva Reserva
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- Filtros -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body p-4">
-    <div class="d-flex align-items-center mb-3">
-      <i class="bi bi-funnel me-2 filter-section-title"></i>
-      <h6 class="mb-0 fw-semibold filter-section-title">Filtros de Búsqueda</h6>
-    </div>
-    <div>
-      <label class="filter-label">Búsqueda</label>
-      <div class="input-group">
-        <span class="input-group-text input-group-icon"><i class="bi bi-search"></i></span>
-        <input id="filtroRes" type="text" class="form-control" placeholder="Buscar por usuario o equipo...">
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Tabla de Reservas -->
-<div class="card border-0 shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tablaRes">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th><i class="bi bi-person me-1"></i>Usuario</th>
-            <th><i class="bi bi-laptop me-1"></i>Equipo</th>
-            <th><i class="bi bi-calendar-check me-1"></i>Inicio</th>
-            <th><i class="bi bi-calendar-x me-1"></i>Fin</th>
-            <th><i class="bi bi-chat-text me-1"></i>Motivo</th>
-            <th>Estado</th>
-            <th><i class="bi bi-check-circle me-1"></i>Aprobación</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-    <tbody>
-      {% if reservas and reservas|length > 0 %}
-        {% for r in reservas %}
-        <tr data-id="{{ r.id }}" data-usuario="{{ r.usuario_nombre|lower }}" data-equipo="{{ r.equipo_nombre|lower }}">
-          <td class="text-muted small">{{ r.id }}</td>
-          <td>
-            <div class="fw-semibold">{{ r.usuario_nombre }}</div>
-            {% if r.usuario_programa %}
-            <small class="text-muted">{{ r.usuario_programa }}</small>
-            {% endif %}
-          </td>
-          <td>{{ r.equipo_nombre }}</td>
-          <td>{{ r.fecha_inicio }}</td>
-          <td>{{ r.fecha_fin }}</td>
-          <td>
-            {% if r.notas %}
-            <div class="d-flex align-items-start">
-              <i class="bi bi-chat-text text-muted me-2 mt-1"></i>
-              <div>
-                {% if r.notas|length > 30 %}
-                <a href="javascript:void(0)" 
-                   onclick="verMotivoCompleto('{{ r.id }}', '{{ r.usuario_nombre }}', '{{ r.equipo_nombre }}', '{{ r.notas }}')"
-                   class="text-decoration-none text-primary" 
-                   title="Ver motivo completo">
-                  <div class="text-truncate" style="max-width: 200px;">
-                    {{ r.notas[:30] }}...
-                  </div>
-                  <small class="text-muted">Ver completo</small>
-                </a>
-                {% else %}
-                <div class="text-truncate" style="max-width: 200px;" title="{{ r.notas }}">
-                  {{ r.notas }}
+    <!-- 2. Sección de Filtros (CMD) -->
+    <div class="ui-filter-card">
+        <div class="row">
+            <div class="col-md-12">
+                <label class="ui-label" for="filtroRes">Búsqueda Inteligente</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input id="filtroRes" type="text" class="ui-input ps-0" placeholder="Buscar por usuario, equipo o motivo...">
                 </div>
-                {% endif %}
-              </div>
             </div>
-            {% else %}
-            <span class="text-muted">Sin motivo</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if r.estado == 'activa' %}
-            <span class="badge rounded-pill px-3 py-2 badge-reservado">ACTIVA</span>
-            {% elif r.estado == 'programada' %}
-            <span class="badge rounded-pill px-3 py-2 badge-en-uso">PROGRAMADA</span>
-            {% elif r.estado == 'aprobada' %}
-            <span class="badge rounded-pill px-3 py-2 badge-disponible">APROBADA</span>
-            {% elif r.estado == 'completada' %}
-            <span class="badge rounded-pill px-3 py-2 bg-secondary">COMPLETADA</span>
-            {% elif r.estado == 'cancelada' %}
-            <span class="badge rounded-pill px-3 py-2 badge-mantenimiento">CANCELADA</span>
-            {% else %}
-            <span class="badge rounded-pill px-3 py-2 bg-secondary">{{ r.estado|upper }}</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if r.estado_aprobacion == 'pendiente' %}
-            <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pendiente</span>
-            {% elif r.estado_aprobacion == 'aprobada' %}
-            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Aprobada</span>
-            {% if r.aprobada_por_nombre %}
-            <small class="d-block text-muted mt-1">Por: {{ r.aprobada_por_nombre }}</small>
-            {% endif %}
-            {% elif r.estado_aprobacion == 'rechazada' %}
-            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rechazada</span>
-            {% if r.aprobada_por_nombre %}
-            <small class="d-block text-muted mt-1">Por: {{ r.aprobada_por_nombre }}</small>
-            {% endif %}
-            {% if r.motivo_rechazo %}
-            <small class="d-block text-danger mt-1" title="{{ r.motivo_rechazo }}"><i class="bi bi-info-circle"></i> Ver motivo</small>
-            {% endif %}
-            {% else %}
-            <span class="badge bg-secondary">N/A</span>
-            {% endif %}
-          </td>
-          <td class="text-end">
-            {% if user.user_level >= 5 and user.a_cargo_inventario and r.estado_aprobacion == 'pendiente' %}
-            <!-- Botones para instructor con inventario en reservas pendientes -->
-            <div class="btn-group" role="group">
-              <button class="btn btn-sm btn-success btnAprobarRes" title="Aprobar reserva">
-                <i class="bi bi-check-circle"></i>
-              </button>
-              <button class="btn btn-sm btn-warning btnAprobarModificacion" title="Aprobar con modificación">
-                <i class="bi bi-pencil-square"></i>
-              </button>
-              <button class="btn btn-sm btn-danger btnRechazarRes" title="Rechazar reserva">
-                <i class="bi bi-x-circle"></i>
-              </button>
-            </div>
-            {% elif r.estado_aprobacion == 'aprobada' and r.estado == 'programada' and (user.user_level >= 3 or r.usuario_id == user.user_id) %}
-            <!-- Botón para cancelar reservas aprobadas y programadas -->
-            <button class="btn btn-sm btn-warning btnCancelarRes">
-              <i class="bi bi-x-circle me-1"></i>Cancelar
-            </button>
-            {% elif r.estado_aprobacion == 'aprobada' and r.estado == 'activa' and (user.user_level >= 3 or r.usuario_id == user.user_id) %}
-            <!-- Botón para finalizar reservas activas -->
-            <button class="btn btn-sm btn-info btnFinalizarRes">
-              <i class="bi bi-check-circle me-1"></i>Finalizar
-            </button>
-            {% elif r.estado_aprobacion == 'rechazada' or r.estado == 'cancelada' or r.estado == 'completada' %}
-            <!-- Sin acciones para reservas finalizadas -->
-            <span class="text-muted small">
-              <i class="bi bi-lock"></i> Finalizada
-            </span>
-            {% elif r.usuario_id == user.user_id and r.estado_aprobacion == 'pendiente' %}
-            <!-- Botón para que el solicitante cancele su propia reserva pendiente -->
-            <button class="btn btn-sm btn-outline-danger btnCancelarRes">
-              <i class="bi bi-x-circle me-1"></i>Cancelar
-            </button>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      {% else %}
-        <tr>
-          <td colspan="9" class="text-center text-muted py-4">
-            <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
-            No hay reservas registradas
-          </td>
-        </tr>
-      {% endif %}
-        </tbody>
-      </table>
+        </div>
     </div>
-  </div>
+
+    <!-- 3. Contenedor de Datos (CMD) -->
+    <div class="ui-data-card">
+        <div class="card-header">
+            <h5 class="card-title">
+                <i class="bi bi-list-check"></i>
+                Listado de Reservas Activas
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="ui-table-premium" id="tablaRes">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Equipo</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Motivo</th>
+                        <th>Estado</th>
+                        <th>Aprobación</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+
+                    <tbody>
+                        {% if reservas and reservas|length > 0 %}
+                            {% for r in reservas %}
+                            <tr data-id="{{ r.id }}" data-usuario="{{ r.usuario_nombre|lower }}" data-equipo="{{ r.equipo_nombre|lower }}">
+                                <td class="text-muted small fw-bold">#{{ r.id }}</td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ r.usuario_nombre }}</div>
+                                    {% if r.usuario_programa %}
+                                    <small class="text-muted">{{ r.usuario_programa }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-sena-soft text-sena">{{ r.equipo_nombre }}</span>
+                                </td>
+                                <td><span class="small fw-semibold">{{ r.fecha_inicio }}</span></td>
+                                <td><span class="small fw-semibold">{{ r.fecha_fin }}</span></td>
+                                <td>
+                                    {% if r.notas %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-chat-left-text text-muted me-2"></i>
+                                            <div class="text-truncate" style="max-width: 150px;" title="{{ r.notas }}">
+                                                {{ r.notas }}
+                                            </div>
+                                            {% if r.notas|length > 20 %}
+                                            <button class="btn btn-link btn-sm p-0 ms-1" onclick="verMotivoCompleto('{{ r.id }}', '{{ r.usuario_nombre }}', '{{ r.equipo_nombre }}', '{{ r.notas }}')">
+                                                <i class="bi bi-plus-circle-fill small text-sena"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted small">Sin motivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if r.estado == 'activa' %}
+                                    <span class="badge bg-sena-danger-soft text-sena-danger">ACTIVA</span>
+                                    {% elif r.estado == 'programada' %}
+                                    <span class="badge bg-sena-info-soft text-sena-info">PROGRAMADA</span>
+                                    {% elif r.estado == 'aprobada' %}
+                                    <span class="badge bg-sena-soft text-sena-success">APROBADA</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">{{ r.estado|upper }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if r.estado_aprobacion == 'pendiente' %}
+                                    <span class="badge bg-sena-warning-soft text-sena-warning"><i class="bi bi-clock-history me-1"></i>Pendiente</span>
+                                    {% elif r.estado_aprobacion == 'aprobada' %}
+                                    <span class="badge bg-sena-soft text-sena"><i class="bi bi-check-all me-1"></i>Aprobada</span>
+                                    {% elif r.estado_aprobacion == 'rechazada' %}
+                                    <span class="badge bg-red-soft text-danger"><i class="bi bi-x-octagon me-1"></i>Rechazada</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        {% if user.user_level >= 5 and user.a_cargo_inventario and r.estado_aprobacion == 'pendiente' %}
+                                            <button class="dt-btn-action dt-btn-outline-success btn-aprobar-reserva" title="Aprobar" aria-label="Aprobar reserva #{{ r.id }}"><i class="bi bi-check-lg" aria-hidden="true"></i></button>
+                                            <button class="dt-btn-action dt-btn-outline-warning btn-aprobar-modificacion" title="Modificar" aria-label="Modificar reserva #{{ r.id }}"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+                                            <button class="dt-btn-action dt-btn-outline-danger btn-rechazar-reserva" title="Rechazar" aria-label="Rechazar reserva #{{ r.id }}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                                        {% elif r.estado_aprobacion == 'aprobada' and r.estado == 'programada' and (user.user_level >= 3 or r.usuario_id == user.user_id) %}
+                                            <button class="dt-btn-action dt-btn-outline-warning btn-cancelar-reserva" title="Cancelar" aria-label="Cancelar reserva #{{ r.id }}"><i class="bi bi-slash-circle" aria-hidden="true"></i></button>
+                                        {% elif r.estado_aprobacion == 'aprobada' and r.estado == 'activa' and (user.user_level >= 3 or r.usuario_id == user.user_id) %}
+                                            <button class="dt-btn-action dt-btn-outline-info btn-finalizar-reserva" title="Finalizar" aria-label="Finalizar reserva #{{ r.id }}"><i class="bi bi-flag" aria-hidden="true"></i></button>
+                                        {% elif r.usuario_id == user.user_id and r.estado_aprobacion == 'pendiente' %}
+                                            <button class="dt-btn-action dt-btn-outline-danger btn-cancelar-propia-reserva" title="Cancelar Mía" aria-label="Cancelar mi reserva #{{ r.id }}"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                                        {% else %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-5">
+                                    <div class="py-4">
+                                        <i class="bi bi-calendar-x text-muted opacity-25 display-1"></i>
+                                        <p class="mt-3 text-muted fw-semibold">No se encontraron reservas registradas.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<!-- Modales (Estandarizados) -->
 
 <!-- Modal: Aprobar con Modificación -->
 <div class="modal fade" id="modalAprobarModificacion" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header border-0 bg-success">
-        <h5 class="modal-title text-white fw-bold"><i class="bi bi-pencil-square me-2"></i>Aprobar con Modificación</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <!-- Información original -->
-        <div class="alert alert-info mb-4">
-          <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Información de la Reserva</h6>
-          <div class="row">
-            <div class="col-md-6">
-              <p class="mb-1"><strong>ID:</strong> <span id="modReservaId">-</span></p>
-              <p class="mb-1"><strong>Usuario:</strong> <span id="modUsuario">-</span></p>
-              <p class="mb-1"><strong>Equipo:</strong> <span id="modEquipo">-</span></p>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-sena text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Aprobar con Modificación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="col-md-6">
-              <p class="mb-1"><strong>Inicio solicitado:</strong> <span id="modInicioOriginal">-</span></p>
-              <p class="mb-1"><strong>Fin solicitado:</strong> <span id="modFinOriginal">-</span></p>
-              <p class="mb-1"><strong>Motivo:</strong> <span id="modMotivoOriginal">-</span></p>
+            <div class="modal-body p-4">
+                <div class="bg-light p-3 rounded-3 mb-4 border-start border-4 border-info">
+                    <h6 class="fw-bold mb-2 text-info">Detalles de la Solicitud</h6>
+                    <div class="row small">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>ID:</strong> <span id="modReservaId">-</span></p>
+                            <p class="mb-1"><strong>Usuario:</strong> <span id="modUsuario">-</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Equipo:</strong> <span id="modEquipo">-</span></p>
+                            <p class="mb-1"><strong>Original:</strong> <span id="modInicioOriginal">-</span> a <span id="modFinOriginal">-</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="ui-label">Acción de Aprobación</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check custom-option">
+                            <input class="form-check-input" type="radio" name="opcionAprobacion" id="aprobarComoEsta" value="comoEsta" checked>
+                            <label class="form-check-label fw-bold" for="aprobarComoEsta">Aprobar como está</label>
+                        </div>
+                        <div class="form-check custom-option">
+                            <input class="form-check-input" type="radio" name="opcionAprobacion" id="aprobarModificado" value="modificado">
+                            <label class="form-check-label fw-bold" for="aprobarModificado">Ajustar fechas</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="seccionFechasModificadas" style="display:none;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nuevaFechaInicio" class="ui-label">Nuevo Inicio</label>
+                            <input type="datetime-local" class="ui-input" id="nuevaFechaInicio">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nuevaFechaFin" class="ui-label">Nuevo Fin</label>
+                            <input type="datetime-local" class="ui-input" id="nuevaFechaFin">
+                        </div>
+                        <div class="col-12">
+                            <label for="razonCambio" class="ui-label">Justificación del Cambio</label>
+                            <textarea class="ui-input" id="razonCambio" rows="2" placeholder="Explique por qué se modifican las fechas..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label for="notasSolicitante" class="ui-label">Notas Adicionales</label>
+                    <textarea class="ui-input" id="notasSolicitante" rows="2" placeholder="Instrucciones adicionales para el usuario..."></textarea>
+                </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Opciones de aprobación -->
-        <div class="mb-4">
-          <h6 class="mb-3"><i class="bi bi-gear me-2"></i>Opciones de Aprobación</h6>
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="opcionAprobacion" id="aprobarComoEsta" value="comoEsta" checked>
-            <label class="form-check-label" for="aprobarComoEsta">
-              <strong>Aprobar como está</strong> - Mantener las fechas solicitadas
-            </label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="opcionAprobacion" id="aprobarModificado" value="modificado">
-            <label class="form-check-label" for="aprobarModificado">
-              <strong>Aprobar con modificación</strong> - Ajustar las fechas
-            </label>
-          </div>
-        </div>
-
-        <!-- Fechas modificadas (se muestran solo si se selecciona la opción) -->
-        <div id="seccionFechasModificadas" style="display: none;">
-          <hr>
-          <h6 class="mb-3"><i class="bi bi-calendar-plus me-2"></i>Nuevas Fechas Propuestas</h6>
-          
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="nuevaFechaInicio" class="form-label fw-semibold">
-                <i class="bi bi-calendar-check me-1"></i>Nueva Fecha y Hora de Inicio
-              </label>
-              <input type="datetime-local" class="form-control" id="nuevaFechaInicio" required>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success px-4" id="btnAprobarConModificacion">
+                    <i class="bi bi-check-circle me-2"></i>Confirmar Aprobación
+                </button>
             </div>
-            <div class="col-md-6 mb-3">
-              <label for="nuevaFechaFin" class="form-label fw-semibold">
-                <i class="bi bi-calendar-x me-1"></i>Nueva Fecha y Hora de Fin
-              </label>
-              <input type="datetime-local" class="form-control" id="nuevaFechaFin" required>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label for="razonCambio" class="form-label fw-semibold">
-              <i class="bi bi-chat-text me-1"></i>Razón del Cambio
-            </label>
-            <textarea class="form-control" id="razonCambio" rows="3" 
-                      placeholder="Explica por qué necesitas modificar las fechas..."></textarea>
-          </div>
         </div>
-
-        <!-- Notas para el solicitante -->
-        <div class="mb-3">
-          <label for="notasSolicitante" class="form-label fw-semibold">
-            <i class="bi bi-envelope me-1"></i>Notas para el Solicitante
-          </label>
-          <textarea class="form-control" id="notasSolicitante" rows="2" 
-                    placeholder="Información adicional para el solicitante sobre los cambios..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-success" id="btnAprobarConModificacion">
-          <i class="bi bi-check-circle me-2"></i>Aprobar Reserva
-        </button>
-      </div>
     </div>
-  </div>
 </div>
 
-<!-- Modal: Ver Motivo Completo -->
-<div class="modal fade" id="modalVerMotivo" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header border-0 bg-info">
-        <h5 class="modal-title text-white fw-bold"><i class="bi bi-chat-text me-2"></i>Motivo de la Reserva</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">ID Reserva:</label>
-          <p id="motivoReservaId" class="text-muted">-</p>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Usuario:</label>
-          <p id="motivoUsuario" class="text-muted">-</p>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Equipo:</label>
-          <p id="motivoEquipo" class="text-muted">-</p>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Motivo/Propósito:</label>
-          <div id="motivoCompleto" class="bg-light p-3 rounded">
-            <p class="mb-0">-</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Rechazar Reserva -->
+<!-- Modal: Rechazar -->
 <div class="modal fade" id="modalRechazarReserva" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header border-0 bg-danger">
-        <h5 class="modal-title text-white fw-bold"><i class="bi bi-x-circle me-2"></i>Rechazar Reserva</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="alert alert-warning mb-3">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          <strong>Atención:</strong> Debes especificar un motivo de rechazo claro.
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-x-octagon me-2"></i>Rechazar Solicitud</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-circle text-danger display-4"></i>
+                </div>
+                <label for="motivoRechazo" class="ui-label">Motivo del Rechazo (Obligatorio)</label>
+                <textarea id="motivoRechazo" class="ui-input" rows="4" placeholder="Indique la razón por la cual no se puede aprobar esta reserva..."></textarea>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-danger px-4" id="btnConfirmarRechazo">Confirmar Rechazo</button>
+            </div>
         </div>
-        <div class="mb-3">
-          <label for="motivoRechazo" class="form-label fw-semibold label-sena">
-            <i class="bi bi-chat-text me-1"></i>Motivo del rechazo *
-          </label>
-          <textarea id="motivoRechazo" class="form-control" rows="4" 
-                    placeholder="Explica claramente el motivo del rechazo..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer border-0 bg-light">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-arrow-left me-1"></i>Cancelar
-        </button>
-        <button type="button" class="btn btn-danger" id="btnConfirmarRechazo">
-          <i class="bi bi-x-circle me-1"></i>Confirmar Rechazo
-        </button>
-      </div>
     </div>
-  </div>
 </div>
 
 <!-- Modal: Nueva Reserva -->
 <div class="modal fade" id="modalNuevaReserva" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header border-0 bg-sena-primary">
-        <h5 class="modal-title text-white fw-bold"><i class="bi bi-calendar-plus me-2"></i>Nueva Reserva</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label fw-semibold label-sena"><i class="bi bi-laptop me-1"></i>Equipo *</label>
-            <select id="equipoId" class="form-select" {% if not equipos or equipos|length == 0 %}disabled{% endif %}>
-              <option value="">-- Seleccione un equipo --</option>
-              {% if equipos and equipos|length > 0 %}
-                {% for equipo in equipos %}
-                <option value="{{ equipo.id }}">
-                  {{ equipo.nombre }} ({{ equipo.tipo }}) - {{ equipo.estado }}
-                </option>
-                {% endfor %}
-              {% else %}
-                <option value="">No hay equipos disponibles</option>
-              {% endif %}
-            </select>
-            <small class="text-muted">
-              {% if equipos and equipos|length > 0 %}
-                <i class="bi bi-info-circle"></i> Seleccione el equipo que desea reservar
-              {% else %}
-                <i class="bi bi-exclamation-triangle"></i> No hay equipos disponibles para reservar. Registre equipos primero.
-              {% endif %}
-            </small>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold label-sena"><i class="bi bi-calendar-check me-1"></i>Fecha y Hora de Inicio *</label>
-            <input type="datetime-local" id="fechaInicio" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold label-sena"><i class="bi bi-calendar-x me-1"></i>Fecha y Hora de Fin *</label>
-            <input type="datetime-local" id="fechaFin" class="form-control">
-          </div>
-          <div class="col-12">
-            <label class="form-label fw-semibold label-sena"><i class="bi bi-chat-text me-1"></i>Propósito *</label>
-            <textarea id="proposito" class="form-control" rows="4" placeholder="Describe el propósito de la reserva..."></textarea>
-          </div>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-sena text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>Programar Nueva Reserva</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <label class="ui-label" for="equipoId">Recurso / Equipo</label>
+                        <select id="equipoId" class="ui-input" {% if not equipos or equipos|length == 0 %}disabled{% endif %}>
+                            <option value="">-- Seleccione un equipo disponible --</option>
+                            {% for equipo in equipos %}
+                            <option value="{{ equipo.id }}">{{ equipo.nombre }} ({{ equipo.tipo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="ui-label" for="fechaInicio">Fecha/Hora Inicio <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="fechaInicio" class="ui-input" aria-required="true">
+                        <small class="text-muted">Seleccione una fecha futura</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="ui-label" for="fechaFin">Fecha/Hora Fin <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="fechaFin" class="ui-input" aria-required="true">
+                        <small class="text-muted">Debe ser posterior al inicio</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="ui-label" for="proposito">Propósito de la Reserva</label>
+                        <textarea id="proposito" class="ui-input" rows="3" placeholder="Describa brevemente la actividad a realizar..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success px-4" id="btnCrearReserva">Solicitar Reserva</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer border-0 bg-light">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="bi bi-x-circle me-1"></i>Cancelar
-        </button>
-        <button type="button" class="btn btn-success" id="btnCrearReserva">
-          <i class="bi bi-check-circle me-1"></i>Crear Reserva
-        </button>
-      </div>
     </div>
-  </div>
 </div>
+
+<!-- Modal: Ver Motivo -->
+<div class="modal fade" id="modalVerMotivo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-sena-soft">
+                <h5 class="modal-title fw-bold text-sena"><i class="bi bi-info-circle me-2"></i>Detalle del Motivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="ui-label">Solicitado por</label>
+                    <p id="motivoUsuario" class="fw-bold text-dark mb-0">-</p>
+                    <p id="motivoEquipo" class="text-muted small">-</p>
+                </div>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div id="motivoCompleto" class="text-secondary italic"></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-option {
+        padding: 10px 15px;
+        border-radius: 10px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .custom-option:hover {
+        background: #f1f5f9;
+        border-color: var(--sena-primary);
+    }
+    .animate-pulse {
+        animation: ui-pulse 2s infinite;
+    }
+    @keyframes ui-pulse {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(0.98); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+</style>
 
 <script>
   const resFilter = document.getElementById('filtroRes');
   const resBody = document.querySelector('#tablaRes tbody');
   let reservaIdTemporal = null;
 
-  resFilter.addEventListener('input', ()=>{
-    const t=(resFilter.value||'').toLowerCase();
-    [...resBody.rows].forEach(r=>{
-      const ok = r.dataset.usuario.includes(t)||r.dataset.equipo.includes(t);
+  // === Validación de fechas en tiempo real ===
+  (function initDateValidation() {
+    const fechaInicio = document.getElementById('fechaInicio');
+    const fechaFin = document.getElementById('fechaFin');
+    if (!fechaInicio || !fechaFin) return;
+
+    // Establecer fecha mínima = ahora
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const minDate = now.toISOString().slice(0, 16);
+    fechaInicio.min = minDate;
+    fechaFin.min = minDate;
+
+    // Cuando cambia fecha inicio, actualizar mínimo de fecha fin
+    fechaInicio.addEventListener('change', () => {
+      fechaFin.min = fechaInicio.value;
+      if (fechaFin.value && fechaFin.value < fechaInicio.value) {
+        fechaFin.value = '';
+      }
+    });
+  })();
+
+  resFilter.addEventListener('input', () => {
+    const t = (resFilter.value || '').toLowerCase();
+    [...resBody.rows].forEach(r => {
+      const ok = r.dataset.usuario.includes(t) || r.dataset.equipo.includes(t);
       r.classList.toggle('d-none', !ok);
     });
   });
 
   // Event delegation para todos los botones en la tabla
-  resBody.addEventListener('click', async (ev)=>{
+  resBody.addEventListener('click', async (ev) => {
+
     // Aprobar reserva
-    if(ev.target.closest('.btnAprobarRes')){
-      const btn = ev.target.closest('.btnAprobarRes');
+    if (ev.target.closest('.btn-aprobar-reserva')) {
+      const btn = ev.target.closest('.btn-aprobar-reserva');
       const tr = btn.closest('tr');
       const id = tr?.dataset?.id;
-      if(!id) return;
-      if(!confirm('¿Aprobar la reserva '+id+'?')) return;
-      await responderReserva(id, 'aprobada');
+      if (!id) return;
+
+      (async () => {
+        const confirmed = await Logger.confirm(
+          `¿Estás seguro de aprobar la reserva <strong>#${id}</strong>?<br><br><small class="text-muted">Esta acción notificará al solicitante.</small>`,
+          'Aprobar Reserva',
+          'success'
+        );
+        
+        if (confirmed) {
+          await responderReserva(id, 'aprobada');
+        }
+      })();
       return;
     }
 
     // Rechazar reserva (mostrar modal)
-    if(ev.target.closest('.btnRechazarRes')){
-      const btn = ev.target.closest('.btnRechazarRes');
+    if (ev.target.closest('.btn-rechazar-reserva')) {
+      const btn = ev.target.closest('.btn-rechazar-reserva');
       const tr = btn.closest('tr');
       const id = tr?.dataset?.id;
-      if(!id) return;
+      if (!id) return;
+
       reservaIdTemporal = id;
       document.getElementById('motivoRechazo').value = '';
       const modal = new bootstrap.Modal(document.getElementById('modalRechazarReserva'));
@@ -436,29 +407,41 @@
     }
 
     // Cancelar reserva vía API
-    if(ev.target.closest('.btnCancelarRes')){
-      const btn = ev.target.closest('.btnCancelarRes');
+    if (ev.target.closest('.btn-cancelar-reserva, .btn-cancelar-propia-reserva')) {
+      const btn = ev.target.closest('.btn-cancelar-reserva, .btn-cancelar-propia-reserva');
       const tr = btn.closest('tr');
       const id = tr?.dataset?.id;
-      if(!id) return;
-      if(!confirm('¿Cancelar la reserva '+id+'?')) return;
-      const token = localStorage.getItem('jwt');
-      if(!token){ alert('Inicie sesión API (icono llave en la barra superior)'); return; }
-      try{
-        const res = await fetch('/api/reservas/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
-        const data = await res.json();
-        if(res.ok){ tr.remove(); }
-        else{ alert(data?.message || 'No fue posible cancelar la reserva'); }
-      }catch(e){ alert('Error cancelando: '+e.message); }
+      if (!id) return;
+
+      (async () => {
+        const confirmed = await Logger.confirm(
+          `¿Estás seguro de cancelar la reserva <strong>#${id}</strong>?<br><br><small class="text-muted">Esta acción es irreversible.</small>`,
+          'Cancelar Reserva',
+          'warning'
+        );
+        
+        if (confirmed) {
+          const token = localStorage.getItem('jwt');
+          if (!token) { Logger.showUserMessage('Inicie sesión API (icono llave en la barra superior)', 'warning', 3000); return; }
+
+          try {
+            const res = await fetch('/api/reservas/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await res.json();
+            if (res.ok) { tr.remove(); }
+            else { Logger.showUserMessage(data?.message || 'No fue posible cancelar la reserva', 'error', 5000); }
+          } catch (e) { Logger.showUserMessage('Error cancelando: ' + e.message, 'error', 5000); }
+        }
+      })();
       return;
     }
-  });
+
+  }); // FIN resBody.addEventListener('click', ...)
 
   // Confirmar rechazo desde el modal
-  document.getElementById('btnConfirmarRechazo').addEventListener('click', async ()=>{
+  document.getElementById('btnConfirmarRechazo').addEventListener('click', async () => {
     const motivo = document.getElementById('motivoRechazo').value.trim();
-    if(!motivo){
-      alert('Debes especificar un motivo para el rechazo');
+    if (!motivo) {
+      Logger.showUserMessage('Debes especificar un motivo para el rechazo', 'warning', 3000);
       return;
     }
     bootstrap.Modal.getInstance(document.getElementById('modalRechazarReserva')).hide();
@@ -466,85 +449,88 @@
   });
 
   // Finalizar reserva activa
-  document.addEventListener('click', async (e)=>{
-    const btnFinalizar = e.target.closest('.btnFinalizarRes');
-    if(!btnFinalizar) return;
+  document.addEventListener('click', async (e) => {
+    const btnFinalizar = e.target.closest('.btn-finalizar-reserva');
+    if (!btnFinalizar) return;
+
     const tr = btnFinalizar.closest('tr');
     const id = tr.dataset.id;
-    if(!confirm('¿Finalizar la reserva '+id+'?')) return;
-    try{
-      const res = await fetch('/api/reservas/'+id+'/finalizar', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-      });
-      const data = await res.json();
-      if(res.ok){
-        alert('Reserva finalizada correctamente');
-        location.reload();
-      } else {
-        alert('Error: ' + (data.message || 'No fue posible finalizar la reserva'));
+
+    const confirmed = await Logger.confirm(
+      `¿Estás seguro de finalizar la reserva <strong>#${id}</strong>?`,
+      'Finalizar Reserva',
+      'info'
+    );
+    
+    if (confirmed) {
+      try {
+        const res = await fetch(`/api/reservas/${id}/finalizar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          Logger.showUserMessage('Reserva finalizada correctamente', 'success', 3000);
+          location.reload();
+        } else {
+          Logger.showUserMessage('Error: ' + (data.message || 'No fue posible finalizar la reserva'), 'error', 5000);
+        }
+      } catch (e) {
+        Logger.showUserMessage('Error finalizando: ' + e.message, 'error', 5000);
       }
-    }catch(e){
-      alert('Error finalizando: '+e.message);
     }
-    return;
-  });
+  }); // FIN document.addEventListener('click', ...) para finalizar
 
   // Manejar modal de aprobación con modificación
-  document.addEventListener('click', async (e)=>{
-    const btnModificar = e.target.closest('.btnAprobarModificacion');
-    if(!btnModificar) return;
-    
+  document.addEventListener('click', async (e) => {
+    const btnModificar = e.target.closest('.btn-aprobar-modificacion');
+    if (!btnModificar) return;
+
     const tr = btnModificar.closest('tr');
     const reservaId = tr.dataset.id;
-    const usuario = tr.querySelector('td:nth-child(2) .fw-semibold').textContent;
+    const usuario = tr.querySelector('td:nth-child(2) .fw-bold').textContent;
     const equipo = tr.querySelector('td:nth-child(3)').textContent;
     const fechaInicio = tr.querySelector('td:nth-child(4)').textContent;
     const fechaFin = tr.querySelector('td:nth-child(5)').textContent;
     const motivo = tr.querySelector('td:nth-child(6) .text-truncate')?.textContent || 'Sin motivo';
-    
-    // Llenar el modal con datos de la reserva
+
     document.getElementById('modReservaId').textContent = reservaId;
     document.getElementById('modUsuario').textContent = usuario;
     document.getElementById('modEquipo').textContent = equipo;
     document.getElementById('modInicioOriginal').textContent = fechaInicio;
     document.getElementById('modFinOriginal').textContent = fechaFin;
     document.getElementById('modMotivoOriginal').textContent = motivo;
-    
-    // Limpiar campos del modal
+
     document.getElementById('nuevaFechaInicio').value = '';
     document.getElementById('nuevaFechaFin').value = '';
     document.getElementById('razonCambio').value = '';
     document.getElementById('notasSolicitante').value = '';
-    
-    // Resetear radio buttons
+
     document.getElementById('aprobarComoEsta').checked = true;
     document.getElementById('seccionFechasModificadas').style.display = 'none';
-    
-    // Mostrar el modal
+
     const modal = new bootstrap.Modal(document.getElementById('modalAprobarModificacion'));
     modal.show();
-  });
+  }); // FIN document.addEventListener('click', ...) para modificación
 
   // Manejar cambio de opción de aprobación
-  document.addEventListener('change', (e)=>{
-    if(e.target.name === 'opcionAprobacion'){
+  document.addEventListener('change', (e) => {
+    if (e.target.name === 'opcionAprobacion') {
       const seccionFechas = document.getElementById('seccionFechasModificadas');
-      if(e.target.value === 'modificado'){
+      if (e.target.value === 'modificado') {
         seccionFechas.style.display = 'block';
-        // Establecer fechas por defecto (mismo día pero hora ajustada)
+
         const inicioActual = document.getElementById('modInicioOriginal').textContent;
         const finActual = document.getElementById('modFinOriginal').textContent;
-        
-        // Convertir a formato datetime-local si es posible
+
         try {
           const inicioDate = new Date(inicioActual.replace(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/, '$3-$2-$1T$4:$5'));
           const finDate = new Date(finActual.replace(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/, '$3-$2-$1T$4:$5'));
-          
+
           document.getElementById('nuevaFechaInicio').value = inicioDate.toISOString().slice(0, 16);
           document.getElementById('nuevaFechaFin').value = finDate.toISOString().slice(0, 16);
-        } catch(e){
-          console.log('Error parsing dates:', e);
+        } catch (e) {
+          Logger.error('Error parsing dates:', e);
         }
       } else {
         seccionFechas.style.display = 'none';
@@ -553,45 +539,42 @@
   });
 
   // Procesar aprobación con modificación
-  document.getElementById('btnAprobarConModificacion').addEventListener('click', async ()=>{
+  document.getElementById('btnAprobarConModificacion').addEventListener('click', async () => {
     const reservaId = document.getElementById('modReservaId').textContent;
     const opcion = document.querySelector('input[name="opcionAprobacion"]:checked').value;
-    
+
     let nuevaFechaInicio = null;
     let nuevaFechaFin = null;
     let razonCambio = '';
     let notasSolicitante = document.getElementById('notasSolicitante').value.trim();
-    
-    if(opcion === 'modificado'){
+
+    if (opcion === 'modificado') {
       nuevaFechaInicio = document.getElementById('nuevaFechaInicio').value;
       nuevaFechaFin = document.getElementById('nuevaFechaFin').value;
       razonCambio = document.getElementById('razonCambio').value.trim();
-      
-      if(!nuevaFechaInicio || !nuevaFechaFin){
-        alert('Debes especificar las nuevas fechas de inicio y fin');
+
+      if (!nuevaFechaInicio || !nuevaFechaFin) {
+        Logger.showUserMessage('Debes especificar las nuevas fechas de inicio y fin', 'warning', 3000);
         return;
       }
-      
-      if(!razonCambio){
-        alert('Debes especificar la razón del cambio');
+
+      if (!razonCambio) {
+        Logger.showUserMessage('Debes especificar la razón del cambio', 'warning', 3000);
         return;
       }
-      
-      // Validar que la fecha fin sea posterior a la inicio
-      if(new Date(nuevaFechaFin) <= new Date(nuevaFechaInicio)){
-        alert('La fecha de fin debe ser posterior a la fecha de inicio');
+
+      if (new Date(nueva_fecha_fin) <= new Date(nueva_fecha_inicio)) {
+        Logger.showUserMessage('La fecha de fin debe ser posterior a la fecha de inicio', 'warning', 3000);
         return;
       }
     }
-    
-    // Cerrar modal
+
     bootstrap.Modal.getInstance(document.getElementById('modalAprobarModificacion')).hide();
-    
-    // Enviar solicitud
-    try{
+
+    try {
       const res = await fetch('/reservas/aprobar-modificada/' + reservaId, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           opcion: opcion,
           nueva_fecha_inicio: nuevaFechaInicio,
@@ -600,39 +583,39 @@
           notas_solicitante: notasSolicitante
         })
       });
-      
+
       const data = await res.json();
-      if(res.ok){
-        alert(data.message || 'Reserva procesada correctamente');
+      if (res.ok) {
+        Logger.showUserMessage(data.message || 'Reserva procesada correctamente', 'success', 3000);
         location.reload();
       } else {
-        alert('Error: ' + (data.message || 'No fue posible procesar la reserva'));
+        Logger.showUserMessage('Error: ' + (data.message || 'No fue posible procesar la reserva'), 'error', 5000);
       }
-    }catch(e){
-      alert('Error procesando aprobación: ' + e.message);
+    } catch (e) {
+      Logger.showUserMessage('Error procesando aprobación: ' + e.message, 'error', 5000);
     }
   });
 
   // Función para aprobar/rechazar reserva
-  async function responderReserva(reservaId, respuesta, motivo = null){
-    try{
-      const res = await fetch('/api/reservas/'+reservaId+'/responder', {
+  async function responderReserva(reservaId, respuesta, motivo = null) {
+    try {
+      const res = await fetch('/api/reservas/' + reservaId + '/responder', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           respuesta: respuesta,
           motivo_rechazo: motivo
         })
       });
       const data = await res.json();
-      if(res.ok){
-        alert(data.message || (respuesta === 'aprobada' ? 'Reserva aprobada' : 'Reserva rechazada'));
+      if (res.ok) {
+        Logger.showUserMessage(data.message || (respuesta === 'aprobada' ? 'Reserva aprobada' : 'Reserva rechazada'), 'success', 3000);
         location.reload();
       } else {
-        alert('Error: ' + (data.message || 'No fue posible procesar la respuesta'));
+        Logger.showUserMessage('Error: ' + (data.message || 'No fue posible procesar la respuesta'), 'error', 5000);
       }
-    }catch(e){
-      alert('Error procesando respuesta: ' + e.message);
+    } catch (e) {
+      Logger.showUserMessage('Error procesando respuesta: ' + e.message, 'error', 5000);
     }
   }
 
@@ -641,34 +624,33 @@
     document.getElementById('motivoReservaId').textContent = reservaId;
     document.getElementById('motivoUsuario').textContent = usuario;
     document.getElementById('motivoEquipo').textContent = equipo;
-    
+
     const motivoDiv = document.getElementById('motivoCompleto');
     motivoDiv.innerHTML = `<p class="mb-0">${motivo || 'Sin motivo especificado'}</p>`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('modalVerMotivo'));
     modal.show();
   }
 
   // Crear nueva reserva
-  document.getElementById('btnCrearReserva').addEventListener('click', async ()=>{
+  document.getElementById('btnCrearReserva').addEventListener('click', async () => {
     const equipoId = document.getElementById('equipoId').value.trim();
     const fechaInicio = document.getElementById('fechaInicio').value;
     const fechaFin = document.getElementById('fechaFin').value;
     const proposito = document.getElementById('proposito').value.trim();
 
-    if(!equipoId || !fechaInicio || !fechaFin || !proposito){
-      alert('Todos los campos son obligatorios');
+    if (!equipoId || !fechaInicio || !fechaFin || !proposito) {
+      Logger.showUserMessage('Todos los campos son obligatorios', 'warning', 3000);
       return;
     }
 
-    // Convertir formato datetime-local a MySQL datetime
     const inicio = fechaInicio.replace('T', ' ') + ':00';
     const fin = fechaFin.replace('T', ' ') + ':00';
 
-    try{
+    try {
       const res = await fetch('/reservas/crear', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           equipo_id: equipoId,
           fecha_inicio: inicio,
@@ -678,14 +660,14 @@
       });
 
       const data = await res.json();
-      if(data.success){
-        alert('Reserva creada exitosamente');
+      if (data.success) {
+        Logger.showUserMessage('Reserva creada exitosamente', 'success', 3000);
         location.reload();
       } else {
-        alert('Error: ' + data.message);
+        Logger.showUserMessage('Error: ' + data.message, 'error', 5000);
       }
-    }catch(e){
-      alert('Error creando reserva: ' + e.message);
+    } catch (e) {
+      Logger.showUserMessage('Error creando reserva: ' + e.message, 'error', 5000);
     }
   });
 
@@ -694,14 +676,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const equipoId = urlParams.get('equipo_id');
     const equipoNombre = urlParams.get('equipo_nombre');
-    
+
     if (equipoId) {
-      // Preseleccionar el equipo en el select
       const selectEquipo = document.getElementById('equipoId');
       if (selectEquipo) {
         selectEquipo.value = equipoId;
-        
-        // Si el equipo no existe en la lista, agregarlo temporalmente
+
         if (!selectEquipo.value) {
           const option = document.createElement('option');
           option.value = equipoId;
@@ -710,8 +690,7 @@
           selectEquipo.appendChild(option);
         }
       }
-      
-      // Agregar mensaje informativo al modal
+
       const modalTitle = document.querySelector('#modalNuevaReserva .modal-title');
       if (modalTitle && equipoNombre) {
         const badge = document.createElement('span');
@@ -719,12 +698,10 @@
         badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>Equipo seleccionado`;
         modalTitle.appendChild(badge);
       }
-      
-      // Abrir el modal automáticamente
+
       const modal = new bootstrap.Modal(document.getElementById('modalNuevaReserva'));
       modal.show();
-      
-      // Limpiar los parámetros de la URL sin recargar la página
+
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   });

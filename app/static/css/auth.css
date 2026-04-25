@@ -3,16 +3,19 @@
    Estilos para Login, Registro, Recuperación de Contraseña
    ===================================================================== */
 
+/* Importar variables de color unificadas basadas en #00af00 */
+@import url('color-variables.css');
+
 /* ===== LAYOUT PRINCIPAL - MINIMALISTA CON ACENTO VERDE SUTIL ===== */
 body.auth-body,
 body.auth-body-clean,
 body {
     background: linear-gradient(135deg, 
-        #e6f7ed 0%,     /* Verde más notorio */
-        #eaf7ef 25%,    /* Verde medio */
-        #e3f5e9 50%,    /* Verde menta más visible */
-        #eaf7ef 75%,    /* Verde medio */
-        #e6f7ed 100%);  /* Verde más notorio */
+        var(--sena-bg-transparent) 0%,     /* Verde más claro con nuevo tono */
+        var(--sena-bg-light) 25%,         /* Verde medio claro */
+        var(--sena-bg-medium) 50%,        /* Verde menta con nuevo tono */
+        var(--sena-bg-light) 75%,         /* Verde medio claro */
+        var(--sena-bg-transparent) 100%);  /* Verde más claro con nuevo tono */
     background-size: 200% 200%;
     animation: subtleGreen 20s ease-in-out infinite;
     min-height: 100vh;
@@ -35,9 +38,9 @@ body.auth-body-clean::after {
     right: 0;
     bottom: 0;
     background-image: 
-        radial-gradient(circle at 15% 25%, rgba(45, 106, 79, 0.10) 0%, transparent 40%),
-        radial-gradient(circle at 85% 75%, rgba(82, 183, 136, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(45, 106, 79, 0.06) 0%, transparent 60%);
+        radial-gradient(circle at 15% 25%, rgba(var(--sena-primary-rgb), 0.10) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(var(--sena-primary-rgb), 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(var(--sena-primary-rgb), 0.06) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -80,10 +83,10 @@ body.auth-body-clean {
     border-radius: 20px;
     box-shadow: 
         0 1px 3px rgba(0, 0, 0, 0.05),
-        0 10px 40px rgba(45, 106, 79, 0.06),
-        0 0 0 1px rgba(45, 106, 79, 0.03);
+        0 10px 40px rgba(var(--sena-primary-rgb), 0.06),
+        0 0 0 1px rgba(var(--sena-primary-rgb), 0.03);
     overflow: hidden;
-    border: 1px solid rgba(45, 106, 79, 0.08);
+    border: var(--sena-border-light);
     transition: box-shadow 0.3s ease;
     width: 100%;
     max-width: 1000px;
@@ -93,8 +96,8 @@ body.auth-body-clean {
 .login-card:hover {
     box-shadow: 
         0 1px 3px rgba(0, 0, 0, 0.05),
-        0 20px 60px rgba(45, 106, 79, 0.08),
-        0 0 0 1px rgba(45, 106, 79, 0.05);
+        0 20px 60px rgba(var(--sena-primary-rgb), 0.08),
+        0 0 0 1px rgba(var(--sena-primary-rgb), 0.05);
 }
 
 /* ===== BRAND SIDE - MINIMALISTA Y CENTRADO ===== */
@@ -120,8 +123,8 @@ body.auth-body-clean {
     right: 0;
     bottom: 0;
     background: 
-        radial-gradient(circle at 30% 40%, rgba(45, 106, 79, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 70% 60%, rgba(45, 106, 79, 0.08) 0%, transparent 50%);
+        radial-gradient(circle at 30% 40%, rgba(var(--sena-primary-rgb), 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(var(--sena-primary-rgb), 0.08) 0%, transparent 50%);
     opacity: 1;
     pointer-events: none;
 }
@@ -197,20 +200,20 @@ body.auth-body-clean {
 .feature-item:hover {
     background: rgba(255, 255, 255, 0.12);
     transform: translateY(-6px);
-    border-color: rgba(82, 183, 136, 0.3);
+    border-color: rgba(var(--sena-primary-rgb), 0.3);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .feature-item i {
     font-size: 32px;
     margin-bottom: 10px;
-    color: #52b788;
+    color: white; /* Igual que el texto */
     transition: all 0.3s ease;
 }
 
 .feature-item:hover i {
     transform: scale(1.1);
-    color: #74d4a6;
+    color: rgba(255, 255, 255, 0.9); /* Mantener consistencia con el texto */
 }
 
 .feature-item div {
@@ -286,9 +289,9 @@ body.auth-body-clean {
 .btn-login:hover,
 .btn-auth-primary:hover,
 .btn-register:hover {
-    background: #2d6a4f;
+    background: var(--sena-primary-dark);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(45, 106, 79, 0.25);
+    box-shadow: var(--sena-shadow-hover);
 }
 
 .btn-login:active,
@@ -354,13 +357,13 @@ body.auth-body-clean {
 /* 4️⃣ BOTÓN FACIAL - ESTILO DISTINTIVO PARA RECONOCIMIENTO FACIAL */
 .btn-facial {
     padding: 12px;
-    background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
-    border: 2px solid #2d6a4f;
+    background: var(--sena-gradient-primary);
+    border: 2px solid var(--sena-primary);
     border-radius: 8px;
     color: white;
     font-size: 20px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+    box-shadow: var(--sena-shadow);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -368,6 +371,15 @@ body.auth-body-clean {
     height: 100%;
     position: relative;
     overflow: hidden;
+}
+
+body.auth-body-clean {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
 }
 
 .btn-facial::before {
@@ -389,15 +401,15 @@ body.auth-body-clean {
 }
 
 .btn-facial:hover {
-    background: linear-gradient(135deg, #40916c 0%, #52b788 100%);
-    border-color: #52b788;
+    background: var(--sena-gradient-light);
+    border-color: var(--sena-primary-light);
     transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(45, 106, 79, 0.4);
+    box-shadow: var(--sena-shadow-hover);
 }
 
 .btn-facial:active {
     transform: translateY(0) scale(1);
-    box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+    box-shadow: var(--sena-shadow);
 }
 
 .btn-facial i {
@@ -418,48 +430,48 @@ body.auth-body-clean {
     padding: 12px 24px;
     background: transparent;
     border: none;
-    border-radius: var(--border-radius-md);
-    color: var(--color-sena-medium);
+    border-radius: var(--sena-radius-md);
+    color: var(--sena-primary);
     font-weight: 600;
-    font-size: var(--font-size-base);
-    transition: all var(--transition-base);
+    font-size: var(--sena-font-size-base);
+    transition: all var(--sena-transition-base);
     cursor: pointer;
 }
 
 .btn-ghost:hover,
 .btn-auth-ghost:hover {
-    background: var(--color-sena-subtle);
-    color: var(--color-sena-dark);
+    background: var(--sena-bg-light);
+    color: var(--sena-primary-dark);
 }
 
 /* 6️⃣ BOTÓN DANGER - Acciones destructivas */
 .btn-danger {
     padding: 12px 24px;
-    background: var(--color-danger);
+    background: var(--sena-danger);
     border: none;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--sena-radius-md);
     color: white;
     font-weight: 600;
-    font-size: var(--font-size-base);
-    transition: all var(--transition-base);
+    font-size: var(--sena-font-size-base);
+    transition: all var(--sena-transition-base);
     cursor: pointer;
 }
 
 .btn-danger:hover {
-    background: var(--color-danger-dark);
+    background: #990000;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    box-shadow: 0 4px 12px rgba(204, 0, 0, 0.3);
 }
 
 /* 7️⃣ VARIANTES DE TAMAÑO */
 .btn-sm {
     padding: 8px 16px;
-    font-size: var(--font-size-sm);
+    font-size: var(--sena-font-size-sm);
 }
 
 .btn-lg {
     padding: 16px 32px;
-    font-size: var(--font-size-lg);
+    font-size: var(--sena-font-size-lg);
 }
 
 /* 8️⃣ ESTADOS DISABLED */
@@ -479,28 +491,648 @@ body.auth-body-clean {
     transform: none;
 }
 
+/* ===== PASSWORD TOGGLE COMPONENT ===== */
+.password-toggle-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-toggle-wrapper .form-control {
+    padding-right: 45px !important;
+    flex: 1;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none !important;
+    border: none !important;
+    color: #6c757d !important;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    line-height: 1;
+}
+
+.password-toggle-btn:hover {
+    color: var(--sena-primary) !important;
+    background-color: rgba(0, 175, 0, 0.1) !important;
+}
+
+.password-toggle-btn:focus {
+    outline: 2px solid var(--sena-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.password-toggle-btn.visible {
+    color: #dc3545 !important;
+}
+
+.password-toggle-btn.visible:hover {
+    color: #dc3545 !important;
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+/* Estilos para diferentes temas */
+.alto-contraste .password-toggle-btn {
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
+}
+
+.alto-contraste .password-toggle-btn:hover {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+.modo-oscuro .password-toggle-btn {
+    color: #ffffff !important;
+}
+
+.modo-oscuro .password-toggle-btn:hover {
+    color: var(--sena-primary) !important;
+    background-color: rgba(0, 175, 0, 0.2) !important;
+}
+
+/* Animaciones reducidas para accesibilidad */
+.animaciones-reducidas .password-toggle-btn {
+    transition: none !important;
+}
+
+/* ===== PASSWORD VALIDATOR COMPONENT ===== */
+.password-validator-container {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.password-strength-indicator {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.strength-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.strength-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.strength-score {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.strength-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+/* Niveles de fortaleza */
+.strength-bar.strength-weak .strength-fill {
+    background: linear-gradient(90deg, #dc3545 0%, #e74c3c 100%);
+}
+
+.strength-bar.strength-fair .strength-fill {
+    background: linear-gradient(90deg, #ffc107 0%, #f39c12 100%);
+}
+
+.strength-bar.strength-good .strength-fill {
+    background: linear-gradient(90deg, #0dcaf0 0%, #3498db 100%);
+}
+
+.strength-bar.strength-strong .strength-fill {
+    background: linear-gradient(90deg, #198754 0%, #27ae60 100%);
+}
+
+.strength-requirements {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.requirement {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #6c757d;
+    transition: color 0.2s ease;
+}
+
+.requirement i {
+    font-size: 0.75rem;
+    color: #dee2e6;
+    transition: color 0.2s ease;
+}
+
+.requirement.valid {
+    color: #198754;
+}
+
+.requirement.valid i {
+    color: #198754;
+}
+
+.requirement.invalid {
+    color: #dc3545;
+}
+
+.requirement.invalid i {
+    color: #dc3545;
+}
+
+/* Estados de los inputs de contraseña */
+.form-control.password-weak {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.password-fair {
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.form-control.password-good {
+    border-color: #0dcaf0;
+    box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25);
+}
+
+.form-control.password-strong {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .strength-label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .strength-requirements {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tema alto contraste */
+.alto-contraste .password-strength-indicator {
+    background: #000000;
+    border: 2px solid #ffffff;
+}
+
+.alto-contraste .strength-text,
+.alto-contraste .strength-score {
+    color: #ffffff;
+    background: #ffffff;
+    color: #000000;
+}
+
+.alto-contraste .strength-bar {
+    background: #ffffff;
+}
+
+.alto-contraste .requirement {
+    color: #ffffff;
+}
+
+.alto-contraste .requirement.valid {
+    color: #00ff00;
+}
+
+.alto-contraste .requirement.invalid {
+    color: #ff0000;
+}
+
+/* Tema modo oscuro */
+.modo-oscuro .password-strength-indicator {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+.modo-oscuro .strength-text,
+.modo-oscuro .strength-score {
+    color: #e2e8f0;
+}
+
+.modo-oscuro .strength-bar {
+    background: #4a5568;
+}
+
+.modo-oscuro .requirement {
+    color: #a0aec0;
+}
+
+.modo-oscuro .requirement.valid {
+    color: #48bb78;
+}
+
+.modo-oscuro .requirement.invalid {
+    color: #f56565;
+}
+
+/* Animaciones reducidas para accesibilidad */
+.animaciones-reducidas .strength-fill {
+    transition: none;
+}
+
+.animaciones-reducidas .requirement {
+    transition: none;
+}
+
+/* ===== ESTRUCTURA FIJA PARA MÓDULOS AUTH ===== */
+.auth-body-clean {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+/* Contenedor principal fijo */
+.auth-main-full {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    min-height: calc(100vh - 90px); /* Dejar espacio para footer */
+    position: relative;
+}
+
+/* Contenedor de login centrado y fijo */
+.login-container {
+    width: 100%;
+    max-width: 1000px; /* Reducir de 1200px a 1000px */
+    margin: -2rem auto 0.79rem; /* Mover hacia arriba y dejar 2cm para footer */
+    position: relative;
+}
+
+/* Card de login con altura fija */
+.login-card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    max-height: calc(100vh - 140px); /* Reducir más altura para footer */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Lado izquierdo - Branding */
+.brand-side {
+background: linear-gradient(135deg, var(--sena-primary-dark) 0%, var(--sena-primary) 100%);
+color: white;
+padding: 1.5rem 1.5rem; /* Reducir más padding vertical */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+position: relative;
+min-height: 550px; /* Reducir altura mínima */
+}
+
+/* Lado derecho - Formulario */
+.form-side {
+    padding: 1.5rem 1.5rem; /* Reducir más padding */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 550px; /* Reducir altura mínima */
+    overflow-y: auto;
+    max-height: calc(100vh - 140px); /* Consistente con login-card */
+}
+
+/* Contenedor del formulario con scroll interno */
+.form-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Header del formulario */
+.form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form-header h2 {
+    color: var(--sena-primary-dark);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.form-header p {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* Footer del formulario */
+.form-footer {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+/* Responsive para móviles */
+@media (max-width: 991px) {
+    .auth-main-full {
+        padding: 1rem;
+    }
+    
+    .login-card {
+        min-height: auto;
+        max-height: none;
+        margin: 0 1rem;
+    }
+    
+    .brand-side {
+        min-height: 200px;
+        padding: 2rem 1rem;
+    }
+    
+    .form-side {
+        min-height: auto;
+        max-height: none;
+        padding: 2rem 1.5rem;
+    }
+    
+    .form-container {
+        max-width: 100%;
+    }
+}
+
+/* Responsive para tablets */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .login-container {
+        max-width: 1000px;
+    }
+    
+    .form-side {
+        padding: 2.5rem 2rem;
+    }
+    
+    .brand-side {
+        padding: 2.5rem 1.5rem;
+    }
+}
+
+/* Para pantallas muy grandes */
+@media (min-width: 1400px) {
+    .login-container {
+        max-width: 1400px;
+    }
+    
+    .form-side {
+        padding: 4rem 3rem;
+    }
+    
+    .brand-side {
+        padding: 4rem 2.5rem;
+    }
+}
+
+/* Evitar scroll en el body pero permitir footer */
+.auth-body-clean {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Scroll suave dentro del formulario */
+.form-side {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sena-primary) #f1f3f5;
+}
+
+.form-side::-webkit-scrollbar {
+    width: 6px;
+}
+
+.form-side::-webkit-scrollbar-track {
+    background: #f1f3f5;
+}
+
+.form-side::-webkit-scrollbar-thumb {
+    background: var(--sena-primary);
+    border-radius: 3px;
+}
+
+.form-side::-webkit-scrollbar-thumb:hover {
+    background: var(--sena-primary-dark);
+}
+
+/* ===== ACCIONES DE AUTENTICACIÓN ===== */
+.auth-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.auth-alternatives {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Divider con "o" */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem 0;
+    position: relative;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e9ecef;
+}
+
+.divider span {
+    padding: 0 1rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Enlace de ayuda */
+.auth-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--sena-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: center;
+    justify-content: center;
+}
+
+.auth-link:hover {
+    color: var(--sena-primary-dark);
+    text-decoration: underline;
+}
+
+/* Botón facial mejorado */
+.btn-facial {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-facial:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    text-decoration: none;
+}
+
+.btn-facial:focus {
+    outline: 2px solid var(--sena-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(0, 175, 0, 0.2);
+}
+
+.btn-facial:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Botón outline mejorado */
+.btn-outline {
+    background: transparent;
+    color: var(--sena-primary);
+    border: 2px solid var(--sena-primary);
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-outline:hover {
+    background: var(--sena-primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 175, 0, 0.3);
+    text-decoration: none;
+}
+
+.btn-outline:focus {
+    outline: 2px solid var(--sena-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(0, 175, 0, 0.2);
+}
+
+.btn-outline:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 175, 0, 0.2);
+}
+
+/* Responsive para botones */
+@media (max-width: 576px) {
+    .auth-actions {
+        gap: 0.75rem;
+    }
+    
+    .auth-alternatives {
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+    
+    .btn-facial,
+    .btn-outline {
+        padding: 14px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    .btn-facial,
+    .btn-outline,
+    .auth-link {
+        transition: none;
+    }
+    
+    .btn-facial:hover,
+    .btn-outline:hover {
+        transform: none;
+    }
+}
+
 /* ===== ENLACES Y DIVISORES ===== */
 .forgot-password {
     text-align: center;
-    margin-top: var(--spacing-md);
+    margin-top: var(--sena-spacing-md);
 }
 
 .forgot-password a {
-    color: var(--color-sena-light);
+    color: var(--sena-primary-light);
     text-decoration: none;
-    font-size: var(--font-size-sm);
+    font-size: var(--sena-font-size-sm);
     font-weight: 500;
-    transition: color var(--transition-base);
+    transition: color var(--sena-transition-base);
 }
 
 .forgot-password a:hover {
-    color: var(--color-sena-dark);
+    color: var(--sena-primary-dark);
     text-decoration: underline;
 }
 
 .divider {
-    border-top: 2px solid var(--color-gray-200);
-    margin: var(--spacing-lg) 0;
+    border-top: 2px solid var(--sena-bg-gray-medium);
+    margin: var(--sena-spacing-lg) 0;
     position: relative;
 }
 
@@ -512,14 +1144,14 @@ body.auth-body-clean {
     transform: translateX(-50%);
     background: white;
     padding: 0 12px;
-    color: var(--color-gray-400);
+    color: var(--sena-text-muted);
     font-weight: 600;
 }
 
 /* ===== VIDEO CAPTURE ===== */
 #video {
-    border: 3px solid var(--color-sena-light);
-    border-radius: var(--border-radius-md);
+    border: 3px solid var(--sena-primary-light);
+    border-radius: var(--sena-radius-md);
     width: 100%;
     max-width: 100%;
 }
@@ -527,18 +1159,18 @@ body.auth-body-clean {
 /* ===== FOOTER ===== */
 .auth-footer {
     text-align: center;
-    margin-top: var(--spacing-lg);
+    margin-top: var(--sena-spacing-lg);
     color: rgba(255, 255, 255, 0.9);
 }
 
 .auth-footer p {
-    font-size: var(--font-size-sm);
-    margin-bottom: var(--spacing-sm);
+    font-size: var(--sena-font-size-sm);
+    margin-bottom: var(--sena-spacing-sm);
 }
 
 /* ===== FOOTER SOBRE FONDO VERDE ===== */
 .text-center.mt-4 p {
-    color: #2d6a4f;
+    color: var(--sena-primary-dark);
     font-weight: 500;
 }
 
@@ -548,7 +1180,7 @@ body.auth-body-clean {
 }
 
 .text-center.mt-4 p:last-child {
-    color: #52b788;
+    color: var(--sena-primary-light);
     font-size: 13px;
     margin-bottom: 0;
 }
@@ -614,7 +1246,7 @@ padding: 16px 12px;
 .register-card {
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--sena-radius-2xl);
     box-shadow: 
         0 20px 60px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -623,7 +1255,7 @@ padding: 16px 12px;
 }
 
 .register-header {
-    background: linear-gradient(135deg, var(--color-sena-dark) 0%, var(--color-sena-medium) 50%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-dark);
     color: white;
     padding: 40px 30px;
     text-align: center;
@@ -653,7 +1285,7 @@ padding: 16px 12px;
     margin: 0 auto 20px;
     font-size: 36px;
     backdrop-filter: blur(10px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--sena-shadow-large);
 }
 
 .register-header h2 {
@@ -691,7 +1323,7 @@ padding: 16px 12px;
     left: 25%;
     right: 25%;
     height: 2px;
-    background: var(--color-gray-200);
+    background: var(--sena-bg-gray-medium);
     z-index: 0;
 }
 
@@ -708,38 +1340,38 @@ padding: 16px 12px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--color-gray-200);
-    color: var(--color-gray-600);
+    background: var(--sena-bg-gray-medium);
+    color: var(--sena-bg-gray-dark);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 16px;
-    transition: all var(--transition-base);
+    transition: all var(--sena-transition-base);
     margin-bottom: 8px;
 }
 
 .progress-step.active .progress-step-circle {
-    background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-primary);
     color: white;
-    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.4);
+    box-shadow: var(--sena-shadow-hover);
     transform: scale(1.1);
 }
 
 .progress-step.completed .progress-step-circle {
-    background: var(--color-sena-light);
+    background: var(--sena-primary-light);
     color: white;
 }
 
 .progress-step-label {
     font-size: 12px;
-    color: var(--color-gray-600);
+    color: var(--sena-bg-gray-dark);
     font-weight: 500;
     text-align: center;
 }
 
 .progress-step.active .progress-step-label {
-    color: var(--color-sena-dark);
+    color: var(--sena-primary-dark);
     font-weight: 700;
 }
 
@@ -766,40 +1398,40 @@ padding: 16px 12px;
 
 /* Tarjetas de selección de rol */
 .role-card {
-    border: 3px solid var(--color-gray-200);
+    border: 3px solid var(--sena-bg-gray-medium);
     border-radius: 16px;
     padding: 30px 20px;
     text-align: center;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all var(--sena-transition-base);
     background: white;
     position: relative;
 }
 
 .role-card:hover {
-    border-color: var(--color-sena-light);
+    border-color: var(--sena-primary-light);
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(45, 106, 79, 0.2);
+    box-shadow: var(--sena-shadow);
 }
 
 .role-card.selected {
-    border-color: var(--color-sena-medium);
-    background: linear-gradient(135deg, rgba(45, 106, 79, 0.05) 0%, rgba(64, 145, 108, 0.05) 100%);
-    box-shadow: 0 8px 20px rgba(45, 106, 79, 0.3);
+    border-color: var(--sena-primary-dark);
+    background: var(--sena-bg-light);
+    box-shadow: var(--sena-shadow-hover);
 }
 
 .role-card-icon {
     width: 80px;
     height: 80px;
     margin: 0 auto 20px;
-    background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-primary);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 36px;
     color: white;
-    transition: all var(--transition-base);
+    transition: all var(--sena-transition-base);
 }
 
 .role-card:hover .role-card-icon {
@@ -809,32 +1441,32 @@ padding: 16px 12px;
 .role-card-title {
     font-size: 20px;
     font-weight: 700;
-    color: var(--color-gray-800);
+    color: var(--sena-bg-gray-dark);
     margin-bottom: 8px;
 }
 
 .role-card-description {
     font-size: 14px;
-    color: var(--color-gray-600);
+    color: var(--sena-bg-gray-dark);
     margin: 0;
 }
 
 /* Botón de registro */
 .btn-register {
-    background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-primary);
     color: white;
     border: none;
     padding: 14px 32px;
     font-weight: 600;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
-    transition: all var(--transition-base);
+    box-shadow: var(--sena-shadow);
+    transition: all var(--sena-transition-base);
 }
 
 .btn-register:hover {
-    background: linear-gradient(135deg, var(--color-sena-dark) 0%, var(--color-sena-medium) 100%);
+    background: var(--sena-gradient-dark);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.4);
+    box-shadow: var(--sena-shadow-hover);
     color: white;
 }
 
@@ -849,17 +1481,17 @@ padding: 16px 12px;
 
 .navbar-brand {
     font-weight: 700;
-    color: var(--color-sena-dark) !important;
+    color: var(--sena-primary-dark) !important;
     font-size: 20px;
 }
 
 .btn-outline-success {
-    border-color: var(--color-sena-medium) !important;
-    color: var(--color-sena-medium) !important;
+    border-color: var(--sena-primary) !important;
+    color: var(--sena-primary) !important;
 }
 
 .btn-outline-success:hover {
-    background: var(--color-sena-medium) !important;
+    background: var(--sena-primary) !important;
     color: white !important;
 }
 
@@ -885,7 +1517,7 @@ padding: 16px 12px;
 .register-icon-large {
     width: 100px;
     height: 100px;
-    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+    background: var(--sena-gradient-dark);
     backdrop-filter: blur(6px);
     border-radius: 50%;
     display: flex;
@@ -900,14 +1532,14 @@ padding: 16px 12px;
 .register-title {
     font-size: 36px;
     font-weight: 800;
-    color: #0f2f23; /* Texto oscuro para máximo contraste sobre fondo claro */
+    color: var(--sena-primary-darkest); /* Texto oscuro para máximo contraste sobre fondo claro */
     margin: 0;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .register-subtitle {
     font-size: 16px;
-    color: #2d6a4f; /* Verde oscuro legible sobre fondo menta */
+    color: var(--sena-primary-dark); /* Verde oscuro legible sobre fondo menta */
     margin: 0;
     font-weight: 600;
     text-shadow: none;
@@ -915,11 +1547,14 @@ padding: 16px 12px;
 
 /* Footer del auth */
 .auth-footer {
-    background: #2d6a4f; /* Dark green for strong contrast */
-    padding: 20px 0;
+    background: #2d6a4f; /* Dark green solid - mismo que dashboard */
+    padding: 20px;
     color: #e8f5e9; /* Light mint for primary text */
     border-top: none;
     margin-top: auto;
+    position: relative;
+    width: 100%;
+    min-height: 50px;
 }
 
 .auth-footer p {
@@ -928,12 +1563,12 @@ padding: 16px 12px;
 }
 
 .auth-footer p:first-child {
-    color: #e8f5e9; /* Title tone */
+    color: #e8f5e9; /* Verde muy claro - título principal */
     font-weight: 500;
 }
 
 .auth-footer p:last-child {
-    color: #a5d6a7; /* Subtitle soft green */
+    color: #a5d6a7; /* Verde claro suave - subtítulo */
 }
 
 .auth-footer .small {
@@ -958,14 +1593,14 @@ padding: 16px 12px;
 .reset-card {
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
-    border-radius: var(--border-radius-xl);
+    border-radius: var(--sena-radius-2xl);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .reset-card .card-header {
-    background: linear-gradient(135deg, var(--color-sena-dark) 0%, var(--color-sena-medium) 50%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-dark);
     color: white;
     padding: 40px 30px;
     text-align: center;
@@ -1010,19 +1645,19 @@ padding: 16px 12px;
 }
 
 .reset-card .btn-primary {
-    background: linear-gradient(135deg, var(--color-sena-medium) 0%, var(--color-sena-light) 100%);
+    background: var(--sena-gradient-primary);
     border: none;
     padding: 14px 32px;
     font-weight: 600;
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
-    transition: all var(--transition-base);
+    box-shadow: var(--sena-shadow);
+    transition: all var(--sena-transition-base);
 }
 
 .reset-card .btn-primary:hover {
-    background: linear-gradient(135deg, var(--color-sena-dark) 0%, var(--color-sena-medium) 100%);
+    background: var(--sena-gradient-dark);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.4);
+    box-shadow: var(--sena-shadow-hover);
 }
 
 /* Responsive para registro dinámico */

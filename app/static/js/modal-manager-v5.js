@@ -41,9 +41,9 @@
     // =====================================================================
     
     const log = {
-        info: (msg) => CONFIG.debug && console.log(`ℹ️ [ModalManager] ${msg}`),
-        warn: (msg) => CONFIG.debug && console.warn(`⚠️ [ModalManager] ${msg}`),
-        success: (msg) => CONFIG.debug && console.log(`✅ [ModalManager] ${msg}`)
+        info: (msg) => CONFIG.debug && (typeof window.Logger !== 'undefined' ? window.Logger.info(`[ModalManager] ${msg}`) : console.log(`[ModalManager] ${msg}`)),
+        warn: (msg) => CONFIG.debug && (typeof window.Logger !== 'undefined' ? window.Logger.warn(`[ModalManager] ${msg}`) : console.warn(`[ModalManager] ${msg}`)),
+        success: (msg) => CONFIG.debug && (typeof window.Logger !== 'undefined' ? window.Logger.info(`[ModalManager] ${msg}`) : console.log(`[ModalManager] ${msg}`))
     };
     
     // =====================================================================
@@ -80,17 +80,27 @@
     // =====================================================================
     
     /**
-     * Observer que detecta y elimina backdrops inmediatamente al crearse
+     * Observer que detecta backdrops duplicados pero permite los válidos
      */
     const backdropObserver = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === 1 && node.classList) {
-                    const isBackdrop = node.classList.contains('modal-backdrop') || 
-                                     node.className.includes('backdrop');
+                    const isBackdrop = node.classList.contains('modal-backdrop');
                     if (isBackdrop) {
-                        node.remove();
-                        log.warn('Backdrop detectado y eliminado (Observer)');
+                        // Pequeña pausa para verificar si hay modales visibles
+                        setTimeout(() => {
+                            const modalsVisibles = document.querySelectorAll('.modal.show');
+                            const allBackdrops = document.querySelectorAll('.modal-backdrop');
+                            
+                            // Si hay más backdrops que modales visibles, eliminar los extra
+                            if (allBackdrops.length > modalesVisibles.length) {
+                                node.remove();
+                                log.warn('Backdrop duplicado eliminado (Observer)');
+                            } else {
+                                log.info('Backdrop válido permitido (Observer)');
+                            }
+                        }, 50);
                     }
                 }
             });

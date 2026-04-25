@@ -3,7 +3,16 @@
 (() => {
   const sidebar = document.getElementById('sidebar');
   const toggle = document.getElementById('toggleSidebar');
-  if (toggle && sidebar) toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+  const overlay = document.getElementById('sidebarOverlay');
+
+  // Toggle sidebar + overlay on mobile
+  function toggleSidebar() {
+    sidebar?.classList.toggle('show');
+    overlay?.classList.toggle('active');
+  }
+
+  if (toggle && sidebar) toggle.addEventListener('click', toggleSidebar);
+  if (overlay) overlay.addEventListener('click', toggleSidebar);
 
   // Validación Bootstrap
   (() => {
@@ -35,7 +44,7 @@
         }
       }
     } catch (e) {
-      console.error('Error obteniendo token:', e);
+      Logger.error('Error obteniendo token:', e);
     }
     return localStorage.getItem('jwt') || null;
   }
@@ -62,7 +71,7 @@
   async function ensureAuthOrPrompt(res) {
     if (res && res.status === 401) { 
       clearJwt(); 
-      flash('Sesión API expirada. Por favor recarga la página.', 'warning', 3000);
+      Logger.showUserMessage('Sesión API expirada. Por favor recarga la página.', 'warning', 3000);
     }
     return res;
   }
@@ -72,17 +81,9 @@
   // Inicializar token al cargar la página
   refreshApiStatus();
 
-  // Helper: alerta Bootstrap
+  // Sistema de mensajes unificado con Logger Manager
   function flash(msg, type='info', timeout=3000){
-    const cont = document.querySelector('main .container-fluid') || document.body;
-    const div = document.createElement('div');
-    div.className = `alert alert-${type} alert-dismissible fade show`;
-    div.role = 'alert';
-    div.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-    cont.prepend(div);
-    if(timeout) setTimeout(()=>{
-      try { div.classList.remove('show'); div.addEventListener('transitionend', ()=>div.remove(), {once:true}); } catch{}
-    }, timeout);
+    Logger.showUserMessage(msg, type, timeout);
   }
 
   // Web Speech API - comandos simples
@@ -94,7 +95,7 @@
       btnVoice.title = 'Voz no soportada por este navegador';
       btnVoice.classList.add('btn-outline-secondary');
     }
-    console.warn('Web Speech API no disponible en este navegador');
+    Logger.warn('Web Speech API no disponible en este navegador');
     return;
   }
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -116,7 +117,7 @@
       if (!activo) { rec.start(); setListeningState(true); flash('🎤 Escuchando...', 'info', 1500); }
       else { rec.stop(); setListeningState(false); flash('🔇 Voz desactivada', 'secondary', 1500); }
     }catch(e){
-      console.warn('No se pudo iniciar voz', e); flash('No se pudo iniciar reconocimiento de voz', 'warning');
+      Logger.warn('No se pudo iniciar voz: ' + e.message); flash('No se pudo iniciar reconocimiento de voz', 'warning');
     }
   }
   btnVoice?.addEventListener('click', toggleVoz);
@@ -124,7 +125,7 @@
   rec.onstart = () => { /* iniciado */ };
   rec.onend = () => { if (activo) { try{ rec.start(); }catch{} } };
   rec.onerror = (e) => {
-    console.error('Error reconocimiento de voz:', e.error);
+    Logger.error('Error reconocimiento de voz: ' + e.error);
     setListeningState(false);
     
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
@@ -142,7 +143,7 @@
 
   rec.onresult = async (ev) => {
     const texto = ev.results[0][0].transcript.toLowerCase();
-    console.log('Comando:', texto);
+    Logger.debug('Comando de voz detectado:', texto);
     const token = localStorage.getItem('jwt');
     if (token) {
       try {
@@ -170,7 +171,10 @@
               break;
           }
         }
-      } catch (e) { console.error(e); flash('Error enviando comando', 'danger'); }
+      } catch (e) { 
+        Logger.error('Error procesando comando de voz:', e); 
+        flash('Error enviando comando', 'danger'); 
+      }
     } else {
       // Comandos básicos sin JWT (navegación directa más flexible)
       const cmd = texto.toLowerCase().trim();

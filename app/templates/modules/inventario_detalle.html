@@ -3,16 +3,27 @@
 
 {% block content %}
 
-<!-- Header -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-  <div class="card-body p-4">
-    <div class="d-flex align-items-center">
-      <a href="/inventario" class="btn btn-outline-light me-3">
-        <i class="bi bi-arrow-left"></i> Volver al Buscador
-      </a>
-      <div>
-        <h4 class="mb-1 text-white fw-bold"><i class="bi bi-box-seam me-2"></i>Detalle de Item</h4>
-        <p class="mb-0 text-white opacity-90">Gestión completa del item de inventario</p>
+<!-- Header Estándar -->
+<div class="card border-0 shadow-lg mb-4 module-header-standard">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center">
+          <div class="module-header-icon">
+            <i class="bi bi-box-seam"></i>
+          </div>
+          <div>
+            <h1 class="module-header-title">Detalle de Item</h1>
+            <p class="module-header-description">
+              Gestión completa de <strong>{{ item.nombre }}</strong> · {{ item.categoria }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        <a href="/inventario" class="module-header-action">
+          <i class="bi bi-arrow-left"></i> Volver al Buscador
+        </a>
       </div>
     </div>
   </div>
@@ -31,6 +42,9 @@
             <p class="mb-2"><strong>ID:</strong> {{ item.id }}</p>
             <p class="mb-2"><strong>Categoría:</strong> {{ item.categoria or 'N/A' }}</p>
             <p class="mb-2"><strong>Laboratorio:</strong> {{ item.laboratorio_nombre or 'N/A' }}</p>
+            {% if item.observaciones and ('Placa:' in item.observaciones or 'Serial:' in item.observaciones) %}
+            <p class="mb-2 text-sena-secondary"><i class="bi bi-info-circle me-1"></i> <small>{{ item.observaciones.split('\n')[-1] }}</small></p>
+            {% endif %}
           </div>
           <div class="col-md-6">
             <p class="mb-2"><strong>Stock Actual:</strong> 
@@ -90,16 +104,7 @@
         <small class="text-muted">Registrar entrega de este item</small>
       </div>
       
-      {% set puede_ajustar = false %}
-      {% if user %}
-        {% if user.user_level == 6 %}
-          {% set puede_ajustar = true %}
-        {% elif user.user_level == 5 and user.a_cargo_inventario and user.laboratorio_id == item.laboratorio_id %}
-          {% set puede_ajustar = true %}
-        {% endif %}
-      {% endif %}
-      
-      {% if puede_ajustar %}
+      {% if permisos.puede_ajustar %}
       <div class="col-md-4 mb-3">
         <div class="d-grid">
           <button class="btn btn-outline-warning" 
@@ -108,6 +113,16 @@
           </button>
         </div>
         <small class="text-muted">Modificar cantidad de stock</small>
+      </div>
+      {% else %}
+      <div class="col-md-4 mb-3">
+        <div class="d-grid">
+          <button class="btn btn-outline-secondary" disabled 
+                  title="{{ permisos.mensaje_error or 'No tienes permisos para gestionar este item' }}">
+            <i class="bi bi-arrow-left-right me-2"></i>Ajustar Stock
+          </button>
+        </div>
+        <small class="text-muted">{{ permisos.mensaje_error or 'Sin permisos para ajustar stock' }}</small>
       </div>
       {% endif %}
       
@@ -168,10 +183,11 @@
             <input type="text" class="form-control" id="grupoClase">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Instructor:</label>
-            <select class="form-select" id="instructorQuimica">
+            <label class="form-label">Recibido por:</label>
+            <select class="form-select" id="instructorQuimica" required>
               <option value="">Selecciona un instructor...</option>
             </select>
+            <small class="text-muted">Seleccione el instructor que recibirá el consumible</small>
           </div>
         </div>
         
@@ -216,17 +232,9 @@
         </div>
         
         <div class="mb-3">
-          <label class="form-label">Tipo de Ajuste:</label>
-          <select class="form-select" id="tipoAjuste" required>
-            <option value="">Selecciona...</option>
-            <option value="entrada">Entrada (Aumentar)</option>
-            <option value="salida">Salida (Disminuir)</option>
-          </select>
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Cantidad:</label>
+          <label class="form-label">Cantidad a Agregar:</label>
           <input type="number" class="form-control" id="cantidadAjuste" min="1" required>
+          <small class="text-muted">Ingresa la cantidad que deseas agregar al stock actual. Esta opción es solo para aumentar el inventario.</small>
         </div>
         
         <div class="mb-3">
@@ -264,13 +272,14 @@
                 <th>Fecha y Hora</th>
                 <th>Tipo</th>
                 <th>Cantidad</th>
-                <th>Usuario</th>
-                <th>Motivo</th>
+                <th>Entregó</th>
+                <th>Recibió</th>
+                <th>Detalles</th>
               </tr>
             </thead>
             <tbody id="historialTableBody">
               <tr>
-                <td colspan="5" class="text-center">
+                <td colspan="6" class="text-center">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Cargando...</span>
                   </div>
@@ -291,21 +300,31 @@
 <script>
 // Funciones para modales
 function mostrarModalEntrega(itemId, itemNombre, stockActual, unidad) {
+    // Limpiar formulario
     document.getElementById('itemId').value = itemId;
     document.getElementById('itemNombre').value = itemNombre;
     document.getElementById('stockDisponible').value = stockActual;
     document.getElementById('itemNombreDisplay').value = itemNombre;
-    document.getElementById('stockDisponibleDisplay').value = stockActual + ' ' + (unidad || 'unidades');
-    document.getElementById('unidadStock').textContent = unidad || 'unidades';
-    document.getElementById('maxCantidad').textContent = stockActual;
-    document.getElementById('cantidadEntrega').max = stockActual;
+    document.getElementById('stockDisponibleDisplay').value = stockActual + ' ' + unidad;
     document.getElementById('cantidadEntrega').value = '';
     document.getElementById('motivoUso').value = '';
     document.getElementById('grupoClase').value = '';
     document.getElementById('observacionesEntrega').value = '';
     
+    // Actualizar máximo cantidad y unidad
+    const maxCantidadElement = document.getElementById('maxCantidad');
+    const unidadStockElement = document.getElementById('unidadStock');
+    if (maxCantidadElement) {
+        maxCantidadElement.textContent = stockActual;
+    }
+    if (unidadStockElement) {
+        unidadStockElement.textContent = unidad;
+    }
+    
+    // Cargar instructores disponibles
     cargarInstructoresQuimica();
     
+    // Mostrar modal
     const modal = new bootstrap.Modal(document.getElementById('modalEntrega'));
     modal.show();
 }
@@ -316,12 +335,22 @@ function mostrarModalAjuste(itemId, itemNombre, stockActual, unidad) {
     document.getElementById('ajusteStockActual').value = stockActual + ' ' + (unidad || 'unidades');
     document.getElementById('ajusteItemNombreDisplay').value = itemNombre;
     document.getElementById('ajusteStockActualDisplay').value = stockActual + ' ' + (unidad || 'unidades');
-    document.getElementById('tipoAjuste').value = '';
     document.getElementById('cantidadAjuste').value = '';
     document.getElementById('motivoAjuste').value = '';
     
     const modal = new bootstrap.Modal(document.getElementById('modalAjuste'));
     modal.show();
+}
+
+// Funciones auxiliares para el historial
+function getMovementType(tipoMovimiento, observaciones) {
+    // Solo 2 tipos: entrada (ajuste) y salida (entrega)
+    return tipoMovimiento === 'entrada' ? 'Entrada' : 'Salida';
+}
+
+function getBadgeClass(tipoMovimiento, observaciones) {
+    // Verde para entrada, rojo para salida
+    return tipoMovimiento === 'entrada' ? 'bg-success' : 'bg-danger';
 }
 
 function verHistorialItem(itemId) {
@@ -337,31 +366,298 @@ function verHistorialItem(itemId) {
                 if (data.historial && data.historial.length > 0) {
                     data.historial.forEach(movimiento => {
                         const row = document.createElement('tr');
-                        row.innerHTML = '<td>' + (movimiento.fecha || 'N/A') + '</td>' +
-                                      '<td>' + (movimiento.tipo || 'N/A') + '</td>' +
-                                      '<td>' + (movimiento.cantidad || 'N/A') + '</td>' +
-                                      '<td>' + (movimiento.usuario || 'N/A') + '</td>' +
-                                      '<td>' + (movimiento.motivo || 'N/A') + '</td>';
+                        
+                        // Formatear la fecha
+                        const fecha = movimiento.fecha_movimiento || movimiento.fecha || 'N/A';
+                        const fechaFormateada = fecha !== 'N/A' ? 
+                            new Date(fecha).toLocaleString('es-CO', {
+                                day: '2-digit',
+                                month: '2-digit', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }) : 'N/A';
+                        
+                        // Extraer información de las observaciones
+                        const observaciones = movimiento.observaciones || 'Sin detalles';
+                        let detallesHtml = '';
+                        let recibidoPor = '';
+                        
+                        if (observaciones !== 'Sin detalles') {
+                            // Parsear los detalles separados por |
+                            const detalles = observaciones.split(' | ');
+                            detallesHtml = detalles.map(detalle => {
+                                const [label, value] = detalle.split(': ');
+                                if (label && value) {
+                                    // Extraer quién recibió para mostrarlo por separado
+                                    if (label.trim() === 'Recibido por') {
+                                        recibidoPor = value.trim();
+                                        return ''; // No mostrar aquí, se mostrará en columna separada
+                                    }
+                                    return `<small class="text-muted d-block">${label}: ${value}</small>`;
+                                }
+                                return `<small class="text-muted d-block">${detalle}</small>`;
+                            }).join('');
+                        }
+                        
+                        row.innerHTML = `
+                            <td>
+                                <div>${fechaFormateada}</div>
+                                <small class="text-muted">ID: ${movimiento.id || 'N/A'}</small>
+                            </td>
+                            <td>
+                                <span class="badge ${getBadgeClass(movimiento.tipo_movimiento, movimiento.observaciones)}">${getMovementType(movimiento.tipo_movimiento, movimiento.observaciones)}</span>
+                            </td>
+                            <td>
+                                <strong>${movimiento.cantidad || 'N/A'}</strong>
+                                <small class="text-muted d-block">unidades</small>
+                            </td>
+                            <td>
+                                <div>${movimiento.usuario_entrega || 'Sistema'}</div>
+                                <small class="text-muted">Entregó</small>
+                            </td>
+                            <td>
+                                <div class="text-primary fw-bold">${recibidoPor || 'No especificado'}</div>
+                                <small class="text-muted">Recibió</small>
+                            </td>
+                            <td>
+                                <div>${detallesHtml || '<small class="text-muted">Sin detalles</small>'}</div>
+                            </td>
+                        `;
                         tbody.appendChild(row);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay movimientos registrados</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay movimientos registrados</td></tr>';
                 }
                 
                 const modal = new bootstrap.Modal(document.getElementById('modalHistorial'));
                 modal.show();
             } else {
-                alert('Error cargando historial: ' + (data.message || 'Error desconocido'));
+                Logger.showUserMessage('Error cargando historial: ' + (data.message || 'Error desconocido'), 'error', 6000);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error de conexión al cargar historial');
+            Logger.error('Error:', error);
+            Logger.showUserMessage('Error de conexión al cargar historial', 'error', 6000);
         });
 }
 
 function cargarInstructoresQuimica() {
-    console.log('Cargando instructores...');
+    Logger.info('Iniciando carga de instructores...');
+    
+    const selectInstructor = document.getElementById('instructorQuimica');
+    if (!selectInstructor) {
+        Logger.error('No se encontró el select de instructores');
+        return;
+    }
+    
+    // Limpiar opciones existentes excepto la primera
+    selectInstructor.innerHTML = '<option value="">Selecciona un instructor...</option>';
+    
+    Logger.debug('Haciendo fetch a /api/instructores-quimica');
+    
+    fetch('/api/instructores-quimica')
+        .then(response => {
+            Logger.debug('Response status:', response.status);
+            Logger.debug('Response headers:', response.headers.get('content-type'));
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            Logger.debug('Datos recibidos:', data);
+            Logger.debug('Success:', data.success);
+            Logger.debug('Cantidad de instructores:', data.instructores ? data.instructores.length : 0);
+            
+            if (data.success && data.instructores) {
+                Logger.info('Instructores cargados:', data.instructores);
+                
+                // Agregar cada instructor al select
+                data.instructores.forEach((instructor, index) => {
+                    Logger.debug(`Procesando instructor ${index + 1}:`, instructor);
+                    
+                    const option = document.createElement('option');
+                    option.value = instructor.id;
+                    
+                    // Formato del texto: Solo el nombre (buenas prácticas de UX)
+                    option.textContent = instructor.nombre;
+                    
+                    // Información adicional en tooltip para detalles si se necesita
+                    const detalles = [];
+                    if (instructor.rol_inventario && instructor.rol_inventario !== 'Otro') {
+                        detalles.push(`Rol: ${instructor.rol_inventario}`);
+                    }
+                    if (instructor.especialidad) {
+                        detalles.push(`Especialidad: ${instructor.especialidad}`);
+                    }
+                    if (instructor.email) {
+                        detalles.push(`Email: ${instructor.email}`);
+                    }
+                    
+                    option.title = detalles.join(' | ') || instructor.nombre;
+                    selectInstructor.appendChild(option);
+                    
+                    Logger.debug(`Opción agregada: ${instructor.nombre} (ID: ${instructor.id})`);
+                });
+                
+                Logger.info(`Se cargaron ${data.instructores.length} instructores exitosamente`);
+            } else {
+                Logger.error('Error al cargar instructores:', data.message || 'Error desconocido');
+                // Mostrar mensaje de error en el select
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "Error al cargar instructores";
+                option.disabled = true;
+                selectInstructor.appendChild(option);
+            }
+        })
+        .catch(error => {
+            Logger.error('Error de conexión al cargar instructores:', error);
+            Logger.error('Stack trace:', error.stack);
+            
+            // Mostrar mensaje de error en el select
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "Error de conexión";
+            option.disabled = true;
+            selectInstructor.appendChild(option);
+        });
+}
+
+function procesarEntrega() {
+    const itemId = document.getElementById('itemId').value;
+    const cantidad = document.getElementById('cantidadEntrega').value;
+    const motivoUso = document.getElementById('motivoUso').value;
+    const grupo = document.getElementById('grupoClase').value;
+    const instructorId = document.getElementById('instructorQuimica').value;
+    const instructorNombre = document.getElementById('instructorQuimica').options[document.getElementById('instructorQuimica').selectedIndex]?.text || '';
+    const recibidoPor = instructorNombre;  // 🆕 Usar el nombre del instructor como recibido_por
+    const observaciones = document.getElementById('observacionesEntrega').value;
+    
+    if (!cantidad || cantidad <= 0) {
+        Logger.showUserMessage('Por favor ingrese una cantidad válida', 'warning', 5000);
+        return;
+    }
+    
+    if (!motivoUso) {
+        Logger.showUserMessage('Por favor ingrese el motivo de uso', 'warning', 5000);
+        return;
+    }
+    
+    if (!instructorId) {  // 🆕 Validar que se seleccione un instructor
+        Logger.showUserMessage('Por favor seleccione el instructor que recibirá el consumible', 'warning', 5000);
+        return;
+    }
+    
+    // Enviar al backend
+    fetch('/inventario/entregar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            item_id: itemId,
+            cantidad: parseInt(cantidad),
+            motivo_uso: motivoUso,
+            grupo: grupo,
+            instructor_id: instructorId,
+            instructor_nombre: instructorNombre,
+            recibido_por: recibidoPor,  
+            observaciones: observaciones
+        })
+    })
+    .then(response => {
+        // Verificar si la respuesta es HTML (error de permisos)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            // El backend retornó HTML, probablemente por falta de permisos
+            return response.text().then(htmlText => {
+                Logger.error('Error de permisos - Respuesta HTML recibida:', htmlText.substring(0, 200));
+                throw new Error('No tienes permisos para realizar entregas. Solo instructores a cargo de inventario pueden realizar esta acción.');
+            });
+        }
+        
+        // Si es JSON, procesar normalmente
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            Logger.showUserMessage('Entrega registrada exitosamente', 'success', 4000);
+            bootstrap.Modal.getInstance(document.getElementById('modalEntrega')).hide();
+            location.reload(); // Recargar para actualizar stock
+        } else {
+            Logger.showUserMessage('Error: ' + (data.message || 'Error desconocido'), 'error', 6000);
+        }
+    })
+    .catch(error => {
+        Logger.error('Error:', error);
+        if (error.message.includes('permisos')) {
+            Logger.showUserMessage('Error de permisos: ' + error.message, 'error', 6000);
+        } else {
+            Logger.showUserMessage('Error de conexión al registrar entrega', 'error', 6000);
+        }
+    });
+}
+
+function procesarAjuste() {
+    Logger.info('INICIANDO PROCESAMIENTO DE AJUSTE DE STOCK');
+    
+    const itemId = document.getElementById('ajusteItemId').value;
+    const cantidad = document.getElementById('cantidadAjuste').value;
+    const motivo = document.getElementById('motivoAjuste').value;
+    
+    Logger.debug('Datos del ajuste:', {
+        itemId: itemId,
+        cantidad: cantidad,
+        motivo: motivo
+    });
+    
+    if (!cantidad || cantidad <= 0) {
+        Logger.error('Cantidad inválida:', cantidad);
+        Logger.showUserMessage('Por favor ingresa una cantidad válida', 'warning', 5000);
+        return;
+    }
+    
+    if (!motivo || motivo.length < 3) {
+        Logger.error('Motivo inválido:', motivo);
+        Logger.showUserMessage('Por favor ingresa un motivo (mínimo 3 caracteres)', 'warning', 5000);
+        return;
+    }
+    
+    // Enviar al backend - todos los ajustes son 'entrada'
+    const payload = {
+        item_id: itemId,
+        nueva_cantidad: parseInt(cantidad),
+        motivo: motivo,
+        tipo_ajuste: 'entrada'  // 🆕 Todos los ajustes son entrada
+    };
+    
+    Logger.debug('Enviando payload al backend:', payload);
+    Logger.debug('URL: /api/inventario/ajustar-stock');
+    
+    fetch('/api/inventario/ajustar-stock', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Logger.showUserMessage('Ajuste de stock realizado exitosamente', 'success', 4000);
+            bootstrap.Modal.getInstance(document.getElementById('modalAjuste')).hide();
+            location.reload(); // Recargar para actualizar stock
+        } else {
+            Logger.showUserMessage('Error: ' + (data.message || 'Error desconocido'), 'error', 6000);
+        }
+    })
+    .catch(error => {
+        Logger.error('Error:', error);
+        Logger.showUserMessage('Error de conexión al ajustar stock', 'error', 6000);
+    });
 }
 
 // Event listeners para los botones de procesamiento
@@ -370,15 +666,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnProcesarAjuste = document.getElementById('btnProcesarAjuste');
     
     if (btnProcesarEntrega) {
-        btnProcesarEntrega.addEventListener('click', function() {
-            alert('Función de entrega en desarrollo');
-        });
+        btnProcesarEntrega.addEventListener('click', procesarEntrega);
     }
     
     if (btnProcesarAjuste) {
-        btnProcesarAjuste.addEventListener('click', function() {
-            alert('Función de ajuste en desarrollo');
-        });
+        btnProcesarAjuste.addEventListener('click', procesarAjuste);
     }
 });
 </script>

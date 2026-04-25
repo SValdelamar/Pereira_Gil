@@ -9,77 +9,76 @@
 {% block main_class %}{% endblock %}
 
 {% block auth_content %}
-    <div class="container-fluid">
-        <div class="login-container">
-            <div class="login-card">
-                <div class="row g-0">
-                    <!-- Lado Izquierdo - Branding -->
-                    <div class="col-lg-6">
-                        <div class="brand-side">
-                            <div class="brand-logo">
-                                <img src="{{ url_for('static', filename='logos/Logo_Sena.png') }}" 
-                                     alt="Logo SENA" 
-                                     class="brand-logo-img">
-                            </div>
-                            
-                            <h1>GIL</h1>
-                            <p>Gestión inteligente de Laboratorios</p>
-                            
-                            <div class="feature-list">
-                                <!-- Fila Superior -->
-                                <div class="feature-row">
-                                    <div class="feature-item">
-                                        <i class="bi bi-camera-fill"></i>
-                                        <div>
-                                            <h6>Búsqueda Visual</h6>
-                                            <p>Encuentra equipos con IA</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <i class="bi bi-mic-fill"></i>
-                                        <div>
-                                            <h6>Control por Voz</h6>
-                                            <p>Comandos de voz</p>
-                                        </div>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="row g-0 h-100">
+                <!-- Lado Izquierdo - Branding -->
+                <div class="col-lg-6">
+                    <div class="brand-side">
+                        <div class="brand-logo">
+                            <img src="{{ url_for('static', filename='logos/Logo_Sena.png') }}" 
+                                 alt="Logo SENA" 
+                                 class="brand-logo-img">
+                        </div>
+                        
+                        <h1>GIL</h1>
+                        <p>Gestión inteligente de Laboratorios</p>
+                        
+                        <div class="feature-list">
+                            <!-- Fila Superior -->
+                            <div class="feature-row">
+                                <div class="feature-item">
+                                    <i class="bi bi-camera-fill"></i>
+                                    <div>
+                                        <h6>Búsqueda Visual</h6>
+                                        <p>Encuentra equipos con IA</p>
                                     </div>
                                 </div>
                                 
-                                <!-- Fila Inferior -->
-                                <div class="feature-row">
-                                    <div class="feature-item">
-                                        <i class="bi bi-person-badge"></i>
-                                        <div>
-                                            <h6>Acceso Facial</h6>
-                                            <p>Login sin contraseña</p>
-                                        </div>
+                                <div class="feature-item">
+                                    <i class="bi bi-mic-fill"></i>
+                                    <div>
+                                        <h6>Control por Voz</h6>
+                                        <p>Comandos de voz</p>
                                     </div>
-                                    
-                                    <div class="feature-item">
-                                        <i class="bi bi-robot"></i>
-                                        <div>
-                                            <h6>IA de Inventario</h6>
-                                            <p>Gestión inteligente</p>
-                                        </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fila Inferior -->
+                            <div class="feature-row">
+                                <div class="feature-item">
+                                    <i class="bi bi-box-seam-fill"></i>
+                                    <div>
+                                        <h6>Gestión inteligente</h6>
+                                        <p>Inventario automatizado</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <i class="bi bi-bar-chart-fill"></i>
+                                    <div>
+                                        <h6>Reportes</h6>
+                                        <p>Análisis en tiempo real</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Lado Derecho - Formulario -->
-                    <div class="col-lg-6">
-                        <div class="form-side">
+                </div>
+                
+                <!-- Lado Derecho - Formulario -->
+                <div class="col-lg-6">
+                    <div class="form-side">
+                        <div class="form-container">
                             <div class="form-header">
                                 <h2>Iniciar Sesión</h2>
-                                <p>Ingresa tus credenciales para continuar</p>
+                                <p>Accede al sistema de gestión</p>
                             </div>
                             
-                            <!-- Mensajes Flash -->
                             {% with messages = get_flashed_messages(with_categories=true) %}
                                 {% if messages %}
                                     {% for category, message in messages %}
-                                        <div class="alert alert-{{ 'danger' if category=='error' else category }} alert-dismissible fade show">
+                                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                                             {{ message }}
                                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                         </div>
@@ -87,16 +86,15 @@
                                 {% endif %}
                             {% endwith %}
                             
-                            <!-- Formulario -->
                             <form method="POST" action="{{ url_for('login') }}">
                                 <div class="mb-3">
                                     <label for="user_id" class="form-label">
-                                        <i class="bi bi-person-badge me-2"></i>Usuario
+                                        <i class="bi bi-person-badge me-2"></i>ID de Usuario
                                     </label>
                                     <input type="text" class="form-control" id="user_id" name="user_id" 
-                                           placeholder="Ej: INST001" required autofocus>
+                                           placeholder="Ingresa tu ID de usuario" required autofocus>
                                 </div>
-
+                                
                                 <div class="mb-4">
                                     <label for="password" class="form-label">
                                         <i class="bi bi-key me-2"></i>Contraseña
@@ -105,34 +103,29 @@
                                            placeholder="Ingresa tu contraseña" required>
                                 </div>
 
-                                <div class="row g-2 mb-3">
-                                    <div class="col-9">
-                                        <button type="submit" class="btn-login">
-                                            <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
-                                        </button>
+                                <div class="auth-actions mb-4">
+                                    <button type="submit" class="btn btn-login btn-lg w-100 mb-3">
+                                        <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+                                    </button>
+                                    
+                                    <div class="divider">
+                                        <span>o</span>
                                     </div>
-                                    <div class="col-3">
-                                        <button type="button" class="btn-facial w-100" data-bs-toggle="modal" data-bs-target="#facialModal" title="Reconocimiento Facial">
-                                            <i class="bi bi-camera-video"></i>
-                                        </button>
-                                    </div>
+                                    
+                                    <button type="button" class="btn btn-facial btn-lg w-100 mb-3" data-bs-toggle="modal" data-bs-target="#facialModal" aria-label="Iniciar sesión con reconocimiento facial">
+                                        <i class="bi bi-camera-video me-2"></i>Reconocimiento Facial
+                                    </button>
                                 </div>
 
-                                <div class="forgot-password">
-                                    <a href="{{ url_for('recuperar_contrasena') }}">
+                                <div class="auth-alternatives">
+                                    <a href="{{ url_for('registro') }}" class="btn btn-outline btn-lg w-100 mb-2">
+                                        <i class="bi bi-person-plus me-2"></i>Crear Cuenta
+                                    </a>
+                                    <a href="{{ url_for('recuperar_contrasena') }}" class="btn btn-outline btn-lg w-100">
                                         <i class="bi bi-question-circle me-1"></i>¿Olvidaste tu contraseña?
                                     </a>
                                 </div>
                             </form>
-                            
-                            <div class="divider"></div>
-                            
-                            <div class="text-center">
-                                <p class="mb-3 text-muted-small">¿No tienes una cuenta?</p>
-                                <a href="{{ url_for('registro') }}" class="btn-outline btn-block text-decoration-none">
-                                    <i class="bi bi-person-plus me-2"></i>Crear Cuenta
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>

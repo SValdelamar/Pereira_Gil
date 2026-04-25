@@ -2,28 +2,18 @@
 {% set title = 'Registrar Items (Visión)' %}
 {% block content %}
 
-<!-- Breadcrumb -->
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('entrenamiento_visual') }}"><i class="bi bi-robot me-1"></i>IA Visual</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Registrar Objetos</li>
-    </ol>
-</nav>
-
-<!-- Header Premium -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-    <div class="card-body p-4">
+<!-- Header Estándar -->
+<div class="card border-0 shadow-lg mb-4 module-header-standard">
+    <div class="card-body">
         <div class="row align-items-center">
             <div class="col-lg-8">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="header-icon-circle">
+                <div class="d-flex align-items-center">
+                    <div class="module-header-icon">
                         <i class="bi bi-camera-video-fill"></i>
                     </div>
                     <div>
-                        <h1 class="h3 mb-2 fw-bold">Registrar Objetos para IA Visual</h1>
-                        <p class="mb-0 text-muted">
-                            <i class="bi bi-images me-2"></i>Captura 6 vistas desde diferentes ángulos para entrenar el sistema de reconocimiento
-                        </p>
+                        <h1 class="module-header-title">Registrar Objetos para IA Visual</h1>
+                        <p class="module-header-description">Captura 6 vistas desde diferentes ángulos para entrenar el sistema de reconocimiento</p>
                     </div>
                 </div>
             </div>
@@ -36,11 +26,12 @@
     </div>
 </div>
 
+<!-- Formulario de Registro -->
 <div class="row g-4">
   <div class="col-12 col-lg-7">
     <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0 fw-bold text-sena-primary">
+      <div class="card-header border-0 module-card-header">
+        <h5 class="mb-0 fw-semibold module-card-title">
           <i class="bi bi-plus-circle-fill me-2"></i>Nuevo Registro
         </h5>
       </div>
@@ -88,23 +79,25 @@
             <textarea id="objDescripcion" class="form-control" rows="2" placeholder="Características relevantes para el reconocimiento visual"></textarea>
           </div>
         </div>
-        <div class="mt-3 d-flex gap-2">
-          <button class="btn btn-sena" id="btnCrearObjeto"><i class="bi bi-plus-lg me-1"></i>Crear registro</button>
+        <div class="mt-3">
+          <button class="dt-btn-action dt-btn-primary w-100" id="btnCrearObjeto">
+            <i class="bi bi-plus-lg me-1"></i>Crear registro
+          </button>
         </div>
       </div>
     </div>
 
     <div class="card border-0 shadow-sm mt-4">
-      <div class="card-header bg-light border-0">
+       <div class="card-header border-0 module-card-header">
         <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0 fw-bold text-sena-primary">
+          <h5 class="mb-0 fw-semibold module-card-title">
             <i class="bi bi-camera-fill me-2"></i>Capturar o Subir Imagen
           </h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary btn-sm" id="btnAbrirCam" title="Activar cámara">
+          <div class="dt-actions">
+            <button class="dt-btn-action dt-btn-primary" id="btnAbrirCam" title="Activar cámara">
               <i class="bi bi-camera-video-fill me-1"></i>Activar Cámara
             </button>
-            <label class="btn btn-outline-primary btn-sm mb-0" for="fileImagen">
+            <label class="dt-btn-action dt-btn-outline-primary mb-0" for="fileImagen">
               <i class="bi bi-upload me-1"></i>Subir
             </label>
             <input type="file" id="fileImagen" accept="image/*" class="d-none">
@@ -143,9 +136,13 @@
             <input id="imgCarpeta" class="form-control mb-2 d-none" placeholder="Carpeta por nombre (auto)">
             <label class="form-label">Notas</label>
             <textarea id="imgNotas" class="form-control" rows="3"></textarea>
-            <div class="mt-3 d-flex gap-2">
-              <button class="btn btn-outline-sena" id="btnCapturar"><i class="bi bi-camera"></i> Capturar</button>
-              <button class="btn btn-sena" id="btnGuardarImagen"><i class="bi bi-save"></i> Guardar imagen</button>
+            <div class="mt-3 dt-actions">
+              <button class="dt-btn-action dt-btn-outline-secondary" id="btnCapturar">
+                <i class="bi bi-camera"></i> Capturar
+              </button>
+              <button class="dt-btn-action dt-btn-primary" id="btnGuardarImagen">
+                <i class="bi bi-save"></i> Guardar imagen
+              </button>
             </div>
             <div class="mt-3">
               <div class="small text-muted mb-1">Progreso de vistas guardadas</div>
@@ -166,8 +163,8 @@
   </div>
   <div class="col-12 col-lg-5">
     <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-light border-0">
-        <h5 class="mb-0 fw-bold text-sena-primary">
+      <div class="card-header border-0 module-card-header">
+        <h5 class="mb-0 fw-semibold module-card-title">
           <i class="bi bi-collection-fill me-2"></i>Registros Existentes
         </h5>
       </div>
@@ -203,7 +200,7 @@
     if (typeof flash === 'function') {
       flash(texto, tipo, duracion);
     } else {
-      alert(texto);
+      Logger.showUserMessage(texto, tipo, duracion);
     }
   }
   
@@ -240,7 +237,8 @@
   let currentObjetoId = null;
   const vistasRequeridas = ['frontal', 'posterior', 'superior', 'inferior', 'lateral_derecha', 'lateral_izquierda'];
   const vistasGuardadas = new Set();
-  
+
+    
   // ========================================
   // CREAR OBJETO
   // ========================================
@@ -307,7 +305,7 @@
         mostrarMensaje(`❌ ${data?.message || 'Error creando objeto'}`, 'danger');
       }
     } catch(e) {
-      console.error('[ERROR] Crear objeto:', e);
+      Logger.error('[ERROR] Crear objeto:', e);
       mostrarMensaje('❌ Error inesperado al crear objeto', 'danger');
     }
   });
@@ -360,10 +358,10 @@
       document.getElementById('btnCapturar').innerHTML = '<i class="bi bi-camera"></i> Capturar';
       
       mostrarMensaje('📷 Cámara activada correctamente', 'success', 2000);
-      console.log('[CAMERA] Cámara activada correctamente');
+      Logger.info('Cámara activada correctamente');
       
     } catch(err) {
-      console.error('[ERROR] Acceso a cámara:', err);
+      Logger.error('[ERROR] Acceso a cámara:', err);
       
       let mensaje = '📷 No se pudo acceder a la cámara. ';
       
@@ -460,12 +458,22 @@
         
         if (!resCreate.ok) {
           if (dataCreate?.duplicado || dataCreate?.existe) {
-            const usar = confirm(`${dataCreate.message}\n\n¿Desea usar el objeto existente para agregar la imagen?`);
-            if (usar && dataCreate.id) {
-              id = dataCreate.id;
-              currentObjetoId = id;
+            const confirmed = await Logger.confirm(
+                'Objeto Duplicado',
+                `<strong>${dataCreate.message}</strong><br><br><small class="text-muted">Puedes usar el objeto existente para agregar esta imagen o cancelar la operación.</small>`,
+                'warning',
+                'Usar Objeto Existente'
+            );
+
+            if (confirmed) {
+                // Continuar con el objeto existente
+                if (dataCreate.id) {
+                  id = dataCreate.id;
+                  currentObjetoId = id;
+                  // El flujo continúa naturalmente al resto de la función
+                }
             } else {
-              return;
+                return;
             }
           } else {
             mostrarMensaje(`❌ ${dataCreate?.message || 'Error creando objeto'}`, 'danger');
@@ -533,7 +541,7 @@
       }
       
     } catch(e) {
-      console.error('[ERROR] Guardar imagen:', e);
+      Logger.error('[ERROR] Guardar imagen:', e);
       mostrarMensaje('❌ Error inesperado al guardar imagen', 'danger');
     }
   });
@@ -577,7 +585,7 @@
         });
         // Agregar botón de ver detalles
         const btnVer = document.createElement('button');
-        btnVer.className = 'btn btn-sm btn-outline-primary me-2';
+        btnVer.className = 'dt-btn-action dt-btn-outline-primary me-2';
         btnVer.innerHTML = '<i class="bi bi-eye"></i>';
         btnVer.title = 'Ver detalles e imágenes';
         btnVer.addEventListener('click', (e)=>{
@@ -610,17 +618,17 @@
             // Mostrar mensaje informativo
             const count = dataVistas.count || 0;
             if(count > 0) {
-              console.log(`✓ Objeto seleccionado: ${o.nombre} - ${count}/6 vistas registradas`);
+              Logger.info(`Objeto seleccionado: ${o.nombre} - ${count}/6 vistas registradas`);
             }
           } catch(err) {
-            console.warn('No se pudieron cargar las vistas del objeto:', err);
+            Logger.warn('No se pudieron cargar las vistas del objeto: ' + err.message);
             vistasGuardadas.clear();
             refreshChecklist();
           }
         });
         ul.appendChild(li);
       });
-    }catch(e){ console.warn(e); }
+    }catch(e){ Logger.warn('Error cargando objetos: ' + e.message); }
   }
   document.getElementById('buscarObj').addEventListener('input', (e)=>cargarObjetos(e.target.value));
   
@@ -632,7 +640,7 @@
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('[ERROR] Error en respuesta:', errorText);
+        Logger.error('[ERROR] Error en respuesta:', errorText);
         mostrarMensaje('❌ Error al cargar objeto: ' + errorText, 'danger');
         return;
       }
@@ -674,7 +682,7 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+              <button type="button" class="dt-btn-action dt-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
           </div>
         </div>
@@ -688,7 +696,7 @@
         col.className = 'col-md-4';
         col.innerHTML = `
           <div class="card">
-            <img src="/imagenes_objeto/${img.id}" class="card-img-top" alt="${img.vista || 'Imagen'}" style="height: 200px; object-fit: cover;">
+            <img src="/imagenes_objeto/${img.id}" class="card-img-top objeto-imagen" alt="${img.vista || 'Imagen'}">
             <div class="card-body p-2">
               <p class="mb-1 small"><strong>Vista:</strong> ${img.vista || 'No especificada'}</p>
               <p class="mb-0 small text-muted">${img.notas || ''}</p>
@@ -707,7 +715,7 @@
         modal.remove();
       });
     } catch(e) {
-      console.error('[ERROR] Ver detalles objeto:', e);
+      Logger.error('[ERROR] Ver detalles objeto:', e);
       mostrarMensaje('❌ Error cargando detalles del objeto', 'danger');
     }
   }
@@ -730,8 +738,7 @@
   // Cargar listado al iniciar
   cargarObjetos();
   
-  // Log de inicialización
-  console.log('[OBJETOS REGISTRAR] Módulo inicializado correctamente');
+  Logger.debug('Módulo de registro de objetos inicializado');
 })();
 </script>
 
@@ -856,8 +863,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary btn-retry-camara" data-bs-dismiss="modal">
+        <button type="button" class="dt-btn-action dt-btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="dt-btn-action dt-btn-primary btn-retry-camara" data-bs-dismiss="modal">
           <i class="bi bi-camera-video me-2"></i>Intentar Activar Cámara
         </button>
       </div>

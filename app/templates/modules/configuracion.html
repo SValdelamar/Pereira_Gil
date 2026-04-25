@@ -1,106 +1,112 @@
 {% extends 'base.html' %}
 {% set title = 'Configuración del Sistema' %}
+
 {% block content %}
+<div class="ui-page-container">
 
-<!-- Header -->
-<div class="card border-0 shadow-sm mb-4 module-header">
-  <div class="card-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h1 class="h3 mb-1 text-white fw-bold"><i class="bi bi-gear me-2"></i>Configuración del Sistema</h1>
-        <p class="mb-0 text-white opacity-90">Parámetros y ajustes del sistema</p>
-      </div>
-      <div>
-        <span class="badge rounded-pill px-3 py-2 badge-disponible">
-          <i class="bi bi-check-circle me-1"></i>Sistema Activo
-        </span>
-      </div>
+    <!-- 1. Header Institucional (CMD) -->
+    <div class="ui-header-card">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="module-header-title">Configuración del Sistema</h1>
+                <p class="module-header-description">Gestión de parámetros globales, variables de entorno y ajustes técnicos</p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <span class="badge bg-white text-success px-3 py-2 shadow-sm rounded-pill">
+                    <i class="bi bi-shield-check me-2"></i>NÚCLEO ACTIVO
+                </span>
+            </div>
+        </div>
     </div>
-  </div>
+
+    {% if configuraciones and configuraciones|length > 0 %}
+    <!-- 2. Barra de Búsqueda (CMD) -->
+    <div class="ui-filter-card">
+        <div class="row">
+            <div class="col-md-12">
+                <label class="ui-label">Búsqueda de Parámetros</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="filtroConfig" class="ui-input ps-0" placeholder="Buscar por clave, valor o descripción técnica...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Tabla de Configuraciones (CMD) -->
+    <div class="ui-data-card">
+        <div class="card-header">
+            <h5 class="card-title"><i class="bi bi-code-square"></i> Variables de Configuración</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="ui-table-premium" id="tablaConfig">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Clave / Parámetro</th>
+                        <th style="width: 25%;">Valor Actual</th>
+                        <th style="width: 45%;">Descripción y Propósito</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in configuraciones %}
+                    <tr data-clave="{{ c.clave|lower }}" data-desc="{{ c.descripcion|lower }}">
+                        <td>
+                            <div class="fw-bold text-dark">{{ c.clave }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-sena-soft text-sena fw-mono p-2 border">
+                                {{ c.valor }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="small text-muted" style="line-height: 1.4;">{{ c.descripcion }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-light border-0 p-3">
+            <div class="alert alert-info mb-0 py-2 small border-0 bg-transparent">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Nota de Seguridad:</strong> Estas variables son de solo lectura desde esta interfaz. Contacte al administrador para cambios en el núcleo.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Filtrado Dinámico CMD
+        const filtro = document.getElementById('filtroConfig');
+        const rows = document.querySelectorAll('#tablaConfig tbody tr');
+
+        filtro.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            rows.forEach(row => {
+                const coincide = row.dataset.clave.includes(val) || row.dataset.desc.includes(val);
+                row.classList.toggle('d-none', !coincide);
+            });
+        });
+    </script>
+
+    {% else %}
+    <!-- Estado Vacío CMD -->
+    <div class="ui-data-card p-5 text-center">
+        <div class="mb-4">
+            <i class="bi bi-exclamation-octagon text-warning" style="font-size: 4rem; opacity: 0.3;"></i>
+        </div>
+        <h4 class="fw-bold text-dark">No hay configuraciones activas</h4>
+        <p class="text-muted mx-auto" style="max-width: 450px;">
+            El núcleo del sistema no ha reportado variables de configuración. Verifique la conexión con la base de datos o inicialice los parámetros maestros.
+        </p>
+        <div class="mt-4">
+            <code>crear_tabla_configuracion.py</code>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 
-{% if configuraciones and configuraciones|length > 0 %}
-<!-- Buscador -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body p-4">
-    <div class="d-flex align-items-center mb-3">
-      <i class="bi bi-funnel me-2 filter-section-title"></i>
-      <h6 class="mb-0 fw-semibold filter-section-title">Filtros de Búsqueda</h6>
-    </div>
-    <div>
-      <label class="filter-label">Búsqueda</label>
-      <div class="input-group">
-        <span class="input-group-text input-group-icon"><i class="bi bi-search"></i></span>
-        <input type="text" id="filtroConfig" class="form-control" placeholder="Buscar por parámetro o descripción...">
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Tabla de Configuraciones -->
-<div class="card border-0 shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tablaConfig">
-        <thead class="table-light">
-          <tr>
-            <th class="w-30">Parámetro</th>
-            <th class="w-25">Valor</th>
-            <th class="w-45">Descripción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in configuraciones %}
-          <tr data-clave="{{ c.clave|lower }}" data-desc="{{ c.descripcion|lower }}">
-            <td>
-              <strong class="text-sena-primary">{{ c.clave }}</strong>
-            </td>
-            <td>
-              <code class="px-2 py-1 rounded bg-sena-light text-sena-primary border border-success border-opacity-25">{{ c.valor }}</code>
-            </td>
-            <td class="text-muted">
-              <small>{{ c.descripcion }}</small>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <div class="card-footer border-0 bg-light-gradient">
-    <small>
-      <i class="bi bi-info-circle me-1 text-sena-light"></i>
-      <strong class="text-sena-primary">Nota:</strong> Para modificar estos valores, contacte al administrador del sistema
-    </small>
-  </div>
-</div>
-
-<script>
-// Filtro de búsqueda
-const filtro = document.getElementById('filtroConfig');
-const tbody = document.querySelector('#tablaConfig tbody');
-
-filtro.addEventListener('input', () => {
-  const termino = filtro.value.toLowerCase();
-  
-  [...tbody.rows].forEach(row => {
-    const clave = row.dataset.clave || '';
-    const desc = row.dataset.desc || '';
-    const coincide = clave.includes(termino) || desc.includes(termino);
-    row.classList.toggle('d-none', !coincide);
-  });
-});
-</script>
-
-{% else %}
-<div class="card shadow-sm">
-  <div class="card-body text-center py-5">
-    <i class="bi bi-exclamation-triangle fs-1 text-warning"></i>
-    <h4 class="mt-3">No hay configuraciones disponibles</h4>
-    <p class="text-muted">La tabla de configuración está vacía o no existe.</p>
-    <p class="text-muted">Ejecute el script <code>crear_tabla_configuracion.py</code> para inicializar las configuraciones.</p>
-  </div>
-</div>
-{% endif %}
-
+<style>
+    .fw-mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.85rem; }
+</style>
 {% endblock %}
